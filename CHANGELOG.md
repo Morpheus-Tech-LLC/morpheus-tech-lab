@@ -7,6 +7,11 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
 
 ## [Unreleased]
 
+## [1.5.6] — 2026-11-10
+
+### Changed
+- Moved inline styles from the company panel and bottom control bar into stylesheets.
+
 ## [1.5.6] — 2026-11-09
 
 ### Changed

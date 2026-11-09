@@ -18,4 +18,14 @@
   --color-title: rgba(255, 162, 0, 0.7);    /* orange for titles */
   --color-state-title: #4c94ec;       /* unique title color for State box */
   --color-state-value: #8cc6ff;       /* unique value color for State box */
+
+  --color-company-modal-border: rgba(255, 140, 0, 0.6);
+  --color-company-modal-glow: rgba(255, 140, 0, 0.3);
+  --color-company-modal-shadow: rgba(0, 0, 0, 0.5);
+  --color-company-modal-product: #c0c8d0;
+  --color-company-modal-link: rgba(200, 220, 255, 0.95);
+  --color-company-modal-divider: rgba(140, 140, 150, 0.25);
+  --color-company-modal-texture: rgba(255, 255, 255, 0.02);
+  --color-company-modal-texture-highlight: rgba(255, 255, 255, 0.03);
+  --color-company-modal-ownership-background: rgba(25, 25, 30, 0.4);
 }
