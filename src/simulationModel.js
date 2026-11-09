@@ -31,7 +31,7 @@ export async function initSimulation() {
     state.sliceIndex = Math.floor((simSize - 1) / 2); // Ensure valid index (0 to simSize - 1)
     // Generate Simulation Data - History (Game of Life, Rule 30, Sine Wave, or Sandpile)
     console.log(`initSimulation: About to call generateSimulation with useRule30=${state.useRule30}, useRule30_2D=${state.useRule30_2D}, useSineWave=${state.useSineWave}, useSandpile=${state.useSandpile}`);
-    const [simulationData, clockData] = await generateSimulation(
+    const simulationData = await generateSimulation(
       simSize,
       simGenerations,
       simSeed,
@@ -43,7 +43,6 @@ export async function initSimulation() {
     );
     console.log(`initSimulation: generateSimulation completed, history length: ${simulationData.length}`);
     state.simulationData = simulationData;
-    state.clockData = clockData;
 
     const depth = state.useRule30 ? 1 : simSize;
     state.simulationModel =  await buildSimulationModel(simSize, depth);  // Simulation Model

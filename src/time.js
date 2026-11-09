@@ -262,35 +262,3 @@ export function generateClockFrame(size, gen, totalGens) {
 
   return frame;
 }
-
-export async function generateClockHistory(size, generations) {
-  const frames = [];
-
-  for (let gen = 0; gen < generations; gen++) {
-    const matrix = generateClockFrame(size, gen, generations);
-
-    // Use OffscreenCanvas for efficient bitmap creation
-    const offscreen = new OffscreenCanvas(size, size);
-    const ctx = offscreen.getContext("2d");
-    const imageData = ctx.createImageData(size, size);
-
-    for (let y = 0; y < size; y++) {
-      for (let x = 0; x < size; x++) {
-        const val = matrix[y][x];
-        const idx = (y * size + x) * 4;
-        imageData.data[idx]     = val ? 255 : 0;
-        imageData.data[idx + 1] = val ? 255 : 0;
-        imageData.data[idx + 2] = val ? 255 : 0;
-        imageData.data[idx + 3] = val ? 255 : 0;
-      }
-    }
-
-    ctx.putImageData(imageData, 0, 0);
-
-    // ✅ Convert canvas → ImageBitmap (this is async)
-    const bitmap = await createImageBitmap(offscreen);
-    frames.push(bitmap);
-  }
-
-  return frames;
-}
