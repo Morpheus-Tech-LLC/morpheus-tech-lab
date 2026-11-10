@@ -2,7 +2,8 @@
 
 An open-source (Apache-2.0) cellular-automata, math-engine and simulator project by Morpheus
 Tech LLC, built with the community. Visitors use interactive 3D cellular automata: Game of
-Life 3D, Rule 30, an Abelian sandpile and a sine wave. They run in the browser on the CPU. The
+Life 3D, Rule 30, an Abelian sandpile and a sine wave. They run in the browser: Game of Life 3D
+and Rule 30 on the GPU with WebGPU where it's available, everything else on the CPU. The
 live demos are at **https://lab.morpheustech.net**, linked from the company site.
 
 **Before writing any code, read [AGENTS.md](AGENTS.md).** It is the coding contract, including the
@@ -47,15 +48,21 @@ release.
 ## Branches and versions
 
 `main` is the protected release branch, `development` the integration branch every pull request
-targets, and `gh-pages` the deployed build (never edited by hand). Edit only on `development` or
-a feature branch off it: check the branch before the first edit, switch away from `main` if a
-deploy left it checked out, and finish on `development`. The annotated tag `vX.Y.Z` is
-the version; `package.json`, the lockfile root and the README's Release line mirror it. The
-full rules are in [RELEASING.md](RELEASING.md).
+targets, and `gh-pages` the deployed build (never edited by hand). Contributors work from a fork,
+on a feature branch off `upstream/development`. A pull request resolves exactly one issue, and
+lists each issue with its relation (only `Resolves`, `Related to`, `Opens`), which GitHub
+doesn't act on in a pull request into `development`; the release pull request into `main`
+lists `Closes #N` for every issue a shipped pull request marked `Resolves`. Maintainers release
+from a clone of the lab itself. Edit only on `development` or a feature branch off it: check
+the branch before the first edit, switch away from `main` if a deploy left it checked out, and
+never finish on `main`. The annotated tag `vX.Y.Z` is the version; `package.json`, the lockfile
+root and the README's Release line mirror it. The full rules are in [RELEASING.md](RELEASING.md).
 
 ## Plans and process
 
 The roadmap is [ROADMAP.md](ROADMAP.md); plans also live in this repo's GitHub issues and
-Discussions. The code of conduct is [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), and
+Discussions. Work starts from an issue a maintainer has labelled `approved`, sized for one pull
+request, and claimed with a comment giving a date and a confidence; only a small fix, such as a
+typo or a broken link, comes without one. [CONTRIBUTING.md](CONTRIBUTING.md) has the details. The code of conduct is [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), and
 vulnerabilities are reported privately, as [SECURITY.md](SECURITY.md) says. Agents edit
 files only and do no version control unless asked: maintainers commit, merge, tag and deploy.

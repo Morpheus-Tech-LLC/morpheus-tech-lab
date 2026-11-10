@@ -16,7 +16,7 @@
 |----------------------|--------------------------|
 | **Creator:** | <a href="https://github.com/wmauz677" target="_blank" rel="noopener noreferrer">Weston Mauz</a> |
 | **Company:** | Morpheus Tech LLC |
-| **Release:** | v1.5.6 - November 9th, 2026 |
+| **Release:** | v1.6.0 - November 10th, 2026 |
 | **Lab** | <a href="https://lab.morpheustech.net/" target="_blank" rel="noopener noreferrer">lab.morpheustech.net</a> |
 | **Company** | <a href="https://morpheustech.net/" target="_blank" rel="noopener noreferrer">morpheustech.net</a> |
 
@@ -106,8 +106,35 @@ grid over 100 generations. The whole run is computed before it plays, so you can
 it backwards instantly.
 
 ### Limits
-Everything runs on your CPU. A 100×100×100 grid (one million cells) over more than 100
-generations is more than a typical laptop handles comfortably.
+**GPU or CPU.** Game of Life 3D and Rule 30 (1D and 2D) compute on your GPU with WebGPU when
+your browser has it, and on your CPU when it doesn't; Sine Wave and Abelian Sandpile always run
+on the CPU. Both give exactly the same generations, cell for cell. The chip button in the
+control bar says where the next run computes (GPU or CPU) and turns GPU compute off or on; your
+browser remembers the choice. If the GPU can't be used, the button is disabled and says why.
+
+**Which browsers have WebGPU.** Chrome and Edge 113 and later on Windows, macOS and ChromeOS
+(121 and later on Android), Safari 26 and later, and Firefox 141 and later on Windows (later
+versions add macOS). On Linux most browsers still keep it behind a flag. WebGPU only runs on a
+secure page: HTTPS, or `localhost` when you run the lab yourself.
+
+**Measured.** 100×100×100 grids over 100 generations, in Chromium on a laptop with an AMD
+Ryzen 5 5500U and its integrated Radeon GPU:
+
+| Run | CPU | GPU |
+|---|---|---|
+| Game of Life 3D, default seed (a 10³ cube) | 6.4 s | 0.6 s |
+| Game of Life 3D, 30% of all cells alive | 5–6 min | 5–6 s |
+| Rule 30 2D | 0.6 s | 0.1 s |
+
+**Where it stops now.** With the GPU, computing the generations is no longer the limit. The
+whole run is kept in memory so you can scrub and reverse it: one byte per cell per generation,
+plus about 40 bytes of JavaScript memory per live cell per generation for drawing. A browser tab
+gets about 4 GB of JavaScript memory, so a run with around 100 million live cells in total
+(summed over all generations) is the most a tab holds. A dense 100³ run (36 million live cells
+in total) takes about 1.5 GB and fits; the same density at 150³ runs the tab out of memory.
+Drawing slows first: a frame with half a million live cells takes about 0.1 s to draw, so a
+dense 100³ run plays back at about 9 frames a second. On the CPU, a 100³ grid over more than
+100 generations is still more than a typical laptop handles comfortably.
 
 ## 5. Next Steps
 More demos are coming to the lab. Feedback is welcome, so please reach out or tag us in your

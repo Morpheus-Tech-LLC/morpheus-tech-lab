@@ -7,6 +7,24 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
 
 ## [Unreleased]
 
+## [1.6.0] — 2026-11-10
+
+### Added
+- Game of Life 3D and Rule 30 compute on the GPU with WebGPU where the browser has it, with the
+  same generations, many times faster; a toggle in the controls shows GPU or CPU, says why when
+  the GPU can't be used, and the CPU takes over if the GPU fails (#28).
+
+### Changed
+- Contributing works from a fork: `CONTRIBUTING.md` sets up an `upstream` remote, keeps a branch
+  current, asks for commit subjects of 72 characters or less and says what happens after a pull
+  request is opened; each pull request resolves one issue and names its relation to any others
+  (Related to, Opens), and the release closes the resolved ones; and the pull-request template
+  asks what changed, how it was tested and for screenshots (#30).
+- Work starts from an issue a maintainer has labelled `approved`, sized for one pull request:
+  `CONTRIBUTING.md` explains how and on what criteria a maintainer approves an issue, the idea
+  form's new "Done when" field and how to claim an issue with a date and a confidence, and every
+  pull request resolves an approved issue, except a small fix (#32).
+
 ## [1.5.6] — 2026-11-09
 
 ### Changed

@@ -7,6 +7,8 @@ body:
       value: |
         Thanks for reporting a bug. For a security vulnerability, don't open an issue: follow
         [SECURITY.md](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/blob/main/SECURITY.md).
+
+        Work on a fix starts once a maintainer approves the bug with the `approved` label.
   - type: textarea
     id: what-happened
     attributes:
