@@ -21,6 +21,16 @@ Never in a public issue. Report it privately, as [SECURITY.md](SECURITY.md) says
 
 Requires Node.js 20.19 or newer.
 
+You work from a fork. Fork the lab on GitHub, clone your fork, and add the lab as `upstream`:
+
+```sh
+git clone https://github.com/<your-username>/morpheus-tech-lab.git
+cd morpheus-tech-lab
+git remote add upstream https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab.git
+```
+
+`origin` is your fork, where you push; `upstream` is the lab, where your branches start. Then:
+
 ```sh
 npm ci          # install exactly what package-lock.json pins
 npm run dev     # dev server at http://localhost:5180
@@ -55,13 +65,47 @@ badge says where the next run computes.
 
 ## Make a change
 
-1. Branch from `development`: `git switch development && git pull && git switch -c my-change`.
+One issue, one pull request: a pull request resolves exactly one issue, all of it. If an issue
+is too big for one pull request, ask on the issue for it to be split into smaller issues
+before you start.
+
+1. Branch from the lab's `development`:
+   ```sh
+   git fetch upstream && git switch --no-track -c my-change upstream/development
+   ```
 2. Make your change. Read [AGENTS.md](AGENTS.md) for the code layout, patterns and invariants,
    and [ARCHITECTURE.md](ARCHITECTURE.md) for how the pieces fit.
 3. Add a line under `## [Unreleased]` in [CHANGELOG.md](CHANGELOG.md) saying what changed, for
    a reader of the release notes.
-4. Open a pull request against **`development`**, never `main`. Two checks run on it: `build`
-   (`npm ci` and `npm run build`) and `DCO` (below). Both must pass before it can merge.
+4. Run `npm run build`, commit with `git commit -s` (below), and push the branch to your fork:
+   `git push -u origin my-change`. Keep each commit's subject line to 72 characters or less:
+   GitHub cuts a longer one short in the pull request's title.
+5. Open a pull request from your fork's branch against **`development`**, never `main`, and
+   fill in the template. List each issue, one per line, with how the pull request relates to
+   it, using only these: `Resolves #123` for the one issue it does in full, `Related to #124`
+   for an issue it touches but doesn't work on, and `Opens #125` for a follow-up issue you
+   opened. GitHub doesn't act on these in a pull request into `development`. At release, the
+   release pull request closes the issue marked `Resolves`.
+
+### Keep your branch current
+
+When `development` moves on, rebase your branch onto it and update your pull request:
+
+```sh
+git fetch upstream && git rebase upstream/development
+git push --force-with-lease
+```
+
+`--force-with-lease` refuses to overwrite commits on your fork that you haven't fetched.
+
+## What happens next
+
+1. The `build` (`npm ci` and `npm run build`) and `DCO` (below) checks run. On a first-time
+   contributor's pull request, they wait until a maintainer approves them. Both must pass
+   before it can merge.
+2. A maintainer reviews it. Push any changes they ask for to the same branch. Then they merge
+   it into `development`.
+3. The change goes live at the next release, and the issue it marks `Resolves` closes then.
 
 ## Sign off your commits (DCO)
 
@@ -76,7 +120,8 @@ git commit -s -m "Add a Langton's ant demo"
 
 This adds a `Signed-off-by: Your Name <you@example.com>` line, which must match the commit's
 author. A required check enforces it on every pull request. To sign off commits you already
-made, run `git rebase --signoff development` and force-push your branch.
+made, run `git fetch upstream && git rebase --signoff upstream/development`, then
+`git push --force-with-lease`.
 
 ## License and originality
 
