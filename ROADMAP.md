@@ -13,9 +13,11 @@ and none of them has a date.
   [issues](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/issues) and
   [Discussions](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/discussions).
 - **Work that is ready to pick up** is labelled
+  [`approved`](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/labels/approved), and
+  approved work that suits a first contribution is also labelled
   [`good first issue`](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/labels/good%20first%20issue).
-- **To build something**, read [CONTRIBUTING.md](CONTRIBUTING.md) first. For anything large,
-  open an issue so we can agree on the shape before you write it.
+- **To build something**, read [CONTRIBUTING.md](CONTRIBUTING.md) first. Work starts from an
+  issue a maintainer has approved.
 
 ## The engine
 
@@ -40,5 +42,5 @@ nothing imports them yet. The restyle imports and uses them; it does not edit th
 ## Community
 
 - **GitHub Discussions**, for questions, ideas and showing what you made with the lab.
-- **`good first issue` labels** on work that is ready to pick up, so new contributors have a
-  clear place to start.
+- **`good first issue` labels** on approved work that suits a first contribution, so new
+  contributors have a clear place to start.

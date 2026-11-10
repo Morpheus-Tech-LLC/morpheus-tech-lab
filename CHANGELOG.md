@@ -18,6 +18,10 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
   request is opened; each pull request resolves one issue and names its relation to any others
   (Related to, Opens), and the release closes the resolved ones; and the pull-request template
   asks what changed, how it was tested and for screenshots (#30).
+- Work starts from an issue a maintainer has labelled `approved`, sized for one pull request:
+  `CONTRIBUTING.md` explains how and on what criteria a maintainer approves an issue, the idea
+  form's new "Done when" field and how to claim an issue with a date and a confidence, and every
+  pull request resolves an approved issue, except a small fix (#32).
 
 ## [1.5.6] — 2026-11-09
 

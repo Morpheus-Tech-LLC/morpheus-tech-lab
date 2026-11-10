@@ -8,7 +8,7 @@ pull requests, DCO sign-off, changelog) is in [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ```
 .github/workflows/ci.yml The `build` (npm ci, npm run build) and `DCO` (sign-off) checks, required on main
-.github/ISSUE_TEMPLATE/  Issue forms: bug_report.yml, idea.yml; config.yml turns off blank issues and links Discussions (GitHub adds the security-report entry itself)
+.github/ISSUE_TEMPLATE/  Issue forms: bug_report.yml, idea.yml (with "Done when"); config.yml turns off blank issues and links Discussions (GitHub adds the security-report entry itself)
 .github/pull_request_template.md  The pull-request template: each issue and its relation, what changed, how it was tested, screenshots, and the checklist
 index.html               All markup: HUD, control bar, configuration modal, info panels
 public/CNAME             lab.morpheustech.net, copied into every build. Never delete
@@ -104,6 +104,11 @@ src/
   ([CONTRIBUTING.md](CONTRIBUTING.md)). In a maintainer's clone of the lab, a deploy may have
   left the checkout on `main`: switch to `development` (`git switch development && git pull
   --ff-only`) before changing anything. Never leave the checkout on `main` when you finish.
+- **Don't start on an issue that isn't labelled `approved`**, except a small fix such as a typo
+  or a broken link. Claim it first with a comment giving a date and a confidence, in the form
+  [CONTRIBUTING.md](CONTRIBUTING.md) shows; the person running the agent answers for the
+  estimate. The pull request is reviewed against the "Done when" in the maintainer's approval
+  comment, not the issue body: meet it, or say in "What changed" where it differs.
 - **Don't make a pull request do more or less than one issue.** It resolves exactly one issue,
   all of it; an issue too big for one is split first. It lists each issue with its relation,
   using only `Resolves`, `Related to` and `Opens`, which GitHub doesn't act on in a pull
