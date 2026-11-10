@@ -82,6 +82,9 @@ export const state = {
   useSineWave: false,
   useSandpile: false,
   flipOrientation: false,
+  // Compute Game of Life 3D and Rule 30 on the GPU when it's available (src/gpu/). The
+  // control bar's toggle sets this, and remembers it per browser.
+  gpuCompute: true,
   sandpileParams: {
     initialSand: 0, // Optional initial sand at center (0 = start empty, 1 grain added per generation)
     threshold: 4, // Threshold for toppling (fixed at 4, not user-adjustable)

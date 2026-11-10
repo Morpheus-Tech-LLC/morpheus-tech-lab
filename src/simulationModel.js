@@ -4,7 +4,12 @@ import { state } from "./state.js";
 import { initControls } from './controls.js';
 import { initSpace } from './space.js';
 
+// Each rebuild gets a number. A GPU run awaits the GPU, so another rebuild can start while one
+// is computing; only the latest one may write its result.
+let latestRun = 0;
+
 export async function initSimulation() {
+  const run = ++latestRun;
   // Show loading overlay
   const overlay = document.getElementById('loading-overlay');
   if (overlay) overlay.classList.remove('hidden');
@@ -42,6 +47,7 @@ export async function initSimulation() {
       state.useSandpile ? state.sandpileParams : null
     );
     console.log(`initSimulation: generateSimulation completed, history length: ${simulationData.length}`);
+    if (run !== latestRun) return; // a newer rebuild started; its result wins
     state.simulationData = simulationData;
     state.clockData = clockData;
 
@@ -105,7 +111,7 @@ export async function initSimulation() {
   } catch (err) {
     console.error('Failed to initialize simulation:', err);
   } finally {
-    if (overlay) overlay.classList.add('hidden');
+    if (overlay && run === latestRun) overlay.classList.add('hidden');
   }
 }
 

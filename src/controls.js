@@ -1,6 +1,7 @@
 import { state } from "./state.js";
 import { initSimulation, updatePoints } from "./simulationModel.js";
 import * as THREE from 'three';
+import { initComputeControl, updateComputeControl } from "./gpu/computeControl.js";
 
 let pendingShapeKey = null;
 let shapeDropdownPrevValue = null;
@@ -51,11 +52,15 @@ export function initControls() {
     if (simGensEl) simGensEl.textContent = String(state.sim_generations);
     // Always update title when controls are refreshed
     updateSimulationModeTitle();
+    // The mode may have changed, and with it whether the next run can use the GPU
+    updateComputeControl();
     return;
   }
   
   // Initialize simulation mode title on first load
   updateSimulationModeTitle();
+  // GPU compute toggle and indicator
+  initComputeControl();
   // Initialize Simulation info displays on first load
   const simSizeOut = document.getElementById('sim-size-value');
   const simGensOut = document.getElementById('sim-generations-value');

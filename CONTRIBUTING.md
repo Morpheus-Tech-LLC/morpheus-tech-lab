@@ -29,6 +29,30 @@ npm run build   # production build to dist/; run it before you open a pull reque
 
 There are no automated tests yet, so check your change in the browser, in each mode it touches.
 
+### Test the GPU path
+
+Game of Life 3D and Rule 30 run on the GPU with WebGPU, and fall back to the CPU. Check a change
+to them both ways: the chip button in the control bar switches GPU compute off and on, and its
+badge says where the next run computes.
+
+- **Use `http://localhost:5180`.** WebGPU only runs on a secure page, and `localhost` counts as
+  one; your machine's LAN address over plain HTTP doesn't.
+- **On Linux, Chromium needs flags.** WebGPU is off there by default, so the button says no GPU
+  adapter was found. Open a separate, throwaway profile with WebGPU on, rather than adding the
+  flags to your everyday browser (`--enable-unsafe-webgpu` relaxes some of WebGPU's safety
+  hardening):
+  ```sh
+  chromium --user-data-dir=/tmp/webgpu-test \
+    --enable-unsafe-webgpu --enable-features=Vulkan \
+    --use-angle=vulkan --ignore-gpu-blocklist \
+    http://localhost:5180
+  ```
+  It needs your GPU's Vulkan driver (on AMD, Mesa's RADV). `chrome://gpu` in that window should
+  show **WebGPU: Hardware accelerated**. If it doesn't on Wayland, add `--ozone-platform=x11`.
+- **Check the GPU matches the CPU.** If you change a shader, `src/gpu/engine.js` or a CPU evolve
+  step, run the comparison in `src/gpu/compare.js` from the dev console, as its header shows, at
+  50³ and 100³ with wrapping on and off. The GPU must give exactly the CPU's generations.
+
 ## Make a change
 
 1. Branch from `development`: `git switch development && git pull && git switch -c my-change`.

@@ -2,7 +2,8 @@
 
 An open-source (Apache-2.0) cellular-automata, math-engine and simulator project by Morpheus
 Tech LLC, built with the community. Visitors use interactive 3D cellular automata: Game of
-Life 3D, Rule 30, an Abelian sandpile and a sine wave. They run in the browser on the CPU. The
+Life 3D, Rule 30, an Abelian sandpile and a sine wave. They run in the browser: Game of Life 3D
+and Rule 30 on the GPU with WebGPU where it's available, everything else on the CPU. The
 live demos are at **https://lab.morpheustech.net**, linked from the company site.
 
 **Before writing any code, read [AGENTS.md](AGENTS.md).** It is the coding contract, including the
