@@ -9,7 +9,7 @@ pull requests, DCO sign-off, changelog) is in [CONTRIBUTING.md](CONTRIBUTING.md)
 ```
 .github/workflows/ci.yml The `build` (npm ci, npm run build) and `DCO` (sign-off) checks, required on main
 .github/ISSUE_TEMPLATE/  Issue forms: bug_report.yml, idea.yml; config.yml turns off blank issues and links Discussions (GitHub adds the security-report entry itself)
-.github/pull_request_template.md  The pull-request template: issues (no "Closes"), what changed, how it was tested, screenshots, and the checklist
+.github/pull_request_template.md  The pull-request template: each issue and its relation, what changed, how it was tested, screenshots, and the checklist
 index.html               All markup: HUD, control bar, configuration modal, info panels
 public/CNAME             lab.morpheustech.net, copied into every build. Never delete
 public/favicon.svg       Brand pin (see brand.lock). Never hand-edit
@@ -104,8 +104,11 @@ src/
   ([CONTRIBUTING.md](CONTRIBUTING.md)). In a maintainer's clone of the lab, a deploy may have
   left the checkout on `main`: switch to `development` (`git switch development && git pull
   --ff-only`) before changing anything. Never leave the checkout on `main` when you finish.
-- **Don't write `Closes #N` in a pull request into `development`**: GitHub ignores it there.
-  List the issues (`- #N`); the release pull request into `main` closes them.
+- **Don't make a pull request do more or less than one issue.** It resolves exactly one issue,
+  all of it; an issue too big for one is split first. It lists each issue with its relation,
+  using only `Resolves`, `Related to` and `Opens`, which GitHub doesn't act on in a pull
+  request into `development`; the release pull request into `main` lists `Closes #N` for each
+  issue marked `Resolves`.
 
 - **Contributions must be original work; no code or internals from other projects or
   products**, including Morpheus Tech's other, proprietary products: don't copy, port or describe

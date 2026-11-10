@@ -14,9 +14,10 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
 
 ### Changed
 - Contributing works from a fork: `CONTRIBUTING.md` sets up an `upstream` remote, keeps a branch
-  current and says what happens after a pull request is opened; pull requests list their issues,
-  which the release closes; and the pull-request template asks what changed, how it was tested
-  and for screenshots (#30).
+  current, asks for commit subjects of 72 characters or less and says what happens after a pull
+  request is opened; each pull request resolves one issue and names its relation to any others
+  (Related to, Opens), and the release closes the resolved ones; and the pull-request template
+  asks what changed, how it was tested and for screenshots (#30).
 
 ## [1.5.6] — 2026-11-09
 

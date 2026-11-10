@@ -65,6 +65,10 @@ badge says where the next run computes.
 
 ## Make a change
 
+One issue, one pull request: a pull request resolves exactly one issue, all of it. If an issue
+is too big for one pull request, ask on the issue for it to be split into smaller issues
+before you start.
+
 1. Branch from the lab's `development`:
    ```sh
    git fetch upstream && git switch --no-track -c my-change upstream/development
@@ -74,11 +78,14 @@ badge says where the next run computes.
 3. Add a line under `## [Unreleased]` in [CHANGELOG.md](CHANGELOG.md) saying what changed, for
    a reader of the release notes.
 4. Run `npm run build`, commit with `git commit -s` (below), and push the branch to your fork:
-   `git push -u origin my-change`.
+   `git push -u origin my-change`. Keep each commit's subject line to 72 characters or less:
+   GitHub cuts a longer one short in the pull request's title.
 5. Open a pull request from your fork's branch against **`development`**, never `main`, and
-   fill in the template. List the issues it works on, one per line (`- #123`). Don't write
-   `Closes #123`: GitHub acts on it only in a pull request into `main`, so the release pull
-   request closes the issue instead.
+   fill in the template. List each issue, one per line, with how the pull request relates to
+   it, using only these: `Resolves #123` for the one issue it does in full, `Related to #124`
+   for an issue it touches but doesn't work on, and `Opens #125` for a follow-up issue you
+   opened. GitHub doesn't act on these in a pull request into `development`. At release, the
+   release pull request closes the issue marked `Resolves`.
 
 ### Keep your branch current
 
@@ -98,7 +105,7 @@ git push --force-with-lease
    before it can merge.
 2. A maintainer reviews it. Push any changes they ask for to the same branch. Then they merge
    it into `development`.
-3. The change goes live at the next release, and the issues it lists close then.
+3. The change goes live at the next release, and the issue it marks `Resolves` closes then.
 
 ## Sign off your commits (DCO)
 

@@ -1,9 +1,13 @@
 ## Issue(s)
 
-<!-- One line per issue this works on: "- #123". No "Closes": pull requests go to
-`development`, where GitHub ignores it. Maintainers close the issue when the release ships. -->
+<!-- One line per issue, using only these relations, written exactly like this:
+- Resolves #123     This pull request does all of the issue. Exactly one per pull request.
+- Related to #124   It touches the issue, but doesn't work on it.
+- Opens #125        It leaves work for later, in an issue you opened for it.
+Add a sentence if the relation needs it. Nothing closes until the release: maintainers close
+the issue marked "Resolves" when the release ships. -->
 
-- #
+- Resolves #
 
 ## What changed
 
@@ -22,6 +26,8 @@ after. Drag the files into this box, so GitHub hosts them. Delete this section i
 changes on screen. -->
 
 ## Checklist
+
+<!-- Tick the boxes after you open the pull request, by clicking them. -->
 
 - [ ] This pull request targets `development`, not `main`.
 - [ ] Every commit is signed off (`git commit -s`). See [CONTRIBUTING.md](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/blob/development/CONTRIBUTING.md#sign-off-your-commits-dco).
