@@ -1,7 +1,7 @@
 # morpheus-tech-lab — coding contract
 
-For people and agents changing code. The contributor workflow (setup, branches, DCO sign-off,
-changelog) is in [CONTRIBUTING.md](CONTRIBUTING.md); branches, versions and releases are in
+For people and agents changing code. The contributor workflow (setup from a fork, branches,
+pull requests, DCO sign-off, changelog) is in [CONTRIBUTING.md](CONTRIBUTING.md); branches, versions and releases are in
 [RELEASING.md](RELEASING.md).
 
 ## Module layout
@@ -9,14 +9,14 @@ changelog) is in [CONTRIBUTING.md](CONTRIBUTING.md); branches, versions and rele
 ```
 .github/workflows/ci.yml The `build` (npm ci, npm run build) and `DCO` (sign-off) checks, required on main
 .github/ISSUE_TEMPLATE/  Issue forms: bug_report.yml, idea.yml; config.yml turns off blank issues and links Discussions (GitHub adds the security-report entry itself)
-.github/pull_request_template.md  The pull-request checklist: targets development, signed off, changelog line, build passes
+.github/pull_request_template.md  The pull-request template: issues (no "Closes"), what changed, how it was tested, screenshots, and the checklist
 index.html               All markup: HUD, control bar, configuration modal, info panels
 public/CNAME             lab.morpheustech.net, copied into every build. Never delete
 public/favicon.svg       Brand pin (see brand.lock). Never hand-edit
 brand.lock               The brand tag the pin came from, and a sha256 per pinned file
 LICENSE                  Apache License 2.0 (MIT through v1.4.0)
 NOTICE                   Copyright notice, and what the license does not cover: the Morpheus Tech name, logo and brand files
-CONTRIBUTING.md          How to contribute: setup, branches, DCO sign-off, changelog
+CONTRIBUTING.md          How to contribute: setup from a fork, branches, pull requests, DCO sign-off, changelog
 CODE_OF_CONDUCT.md       Contributor Covenant 2.1, unmodified apart from the enforcement contact
 SECURITY.md              Supported versions (latest only) and private vulnerability reporting
 ROADMAP.md               The public roadmap: the engine, new demos, the brand restyle, community
@@ -100,9 +100,12 @@ src/
 ## What NOT to do
 
 - **Don't edit files while `main` is checked out.** Before the first edit, check
-  `git branch --show-current`. A deploy may have left the checkout on `main`: switch to
-  `development` (`git switch development && git pull --ff-only`) before changing anything, and
-  leave the checkout on `development` when you finish.
+  `git branch --show-current`. In a fork, work on a feature branch off `upstream/development`
+  ([CONTRIBUTING.md](CONTRIBUTING.md)). In a maintainer's clone of the lab, a deploy may have
+  left the checkout on `main`: switch to `development` (`git switch development && git pull
+  --ff-only`) before changing anything. Never leave the checkout on `main` when you finish.
+- **Don't write `Closes #N` in a pull request into `development`**: GitHub ignores it there.
+  List the issues (`- #N`); the release pull request into `main` closes them.
 
 - **Contributions must be original work; no code or internals from other projects or
   products**, including Morpheus Tech's other, proprietary products: don't copy, port or describe

@@ -12,6 +12,12 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
   same generations, many times faster; a toggle in the controls shows GPU or CPU, says why when
   the GPU can't be used, and the CPU takes over if the GPU fails (#28).
 
+### Changed
+- Contributing works from a fork: `CONTRIBUTING.md` sets up an `upstream` remote, keeps a branch
+  current and says what happens after a pull request is opened; pull requests list their issues,
+  which the release closes; and the pull-request template asks what changed, how it was tested
+  and for screenshots (#30).
+
 ## [1.5.6] — 2026-11-09
 
 ### Changed

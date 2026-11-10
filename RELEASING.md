@@ -10,7 +10,7 @@ the release steps are for maintainers. To contribute, see [CONTRIBUTING.md](CONT
 | `main` | The release branch. Protected: it changes only through a pull request from `development` (or a hotfix, below) |
 | `development` | The integration branch. Every contribution's pull request targets it |
 | `gh-pages` | The build output, served at https://lab.morpheustech.net. Written by `npm run deploy`; never edit it |
-| feature branches | Short-lived, branched off `development`, deleted once merged |
+| feature branches | Short-lived, branched off `development` (a contributor's, in their fork), deleted once merged |
 
 Your working copy stays on `development` or a feature branch off it, so edits never land on
 `main` by accident. `main` is checked out only to deploy, and the deploy command switches back.
@@ -36,12 +36,17 @@ request adds its lines under `## [Unreleased]`, in the right group (`Added`, `Ch
 
 ## Release steps (maintainers)
 
+Maintainers release from a clone of the lab itself, not a fork: in these steps and the hotfix
+below, `origin` is the lab.
+
 1. **Decide the version** from what is under `[Unreleased]`, using the rules above.
 2. **Prepare on `development`.** One prep commit moves `[Unreleased]` to `## [X.Y.Z] — YYYY-MM-DD`
    and updates the mirrors (`package.json`, the lockfile root, the README's Release line).
    An agent may draft this commit's changes.
-3. **Open a pull request from `development` to `main`** titled `Release X.Y.Z`. Wait for the DCO
-   and build checks to pass, then merge it **with a merge commit**, never a squash or rebase.
+3. **Open a pull request from `development` to `main`** titled `Release X.Y.Z`. Its description
+   lists `Closes #N`, one per line, for every issue that the pull requests it ships list;
+   merging it into `main` closes them. Wait for the DCO and build checks to pass, then merge it
+   **with a merge commit**, never a squash or rebase.
 4. **Tag the merge commit:**
    ```sh
    git fetch origin && git tag -a vX.Y.Z origin/main -m "Release X.Y.Z" && git push origin vX.Y.Z
@@ -69,6 +74,11 @@ For a fix that cannot wait for the next release from `development`:
 3. Open a pull request from `hotfix/X.Y.Z` to `main`, and merge it with a merge commit.
 4. Tag and deploy as in steps 4 and 5 above.
 5. Merge `main` back into `development`, so the fix and its changelog entry are not lost.
+
+## A pull request against `main` (maintainers)
+
+A pull request opened against `main` that is not a release or a hotfix is retargeted, not
+closed: a maintainer changes its base to `development` (**Edit**, next to the title → base).
 
 ## Agents
 

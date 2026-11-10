@@ -1,6 +1,25 @@
-## What and why
+## Issue(s)
 
-<!-- What does this change, and why? Link the issue it closes, if there is one (Closes #123). -->
+<!-- One line per issue this works on: "- #123". No "Closes": pull requests go to
+`development`, where GitHub ignores it. Maintainers close the issue when the release ships. -->
+
+- #
+
+## What changed
+
+<!-- How you did it, for the reviewer: choices you made, anything that differs from the
+issue, anything left for later. Don't repeat the issue. With no issue, say why the change
+is needed. -->
+
+## How you tested it
+
+<!-- There are no automated tests yet. Which modes did you check, in which browser and OS? -->
+
+## Screenshots and media
+
+<!-- For anything that changes on screen: screenshots, or a short recording, before and
+after. Drag the files into this box, so GitHub hosts them. Delete this section if nothing
+changes on screen. -->
 
 ## Checklist
 
