@@ -7,6 +7,8 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
 
 ## [Unreleased]
 
+## [1.6.0] — 2026-11-10
+
 ### Added
 - Game of Life 3D and Rule 30 compute on the GPU with WebGPU where the browser has it, with the
   same generations, many times faster; a toggle in the controls shows GPU or CPU, says why when

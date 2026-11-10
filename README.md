@@ -16,7 +16,7 @@
 |----------------------|--------------------------|
 | **Creator:** | <a href="https://github.com/wmauz677" target="_blank" rel="noopener noreferrer">Weston Mauz</a> |
 | **Company:** | Morpheus Tech LLC |
-| **Release:** | v1.5.6 - November 9th, 2026 |
+| **Release:** | v1.6.0 - November 10th, 2026 |
 | **Lab** | <a href="https://lab.morpheustech.net/" target="_blank" rel="noopener noreferrer">lab.morpheustech.net</a> |
 | **Company** | <a href="https://morpheustech.net/" target="_blank" rel="noopener noreferrer">morpheustech.net</a> |
 
