@@ -29,12 +29,17 @@ src/
   brand/tokens.css       Brand pin: the Morpheus Tech brand tokens. Not imported yet. Never hand-edit
   state.js               The one shared, mutable `state` object: settings, rules, scene handles, history
   simulationModel.js     Builds the Three.js Points geometry from the history; updatePoints() per frame
-  matrixFunctions.js     The automata: generateSimulation() and each mode's evolve step
+  matrixFunctions.js     The automata: generateSimulation() and each mode's evolve step (the CPU reference)
   grid3D.js              Grid3D: a dense size³ Uint8Array plus an `active` list of live cells
   shapeGenerators.js     Seed shapes: perlin, cube, tetrahedron, octahedron, worley, rule30
   space.js               Scene, camera, renderer, OrbitControls (stored on `state`)
   time.js                The animation loop, playback speed, auto-rotate; a vestigial clock history
   controls.js            All UI wiring: buttons, sliders, modal, mode switching (~1,800 lines)
+  gpu/device.js          WebGPU status ('ready', 'no-webgpu', 'no-adapter', 'device-failed') and the one GPUDevice
+  gpu/engine.js          Game of Life 3D and Rule 30 (1D, 2D) on the GPU: evolveOnGpu() yields each generation
+  gpu/computeControl.js  The GPU compute toggle: its GPU/CPU badge, the remembered choice, the "why not" popover
+  gpu/compare.js         Not bundled: run from the dev console to check the GPU's generations against the CPU's
+  shaders/*.wgsl         The WGSL compute shaders: gameOfLife3D.wgsl, rule30.wgsl (1D and 2D)
   color.css, style.css   Theme colours and layout
   assets/images/         Logos, README images
 ```
@@ -52,6 +57,10 @@ src/
 - **Mode flags.** `state.simulationMode` names the mode, and the booleans `useRule30`,
   `useRule30_2D`, `useSineWave` and `useSandpile` steer `generateSimulation()`. Size and
   generations are remembered per mode in `state.modeValues`.
+- **GPU first, CPU after.** For Game of Life 3D and Rule 30, `generateSimulation()` runs
+  `evolveOnGpu()` when `state.gpuCompute` is on and a device is ready, then its CPU loop computes
+  whatever generations remain: all of them if the GPU was off or unavailable, the rest if the
+  device was lost part way. Sine Wave and the sandpile run on the CPU only.
 
 ## Invariants
 
@@ -61,6 +70,16 @@ src/
   Rendering reads `matrixDepth` for that.
 - Game of Life 3D boundary rules (corner, edge, face) apply only when grid wrapping is off.
   Isolation and overcrowding are always derived from survival, never set by hand.
+- **The GPU gives exactly the CPU's generations**, cell for cell, wrapping or not, with the
+  same edge, face and corner rules. The CPU evolve steps in `matrixFunctions.js` are the
+  reference, quirks included (a dead cell with no live neighbour is never born; with wrapping
+  off, neighbours clamp to the grid). Change a CPU step and its shader together, and check
+  with `src/gpu/compare.js` at 50³ and 100³, wrapping on and off, before opening a pull
+  request. The GPU's `active` lists hold the same cells in index order; nothing may depend on
+  that order. A seed that isn't a plain 0/1 grid (`isPlainGrid()`) runs on the CPU.
+- Any GPU failure falls back to the CPU without an error: no WebGPU, no adapter, a device that
+  fails to start, or a device lost mid-run. Every GPU file starts with
+  `// SPDX-License-Identifier: Apache-2.0`, and uses only the browser's WebGPU API.
 - `state.reset()` keeps the scene, renderer and camera, so a rebuild reuses one WebGL context.
 - `public/CNAME` and `base: '/'` go together. Without both, the deployed site breaks.
 - Pinned brand files match `brand.lock`; `npm run build` refuses to build otherwise. Only
@@ -71,8 +90,11 @@ src/
 
 - **`npm run deploy` publishes to the world immediately.** Only a maintainer runs it, from `main`,
   as a step of [RELEASING.md](RELEASING.md). Agents never deploy.
-- **Memory is `size³ × generations` bytes**, all held at once. Raising the size or generation
-  limits can freeze or crash a visitor's tab; test at the new maximums before raising them.
+- **Memory is `size³ × generations` bytes**, all held at once, plus each generation's `active`
+  list, which costs far more per live cell (an array of three numbers each). With the GPU the
+  step is no longer the limit: memory and rendering are (README §4). Raising the size or
+  generation limits can freeze or crash a visitor's tab; test at the new maximums, on the GPU
+  and on the CPU, before raising them.
 - `controls.js` re-inits on almost every input. A change there easily triggers double rebuilds.
 
 ## What NOT to do
@@ -85,7 +107,8 @@ src/
 - **Contributions must be original work; no code or internals from other projects or
   products**, including Morpheus Tech's other, proprietary products: don't copy, port or describe
   them. This is public, Apache-2.0-licensed code; anything committed is given away and disclosed.
-  Write new demos from scratch, for the CPU. Libraries come in as npm dependencies, not copies.
+  Write new demos from scratch, for the CPU first: the CPU path is the reference, and a GPU
+  path is optional and must match it exactly. Libraries come in as npm dependencies, not copies.
 - No secrets, tokens, internal hostnames, or paths outside this repo. The repo and the site are
   public.
 - Don't commit `dist/` (ignored); `gh-pages` holds the build.
@@ -99,6 +122,9 @@ src/
 
 `console.log` runs on every frame in `updatePoints()` and on every generation. `time.js`
 still computes a clock history that nothing displays. `index.html` carries many inline styles.
+Each generation's `active` list is an array of `[x, y, z]` arrays, about 40 bytes of heap per
+live cell; with the GPU computing the steps, building and holding those lists, and
+`updatePoints()` walking them every frame, is what limits grid size now.
 
 ## End-of-session obligations
 

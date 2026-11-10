@@ -1,6 +1,8 @@
 import { Grid3D } from './grid3D.js';
 import { generateClockHistory } from './time.js';
 import { state } from './state.js';
+import { getGpuDevice } from './gpu/device.js';
+import { evolveOnGpu, gpuModeOf, isPlainGrid } from './gpu/engine.js';
 
 // ---------------------------
 // Matrix evolution
@@ -113,7 +115,35 @@ export async function generateSimulation(size, generations, shapeFn, useRule30 =
     
     console.log(`Initial grid active cells: ${grid.active.length}`);
     history.push(grid);
-    for (let i = 0; i < generations; i++) {
+
+    // Compute on the GPU where it can. It gives the same grids as the CPU, so if it stops
+    // part way (the device is lost, say), the CPU loop below carries on from its last grid.
+    const gpuMode = state.gpuCompute ? gpuModeOf({ useRule30, useRule30_2D, useSineWave, useSandpile }) : null;
+    if (gpuMode && generations > 0) {
+      const device = await getGpuDevice();
+      if (device && isPlainGrid(grid)) {
+        const started = performance.now();
+        try {
+          const run = {
+            mode: gpuMode,
+            seed: grid,
+            generations,
+            wrapping: state.gridWrapping ?? true,
+            rules: state.rules,
+            boundaryRules: state.boundaryRules,
+          };
+          for await (const next of evolveOnGpu(device, run)) {
+            history.push(next);
+          }
+        } catch (err) {
+          console.warn(`GPU compute stopped after ${history.length - 1} generations; continuing on the CPU.`, err);
+        }
+        console.log(`GPU: ${history.length - 1} of ${generations} generations in ${Math.round(performance.now() - started)} ms`);
+        grid = history[history.length - 1];
+      }
+    }
+
+    for (let i = history.length - 1; i < generations; i++) {
       if (useRule30_2D) {
         grid = evolveRule30_2D(grid);
       } else if (useRule30) {
