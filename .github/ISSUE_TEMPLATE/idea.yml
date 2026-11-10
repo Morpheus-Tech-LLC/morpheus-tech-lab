@@ -9,6 +9,9 @@ body:
         [roadmap](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/blob/main/ROADMAP.md)
         first, in case it's already there. To talk an idea through before proposing it, use
         [Discussions](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/discussions).
+
+        Work starts once a maintainer approves the idea with the `approved` label. An idea too
+        big for one pull request is split into smaller issues then.
   - type: dropdown
     id: kind
     attributes:
@@ -30,5 +33,18 @@ body:
     attributes:
       label: Why
       description: Why it belongs in the lab, and who it helps.
+    validations:
+      required: true
+  - type: textarea
+    id: done-when
+    attributes:
+      label: Done when
+      description: >-
+        What a visitor can do once it ships, and what must still hold (for example, the GPU
+        still gives exactly the CPU's generations). A maintainer settles it when approving the
+        idea, in the approval comment that a pull request is reviewed against.
+      placeholder: |
+        - A visitor can ...
+        - ... still works as before.
     validations:
       required: true

@@ -61,6 +61,8 @@ root and the README's Release line mirror it. The full rules are in [RELEASING.m
 ## Plans and process
 
 The roadmap is [ROADMAP.md](ROADMAP.md); plans also live in this repo's GitHub issues and
-Discussions. The code of conduct is [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), and
+Discussions. Work starts from an issue a maintainer has labelled `approved`, sized for one pull
+request, and claimed with a comment giving a date and a confidence; only a small fix, such as a
+typo or a broken link, comes without one. [CONTRIBUTING.md](CONTRIBUTING.md) has the details. The code of conduct is [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), and
 vulnerabilities are reported privately, as [SECURITY.md](SECURITY.md) says. Agents edit
 files only and do no version control unless asked: maintainers commit, merge, tag and deploy.

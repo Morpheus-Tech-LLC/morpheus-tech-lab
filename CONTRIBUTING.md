@@ -1,17 +1,87 @@
 # Contributing to Morpheus Tech Lab
 
 Thanks for helping build the lab. New automata, simulators, fixes and docs are all welcome.
-For anything large, open an issue first so we can agree on the shape before you write it.
+Work starts from an issue a maintainer has approved, so start there.
 
 Everyone taking part in the project, in issues, Discussions, pull requests and anywhere else,
 follows the [code of conduct](CODE_OF_CONDUCT.md).
 
 ## Find something to work on
 
-Start from the [roadmap](ROADMAP.md), or pick an issue labelled
-[`good first issue`](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/labels/good%20first%20issue):
-those are ready to pick up. Questions go to
+Pick an issue labelled
+[`approved`](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/labels/approved): those are
+ready to pick up, each sized for one pull request. Approved issues that suit a first
+contribution are also labelled
+[`good first issue`](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/labels/good%20first%20issue).
+The [roadmap](ROADMAP.md) says where the lab is heading. Questions go to
 [Discussions](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/discussions).
+
+To suggest something new, open an issue with the Idea or Bug report form. Work on it starts
+once a maintainer approves it.
+
+## From an approved issue to a pull request
+
+You, or your agent, can go from an approved issue to a pull request without waiting on anyone.
+The pull request's "What changed" is your plan, and it is reviewed together with the code.
+
+1. **Approval.** A maintainer approves an idea or a bug, as
+   [below](#how-an-issue-is-approved): the `approved` label, and a comment giving the **Done
+   when** your pull request is reviewed against. Approved means approved as one pull request.
+2. **Claim it.** Comment on the issue, in this form:
+   ```
+   Working on this.
+   Ready for review by: YYYY-MM-DD
+   Confidence: N/10
+   ```
+   - The date is when your pull request will be ready for review.
+   - The confidence runs from 0 to 10: 10 means you are sure to be ready by that date, 0 that
+     you have no idea whether you will be.
+   - A claim without both a date and a confidence counts as no date and no certainty.
+   - Post a new date and confidence whenever your estimate changes. The latest one counts.
+   - If the date passes with neither an update nor a pull request, the claim lapses.
+   - An agent's claim uses the same form, and the person running the agent answers for the
+     estimate.
+
+   Claims don't lock an issue. Others may start in parallel, and if two pull requests arrive,
+   the maintainer picks one. A claim's date and confidence show how firm it is, so others can
+   decide whether to start too.
+3. **Build it and open the pull request,** as below.
+
+Every pull request resolves an approved issue. The one exception is a small fix, such as a typo
+or a broken link, which can come without an issue.
+
+### How an issue is approved
+
+A maintainer reads each new idea and bug, and does one of these:
+
+- **Approve it.** They settle its **Done when**, meaning what a visitor can do once it ships and
+  what must still hold, until a reviewer could check it by using the lab. They add the
+  `approved` label, and comment `Approved. Done when: …` with the final text. That comment is
+  what a pull request is reviewed against, even if the issue is edited later. For a bug, the
+  Done when is usually its "What you expected".
+- **Split it.** An idea too big for one pull request becomes sub-issues of it, each with its
+  own Done when, each approved on its own. The parent is never picked up itself, and it closes
+  once its sub-issues have shipped.
+- **Ask.** They comment with what is missing or unclear. Revise the issue, and they decide
+  again.
+- **Decline it.** They close it as not planned, or as a duplicate with a link, and say why in
+  one line.
+
+A bug is approved once someone has reproduced it. If the direction changes, a maintainer
+removes the label and comments why, so anyone with a claim or a pull request sees it. Only
+maintainers can add labels, so contributors can't approve their own issues.
+
+An idea is approved when:
+
+- **It fits the lab:** a demo or feature that runs in the browser as a static site, with no
+  backend or framework, written as original work with no code or internals from other
+  projects or products.
+- **It fits the direction:** it is on the [roadmap](ROADMAP.md), or a maintainer wants it there.
+- **Its Done when is checkable:** concrete enough that a reviewer can confirm it by using the
+  lab.
+- **It fits in one pull request,** or splits into pieces that each do.
+- **A visitor's browser can afford it:** it doesn't push memory or the frame rate past what a
+  visitor's tab can handle.
 
 ## Report a vulnerability
 
@@ -65,9 +135,9 @@ badge says where the next run computes.
 
 ## Make a change
 
-One issue, one pull request: a pull request resolves exactly one issue, all of it. If an issue
-is too big for one pull request, ask on the issue for it to be split into smaller issues
-before you start.
+One issue, one pull request: a pull request resolves exactly one approved issue, all of it. If
+an approved issue turns out too big for one pull request, say so on the issue, and a
+maintainer splits it.
 
 1. Branch from the lab's `development`:
    ```sh
