@@ -14,6 +14,10 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
 - Automated tests: `npm test` runs Node's built-in test runner, and CI's `build` check runs it on
   every pull request. The tests check the unbounded engine against a simple reference engine,
   cell for cell (#35).
+- The unbounded engine runs in a Web Worker, not on the page yet: timed runs that count only the
+  generations completed before their deadline, and open-ended runs that pause, step, resume and
+  cap their rate; statistics at most four times a second (live cells, chunks, generations per
+  second, extent, memory), and snapshots of the live cells only when asked for (#36).
 
 ## [1.6.0] — 2026-11-10
 

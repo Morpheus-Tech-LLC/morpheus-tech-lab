@@ -1,0 +1,478 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!--
+  A workbench for the unbounded engine's Worker (#36), for trying it before it is on the page.
+  Dev only: open http://localhost:5180/src/unbounded/workbench.html under `npm run dev`.
+  `npm run build` doesn't include it (the build's only page is index.html).
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Engine workbench</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #fff; --text: #1b1f24; --muted: #5b6470; --line: #d9dde3;
+    --accent: #3a6df0; --pass: #1f8a4c; --fail: #c0392b; --dot: #3a6df0;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151a; --panel: #1b2027; --text: #e6e9ee; --muted: #9aa4b1; --line: #2c333d;
+      --accent: #7aa2ff; --pass: #4cc27f; --fail: #ff6b5b; --dot: #7aa2ff;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 system-ui, sans-serif; }
+  main { max-width: 980px; margin: 0 auto; padding: 20px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 0 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 20px; }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+  button { font: inherit; padding: 6px 14px; border-radius: 7px; border: 1px solid var(--line); background: var(--bg); color: var(--text); cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  button:disabled { opacity: .5; cursor: default; }
+  input, select { font: inherit; padding: 4px 6px; border-radius: 6px; border: 1px solid var(--line); background: var(--bg); color: var(--text); width: 7em; }
+  label { display: inline-flex; gap: 6px; align-items: center; margin: 0 14px 8px 0; color: var(--muted); }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
+  ol.checks { padding-left: 0; list-style: none; margin: 12px 0 0; }
+  ol.checks li { padding: 8px 0; border-top: 1px solid var(--line); display: grid; grid-template-columns: 28px 1fr; gap: 4px; }
+  .mark { font-weight: 700; }
+  .pass { color: var(--pass); } .fail { color: var(--fail); } .wait { color: var(--muted); }
+  .detail { grid-column: 2; color: var(--muted); font-size: 13px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+  .stat { border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
+  .stat b { display: block; font-size: 18px; font-variant-numeric: tabular-nums; }
+  .stat span { color: var(--muted); font-size: 12px; }
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 700px) { .split { grid-template-columns: 1fr; } }
+  canvas { width: 100%; aspect-ratio: 1; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+  #log { height: 220px; overflow: auto; font: 12px/1.5 ui-monospace, monospace; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; margin: 0; white-space: pre-wrap; }
+  #spinner { width: 18px; height: 18px; background: var(--accent); border-radius: 3px; display: inline-block; vertical-align: middle; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Unbounded engine workbench</h1>
+  <p class="lead">Tries the engine's Web Worker (#36) on its own, before it is on the page. Keep this tab in
+    front while a check runs: browsers slow down background tabs.</p>
+
+  <section>
+    <h2>1. Automatic checks</h2>
+    <div class="row">
+      <button id="run-checks" class="primary">Run all checks</button>
+      <span id="checks-summary" class="wait">Takes about 15 seconds.</span>
+    </div>
+    <ol id="checks" class="checks"></ol>
+  </section>
+
+  <section>
+    <h2>2. Try it yourself</h2>
+    <div class="row">
+      <label>Run <select id="kind"><option value="timed">timed</option><option value="open">open-ended</option></select></label>
+      <label>Seconds <input id="seconds" type="number" min="0.1" step="0.5" value="6"></label>
+      <label>Gen/s cap <input id="rate" type="number" min="0.1" placeholder="none"></label>
+      <label>Max generations <input id="generations" type="number" min="0" placeholder="none"></label>
+      <label>Cell limit <input id="cell-limit" type="number" min="1" placeholder="none"></label>
+      <label>Seed box <input id="seed-side" type="number" min="1" max="40" value="10"></label>
+    </div>
+    <div class="row">
+      <button id="start" class="primary">Start</button>
+      <button id="pause">Pause</button>
+      <button id="step">Step</button>
+      <button id="resume">Resume</button>
+      <button id="set-rate">Apply gen/s cap</button>
+      <button id="stop">Stop</button>
+      <button id="snapshot">Snapshot</button>
+      <label><input id="auto-snapshot" type="checkbox" style="width:auto"> snapshot every second</label>
+    </div>
+    <div class="grid" id="stats"></div>
+    <p style="margin: 12px 0 0; color: var(--muted)">
+      <span id="spinner"></span>&nbsp; This square turns every frame: if the page were blocked, it would stop.
+      Longest pause between frames: <b id="frame-gap">–</b>
+    </p>
+  </section>
+
+  <section class="split">
+    <div>
+      <h2>Snapshot <span id="snapshot-label" style="color: var(--muted); font-weight: 400"></span></h2>
+      <canvas id="view" width="600" height="600"></canvas>
+      <p style="color: var(--muted); font-size: 13px; margin: 6px 0 0">Live cells seen from above (x across, y up); brighter means more cells in that column.</p>
+    </div>
+    <div>
+      <h2>Messages from the engine</h2>
+      <pre id="log"></pre>
+    </div>
+  </section>
+</main>
+
+<script type="module">
+import { EngineDriver } from './driver.js';
+
+// ---- Shared ----
+
+const RULES = { birth: [5, 11, 12], survival: [0, 1, 4, 5, 10, 12, 13, 14] }; // grows steadily
+const $ = (id) => document.getElementById(id);
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** The same random cells every time for the same numbers, centred on the origin. */
+function makeSeed(side = 10, density = 0.3, number = 1) {
+  let s = number >>> 0 || 1;
+  const random = () => { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; };
+  const lo = -Math.floor(side / 2);
+  const cells = [];
+  for (let z = 0; z < side; z++) for (let y = 0; y < side; y++) for (let x = 0; x < side; x++) {
+    if (random() < density) cells.push(lo + x, lo + y, lo + z);
+  }
+  return new Int32Array(cells);
+}
+
+function sortedKeys(cells) {
+  const keys = [];
+  for (let i = 0; i < cells.length; i += 3) keys.push(`${cells[i]},${cells[i + 1]},${cells[i + 2]}`);
+  return keys.sort().join(';');
+}
+
+// The longest gap between animation frames since the last reset: how long the page was blocked
+const frames = { last: performance.now(), max: 0, angle: 0 };
+(function frame(now) {
+  if (now) {
+    frames.max = Math.max(frames.max, now - frames.last);
+    frames.last = now;
+    frames.angle = (frames.angle + 4) % 360;
+    $('spinner').style.transform = `rotate(${frames.angle}deg)`;
+  }
+  requestAnimationFrame(frame);
+})();
+function resetFrames() { frames.max = 0; frames.last = performance.now(); }
+setInterval(() => { $('frame-gap').textContent = `${Math.round(frames.max)} ms`; }, 250);
+
+/**
+ * A driver whose messages are recorded, for the checks. `until(pred)` must be called before the
+ * command whose answer it waits for.
+ */
+function recorder() {
+  const rec = { stats: [], states: [], errors: [], asked: 0, sent: 0 };
+  let waiters = [];
+  const driver = new EngineDriver({
+    onStats: (stats) => rec.stats.push({ at: performance.now(), stats }),
+    onState: (state, stats, reason) => {
+      rec.states.push({ at: performance.now(), state, stats, reason });
+      waiters = waiters.filter((w) => !w());
+    },
+    onError: (message) => rec.errors.push(message),
+  });
+  // Count snapshots asked for and snapshots that arrive
+  const receive = driver.receive.bind(driver);
+  driver.receive = (message) => { if (message.type === 'snapshot') rec.sent++; receive(message); };
+  const snapshot = driver.snapshot.bind(driver);
+  driver.snapshot = () => { rec.asked++; return snapshot(); };
+
+  rec.driver = driver;
+  rec.until = (pred) => new Promise((resolve, reject) => {
+    const from = rec.states.length;
+    const timer = setTimeout(() => reject(new Error('no answer from the engine within 20 s')), 20000);
+    const check = () => {
+      const hit = rec.states.slice(from).find(pred);
+      if (!hit) return false;
+      clearTimeout(timer);
+      resolve(hit);
+      return true;
+    };
+    waiters.push(check);
+  });
+  rec.ended = () => rec.until((s) => s.state === 'ended');
+  return rec;
+}
+
+/** The cells after `generations` generations, run straight through in a fresh Worker. */
+async function straightRun(generations, world = { rules: RULES }) {
+  const rec = recorder();
+  const end = rec.ended();
+  rec.driver.start({ world, seed: makeSeed(), run: { kind: 'open' }, generations });
+  const { reason } = await end;
+  if (reason !== 'generation-limit') throw new Error(`the straight run ended with ${reason}`);
+  const snapshot = await rec.driver.snapshot();
+  rec.driver.close();
+  return snapshot;
+}
+
+// ---- 1. Automatic checks ----
+
+const CHECKS = [
+  {
+    title: 'A timed run stops at the deadline, and its count is the generations completed before it',
+    async run(ctx) {
+      const rec = recorder();
+      const end = rec.ended();
+      resetFrames();
+      rec.driver.start({ world: { rules: RULES }, seed: makeSeed(), run: { kind: 'timed', seconds: 2 } });
+      const final = await end;
+      ctx.timed = { rec, frameGap: frames.max, final };
+      const { generation, elapsedMs } = final.stats;
+      expect(final.reason === 'deadline', `ended with "${final.reason}", not "deadline"`);
+      expect(elapsedMs >= 2000, `ran only ${elapsedMs} ms`);
+      expect(generation > 0, 'no generations completed');
+      const snapshot = await rec.driver.snapshot();
+      expect(snapshot.generation === generation, `the snapshot is at generation ${snapshot.generation}, the count says ${generation}`);
+      const straight = await straightRun(generation);
+      expect(sortedKeys(snapshot.cells) === sortedKeys(straight.cells), 'its cells differ from the same number of generations run straight through');
+      rec.driver.close();
+      return `${generation} generations in ${(elapsedMs / 1000).toFixed(2)} s, deadline 2 s; the cells match ${generation} generations run straight through.`;
+    },
+  },
+  {
+    title: 'Stopping by hand, hitting a limit or running out of memory keeps the last complete generation',
+    async run() {
+      const results = [];
+      const cases = [
+        { name: 'stopped by hand', world: { rules: RULES }, stopAfter: 500, reason: 'stopped' },
+        { name: 'a cell limit of 20,000', world: { rules: RULES, limits: { cells: 20000 } }, reason: 'cell-limit' },
+        { name: 'a memory limit of 4 MB', world: { rules: RULES, slabBytes: 1 << 20, limits: { memory: 4 << 20 } }, reason: 'memory-limit' },
+      ];
+      for (const c of cases) {
+        const rec = recorder();
+        const end = rec.ended();
+        rec.driver.start({ world: c.world, seed: makeSeed(), run: { kind: 'open' } });
+        if (c.stopAfter) { await sleep(c.stopAfter); rec.driver.stop(); }
+        const final = await end;
+        expect(final.reason === c.reason, `${c.name}: ended with "${final.reason}"`);
+        const snapshot = await rec.driver.snapshot();
+        rec.driver.close();
+        const { generation, live } = final.stats;
+        expect(snapshot.generation === generation && snapshot.cells.length === 3 * live, `${c.name}: the snapshot doesn't match the final statistics`);
+        const straight = await straightRun(generation);
+        expect(sortedKeys(snapshot.cells) === sortedKeys(straight.cells), `${c.name}: the cells kept aren't generation ${generation}`);
+        results.push(`${c.name} → "${final.reason}" at generation ${generation}, ${live.toLocaleString()} cells, whole`);
+      }
+      return results.join('; ') + '.';
+    },
+  },
+  {
+    title: 'An open-ended run pauses, steps and resumes, with the same cells as a straight run',
+    async run() {
+      const rec = recorder();
+      let next = rec.until((s) => s.state === 'paused');
+      rec.driver.start({ world: { rules: RULES }, seed: makeSeed(), run: { kind: 'open', paused: true } });
+      await next;
+      for (let i = 1; i <= 3; i++) {
+        next = rec.until((s) => s.state === 'paused');
+        rec.driver.step();
+        const { stats } = await next;
+        expect(stats.generation === i, `step ${i} reached generation ${stats.generation}`);
+      }
+      next = rec.until((s) => s.state === 'running');
+      rec.driver.resume();
+      await next;
+      await sleep(400);
+      next = rec.until((s) => s.state === 'paused');
+      rec.driver.pause();
+      const paused = await next;
+      await sleep(300);
+      const snapshot = await rec.driver.snapshot();
+      expect(snapshot.generation === paused.stats.generation, 'it kept running while paused');
+      rec.driver.close();
+      const straight = await straightRun(snapshot.generation);
+      expect(sortedKeys(snapshot.cells) === sortedKeys(straight.cells), 'its cells differ from a straight run');
+      return `Stepped 1, 2, 3, ran to generation ${snapshot.generation}, paused; the cells match ${snapshot.generation} generations run straight through.`;
+    },
+  },
+  {
+    title: 'The page stays responsive during a run, and statistics arrive at most four times a second',
+    async run(ctx) {
+      const { rec, frameGap, final } = ctx.timed ?? {};
+      expect(rec, 'needs the first check to have run');
+      expect(frameGap < 200, `the page was blocked for ${Math.round(frameGap)} ms during the timed run`);
+      const times = rec.stats.filter((s) => s.at <= final.at).map((s) => s.at);
+      let closest = Infinity;
+      for (let i = 1; i < times.length; i++) closest = Math.min(closest, times[i] - times[i - 1]);
+      const perSecond = times.length / (final.stats.elapsedMs / 1000);
+      expect(times.length > 0, 'no statistics arrived');
+      expect(closest >= 200, `two statistics arrived ${Math.round(closest)} ms apart`);
+      expect(perSecond <= 4.5, `${perSecond.toFixed(1)} statistics a second`);
+      return `During the 2 s timed run, the longest pause between frames was ${Math.round(frameGap)} ms; `
+        + `${times.length} statistics arrived (${perSecond.toFixed(1)} a second), at least ${Math.round(closest)} ms apart.`;
+    },
+  },
+  {
+    title: 'Snapshots are sent only when asked for',
+    async run() {
+      const rec = recorder();
+      const end = rec.ended();
+      rec.driver.start({ world: { rules: RULES }, seed: makeSeed(), run: { kind: 'timed', seconds: 1 } });
+      await end;
+      expect(rec.sent === 0, `${rec.sent} snapshots arrived unasked`);
+      await rec.driver.snapshot();
+      await rec.driver.snapshot();
+      rec.driver.close();
+      expect(rec.sent === 2 && rec.asked === 2, `asked for ${rec.asked}, received ${rec.sent}`);
+      return 'A 1 s run sent none on its own; asking twice gave exactly two.';
+    },
+  },
+];
+
+function expect(ok, message) {
+  if (!ok) throw new Error(message);
+}
+
+$('run-checks').addEventListener('click', async () => {
+  const button = $('run-checks');
+  button.disabled = true;
+  const list = $('checks');
+  list.innerHTML = '';
+  const items = CHECKS.map((check) => {
+    const li = document.createElement('li');
+    li.innerHTML = '<span class="mark wait">…</span><span></span><span class="detail"></span>';
+    li.children[1].textContent = check.title;
+    list.append(li);
+    return li;
+  });
+  const ctx = {};
+  let passed = 0;
+  $('checks-summary').className = 'wait';
+  for (const [i, check] of CHECKS.entries()) {
+    const [mark, , detail] = items[i].children;
+    $('checks-summary').textContent = `Running check ${i + 1} of ${CHECKS.length}…`;
+    mark.textContent = '⟳';
+    try {
+      detail.textContent = await check.run(ctx);
+      mark.textContent = '✔';
+      mark.className = 'mark pass';
+      passed++;
+    } catch (err) {
+      detail.textContent = err.message;
+      mark.textContent = '✖';
+      mark.className = 'mark fail';
+    }
+  }
+  const all = passed === CHECKS.length;
+  $('checks-summary').textContent = all ? `All ${passed} checks passed.` : `${passed} of ${CHECKS.length} checks passed.`;
+  $('checks-summary').className = all ? 'pass' : 'fail';
+  document.title = all ? 'Engine workbench: pass' : 'Engine workbench: FAIL';
+  window.checkResults = { passed, total: CHECKS.length, details: items.map((li) => li.textContent) };
+  button.disabled = false;
+});
+
+// ---- 2. By hand ----
+
+const STAT_FIELDS = [
+  ['state', 'state'], ['generation', 'generation'], ['live', 'live cells (peak)'], ['rate', 'generations / s'],
+  ['chunks', 'chunks (peak · created)'], ['extent', 'extent'], ['memory', 'memory (slabs)'], ['elapsed', 'running time'],
+  ['received', 'statistics / s received'],
+];
+$('stats').innerHTML = STAT_FIELDS.map(([key, label]) => `<div class="stat"><b id="s-${key}">–</b><span>${label}</span></div>`).join('');
+const show = (key, value) => { $(`s-${key}`).textContent = value; };
+const arrivals = [];
+
+function showStats(stats) {
+  const n = (x) => x.toLocaleString();
+  show('generation', n(stats.generation));
+  show('live', `${n(stats.live)} (${n(stats.livePeak)})`);
+  show('rate', stats.rate ? Math.round(stats.rate) : '0');
+  show('chunks', `${n(stats.chunks)} (${n(stats.chunksPeak)} · ${n(stats.chunksCreated)})`);
+  show('extent', stats.extent ? stats.extent.max.map((hi, a) => hi - stats.extent.min[a] + 1).join(' × ') : 'empty');
+  show('memory', `${(stats.memoryBytes / 2 ** 20).toFixed(0)} MB`);
+  show('elapsed', `${(stats.elapsedMs / 1000).toFixed(2)} s`);
+}
+
+function log(text) {
+  const el = $('log');
+  el.textContent += `${(performance.now() / 1000).toFixed(2).padStart(8)}  ${text}\n`;
+  el.scrollTop = el.scrollHeight;
+}
+
+let autoTimer = null;
+const driver = new EngineDriver({
+  onStats: (stats) => {
+    const now = performance.now();
+    arrivals.push(now);
+    while (arrivals[0] < now - 1000) arrivals.shift();
+    show('received', arrivals.length);
+    showStats(stats);
+    log(`stats   generation ${stats.generation}, ${stats.live.toLocaleString()} live`);
+  },
+  onState: (state, stats, reason) => {
+    show('state', reason ? `${state}: ${reason}` : state);
+    showStats(stats);
+    log(`${state.toUpperCase().padEnd(7)} ${reason ? `(${reason}) ` : ''}generation ${stats.generation}`);
+    if (state === 'ended') takeSnapshot();
+  },
+  onError: (message) => log(`ERROR   ${message}`),
+});
+
+const number = (id) => ($(id).value === '' ? undefined : Number($(id).value));
+
+$('start').addEventListener('click', () => {
+  const kind = $('kind').value;
+  const limits = {};
+  if (number('cell-limit') !== undefined) limits.cells = number('cell-limit');
+  const run = kind === 'timed' ? { kind, seconds: number('seconds') } : { kind, rate: number('rate') ?? null };
+  resetFrames();
+  arrivals.length = 0;
+  $('log').textContent = '';
+  driver.start({ world: { rules: RULES, limits }, seed: makeSeed(number('seed-side') ?? 10), run, generations: number('generations') });
+  log(`start   ${kind === 'timed' ? `timed, ${run.seconds} s` : 'open-ended'}`);
+});
+$('pause').addEventListener('click', () => driver.pause());
+$('step').addEventListener('click', () => driver.step());
+$('resume').addEventListener('click', () => driver.resume());
+$('set-rate').addEventListener('click', () => driver.setRate(number('rate') ?? null));
+$('stop').addEventListener('click', () => driver.stop());
+$('snapshot').addEventListener('click', takeSnapshot);
+$('auto-snapshot').addEventListener('change', (event) => {
+  clearInterval(autoTimer);
+  if (event.target.checked) autoTimer = setInterval(takeSnapshot, 1000);
+});
+
+async function takeSnapshot() {
+  if (!driver.worker) return;
+  try {
+    const { generation, cells } = await driver.snapshot();
+    $('snapshot-label').textContent = `generation ${generation}, ${(cells.length / 3).toLocaleString()} cells`;
+    draw(cells);
+  } catch (err) {
+    log(`ERROR   ${err.message}`);
+  }
+}
+
+/** Draws the cells from above: x across, y up, brightness by the number of cells in each column. */
+function draw(cells) {
+  const canvas = $('view');
+  const ctx = canvas.getContext('2d');
+  const { width, height } = canvas;
+  ctx.clearRect(0, 0, width, height);
+  if (!cells.length) return;
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  for (let i = 0; i < cells.length; i += 3) {
+    minX = Math.min(minX, cells[i]); maxX = Math.max(maxX, cells[i]);
+    minY = Math.min(minY, cells[i + 1]); maxY = Math.max(maxY, cells[i + 1]);
+  }
+  const span = Math.max(maxX - minX, maxY - minY) + 1;
+  const scale = (width - 20) / span;
+  const counts = new Float32Array(width * height);
+  let most = 1;
+  for (let i = 0; i < cells.length; i += 3) {
+    const px = Math.floor(10 + (cells[i] - minX) * scale);
+    const py = Math.floor(height - 10 - (cells[i + 1] - minY + 1) * scale);
+    const k = py * width + px;
+    if (k >= 0 && k < counts.length) most = Math.max(most, ++counts[k]);
+  }
+  const dot = getComputedStyle(document.documentElement).getPropertyValue('--dot').trim();
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(dot.slice(i, i + 2), 16));
+  const image = ctx.createImageData(width, height);
+  const size = Math.max(1, Math.floor(scale));
+  for (let k = 0; k < counts.length; k++) {
+    if (!counts[k]) continue;
+    const alpha = 80 + Math.round(175 * Math.sqrt(counts[k] / most));
+    const x0 = k % width, y0 = Math.floor(k / width);
+    for (let dy = 0; dy < size; dy++) for (let dx = 0; dx < size; dx++) {
+      const x = x0 + dx, y = y0 + dy;
+      if (x >= width || y >= height) continue;
+      const o = 4 * (y * width + x);
+      image.data[o] = r; image.data[o + 1] = g; image.data[o + 2] = b; image.data[o + 3] = alpha;
+    }
+  }
+  ctx.putImageData(image, 0, 0);
+}
+</script>
+</body>
+</html>
