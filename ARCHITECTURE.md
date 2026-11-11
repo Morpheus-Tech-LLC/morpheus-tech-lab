@@ -25,6 +25,10 @@ local storage: whether GPU compute is on.
  │                              │                                               │
  │   time.animate() ──► simulationModel.updatePoints() ──► Three.js Points      │
  │                                     space.js: scene, camera, OrbitControls   │
+ │   └ in Explore: explore.exploreFrame() ──► explore/view.js (points, boxes)   │
+ │                                                                              │
+ │ main.js opens Explore: startExplore() ── unbounded/driver ◄──► run.worker    │
+ │   (a Web Worker: World + step, one generation at a time; snapshots back)     │
  └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -52,7 +56,7 @@ Game of Life 3D and both Rule 30 modes also run on the GPU (`src/gpu/engine.js` 
 WGSL in `src/shaders/`), with one compute dispatch per generation. The GPU gives exactly the
 CPU's grids; the CPU functions above are the reference.
 
-**Unbounded world** (`src/unbounded/`, not on the page yet): Game of Life 3D without edges.
+**Unbounded world** (`src/unbounded/`, shown by the Explore mode): Game of Life 3D without edges.
 Space is divided into chunks of 16³ cells (8³ or 32³ also work), held in a `Map` from chunk
 coordinate to slot. A chunk is allocated when live cells reach it and released once it is empty.
 Each slot lives in a large slab (64 MB by default) and holds two copies of its chunk, the
@@ -63,7 +67,21 @@ A run (`run.js`) steps a world in a Web Worker (`run.worker.js`), either until a
 timed run: only generations completed before it count) or until stopped (an open-ended run,
 which can also pause, step one generation and cap its rate). On the page, `EngineDriver`
 (`driver.js`) starts each run in a fresh Worker, sends its commands, and receives statistics
-(at most four times a second) and, on request, snapshots of the live cells.
+(at most four times a second) and, on request, snapshots of the live cells, or past a budget
+of cells, of the chunks that hold them.
+
+**Explore** (`src/explore/`): the mode that shows the unbounded world. Its seed is one of the
+shapes, lifted into world coordinates around the origin (`seed.js`), or a seed file, JSON with
+the rules and the cells. `explore.js` runs it through `EngineDriver`, with no history:
+`state.simulationData` stays null. `view.js` draws the latest snapshot in a point buffer that
+grows with the pattern, or the occupied chunks as boxes past 300,000 cells, and moves the camera
+to keep the pattern in view (`framing.js`). In the 2D view it asks the Worker for one plane of
+cells; the slice slider spans the pattern's extent on that axis. Explore's runs *settle*: the
+engine keeps a 64-bit fingerprint of the cells (`World`'s `fingerprint` option), and the run
+ends when every cell has died or a fingerprint matches one of the last 10,000 generations'
+(the cells repeat in place). The Worker then replays the cycle once to send its frames, which
+the view loops while the count stays put. A fingerprint is a hash, not a proof: scoring a
+contest on a repeat needs #38's canonical state.
 
 **Seed**: a shape function from `shapeGenerators.js` (perlin, cube, tetrahedron, octahedron,
 worley, rule30). Its parameters are in `state.shapeParams`.

@@ -2,10 +2,17 @@ import { state } from "./state.js";
 import { initSimulation, updatePoints } from "./simulationModel.js";
 import * as THREE from 'three';
 import { initComputeControl, updateComputeControl } from "./gpu/computeControl.js";
+import { isExplore, startExplore, stopExplore, togglePlay, stepOnce, restart, currentSeedFile, exploreViewChanged } from "./explore/explore.js";
+import { shapeSeed, parseRules, parseSeedFile, arenaBox, MAX_SHAPE_SIZE } from "./explore/seed.js";
+import { perlinShape, worleyShape, cubeOfSide, tetrahedronShape, octahedronShape } from "./shapeGenerators.js";
 
 let pendingShapeKey = null;
 let shapeDropdownPrevValue = null;
 let shapeDropdownOpened = false;
+// A seed file loaded in the dialog for Explore, until Apply: {name, rules, cells}
+let pendingExploreSeed = null;
+// The largest seed file the dialog reads, in bytes
+const MAX_SEED_FILE_BYTES = 64 * 1024 * 1024;
 
 // Helper functions for updating displays (must be outside initControls to be accessible from resetControlsUI)
 function updateDirectionDisplay() {
@@ -29,7 +36,8 @@ function updateSimulationModeTitle() {
       gameOfLife: 'Game of Life',
       rule30: 'Rule 30',
       sineWave: 'Sine Wave',
-      sandpile: 'Sandpile'
+      sandpile: 'Sandpile',
+      explore: 'Explore'
     };
     let modeName = modeNames[state.simulationMode] || 'Game of Life';
     titleEl.textContent = modeName;
@@ -141,6 +149,7 @@ export function initControls() {
     state.sliceAxis = newAxis;
     updateViewControlsDisplay();
     updatePoints();
+    if (isExplore()) exploreViewChanged();
   });
   
   // Initialize view controls display
@@ -186,6 +195,7 @@ export function initControls() {
     updateViewControlsDisplay();
     updatePoints();
     updateTriStateVisibility();
+    if (isExplore()) exploreViewChanged();
   });
 
   // --- Slice Index Slider ---
@@ -195,6 +205,7 @@ export function initControls() {
     state.sliceIndex = index;
     updateViewControlsDisplay();
     if (state.viewMode === 'slice') updatePoints();
+    if (isExplore()) exploreViewChanged();
   });
 
   if (sliceIndexSlider) {
@@ -220,6 +231,7 @@ export function initControls() {
   if (rightStepCircle) rightStepCircle.classList.add("active");
   
   reverseBtn.addEventListener("click", () => {
+    if (isExplore()) return; // a stream only runs forward
     // isReversing = getPlaybackDirection
     isReversing = !isReversing; // toggle on/off
 
@@ -261,6 +273,10 @@ export function initControls() {
   const playPauseButton = document.getElementById("playPauseButton");
   const playPauseIcon = document.getElementById("playPauseIcon");
   playPauseButton.onclick = () => {
+    if (isExplore()) {
+      togglePlay(); // the run answers, and explore.js updates the button
+      return;
+    }
     const next = !state.isPlaying;
     state.isPlaying = next;
     playPauseIcon.className = next ? "pause" : "play";
@@ -272,6 +288,10 @@ export function initControls() {
   // const reverseButton = document.getElementById("reverseButton");
   const stepButton = document.getElementById("stepButton");
   stepButton.addEventListener("click", () => {
+    if (isExplore()) {
+      stepOnce();
+      return;
+    }
     if (state.isReversing) {
       state.currentGen = (state.currentGen - 1 + state.simulationData.length) % state.simulationData.length;
     } else {
@@ -285,6 +305,10 @@ export function initControls() {
       bottomGen.textContent = `${state.currentGen} / ${maxGen}`;
     }
   });
+
+  // Explore only: start again from the same seed and rules
+  const restartButton = document.getElementById("restartButton");
+  if (restartButton) restartButton.addEventListener("click", restart);
 
   updateStepButtonVisibility();
 
@@ -631,6 +655,20 @@ function openShapeModal() {
 
   if (!modal || !sizeInput || !densityInput || !confirmBtn || !cancelBtn) return;
 
+  /** The rule fields show Explore's own rules (or its loaded seed file's) in Explore. */
+  function fillRuleInputs(mode) {
+    const rules = mode === 'explore' ? (pendingExploreSeed?.rules ?? state.explore.rules) : state.rules;
+    if (ruleBirth) ruleBirth.value = stringifyRule(rules?.birth ?? [9, 10]);
+    if (ruleSurvival) ruleSurvival.value = stringifyRule(rules?.survival ?? []);
+  }
+
+  function showExploreError(message) {
+    const el = document.getElementById('explore-error');
+    if (!el) return;
+    el.hidden = !message;
+    el.textContent = message ?? '';
+  }
+
   // Initialize simulation inputs from state - use mode-specific values if available
   let currentMode = state.simulationMode || 'gameOfLife';
   // If current mode is rule30_2D, convert to rule30 (we now use toggle instead)
@@ -733,6 +771,25 @@ function openShapeModal() {
         }
         state.modeValues[state.simulationMode].generations = currentGens;
       }
+    }
+
+    // Explore has its own section instead of the size, generations and boundary settings
+    const exploreSection = document.getElementById('explore-section');
+    const simParamsSection = document.getElementById('sim-params-section');
+    if (exploreSection) exploreSection.style.display = mode === 'explore' ? '' : 'none';
+    if (simParamsSection) simParamsSection.style.display = mode === 'explore' ? 'none' : '';
+    if (mode === 'explore') {
+      if (rulesSection) rulesSection.style.display = '';
+      if (seedSection) seedSection.style.display = '';
+      if (boundaryRulesSection) boundaryRulesSection.style.display = 'none';
+      if (sandpileSection) sandpileSection.style.display = 'none';
+      if (rule302DToggleRow) rule302DToggleRow.style.display = 'none';
+      if (modalShapeSelect) {
+        Array.from(modalShapeSelect.options).forEach(opt => {
+          opt.style.display = '';
+        });
+      }
+      return;
     }
     
     if (mode === 'gameOfLife') {
@@ -1011,7 +1068,8 @@ function openShapeModal() {
     gameOfLife: 'A classic cellular automaton extended to three dimensions. Cells evolve based on the number of living neighbors, creating complex patterns of growth, stability, and decay in 3D space.',
     rule30: 'A one-dimensional cellular automaton that generates complex, seemingly random patterns from simple rules. Each cell\'s state depends on its left, center, and right neighbors, producing fractal-like structures.',
     sineWave: 'A continuous mathematical function visualized in discrete 3D space. Represents periodic oscillations and wave patterns, demonstrating how continuous phenomena can be sampled and displayed on a grid.',
-    sandpile: 'The Abelian Sandpile Model, a self-organized criticality system. Sand grains accumulate and topple when reaching a threshold, creating cascading avalanches that exhibit power-law distributions and fractal patterns.'
+    sandpile: 'The Abelian Sandpile Model, a self-organized criticality system. Sand grains accumulate and topple when reaching a threshold, creating cascading avalanches that exhibit power-law distributions and fractal patterns.',
+    explore: 'Game of Life 3D in a world without walls. The pattern grows as far as it likes, for as long as you let it run, with no score and no clock. Pause, step and restart it, try other rules, or load a seed file, and set a memory limit or an arena.'
   };
   
   // Function to update mode description
@@ -1033,6 +1091,9 @@ function openShapeModal() {
       
       // Update description
       updateModeDescription(selectedMode);
+      // Explore keeps its own rules
+      fillRuleInputs(selectedMode);
+      showExploreError(null);
       
       // Update UI based on selected mode
       updateModeUI(selectedMode);
@@ -1199,9 +1260,140 @@ function openShapeModal() {
   }
   updateShapeSizeMax();
   
-  // Initialize rules inputs
-  if (ruleBirth) ruleBirth.value = stringifyRule(state.rules?.birth ?? [9,10]);
-  if (ruleSurvival) ruleSurvival.value = stringifyRule(state.rules?.survival ?? []);
+  // Initialize rules inputs (a seed file loaded for Explore brings its own rules)
+  pendingExploreSeed = state.explore.seedFile;
+  fillRuleInputs(currentMode);
+
+  // ---- Explore's section ----
+  const exploreMemory = document.getElementById('explore-memory');
+  const exploreArenaCheckbox = document.getElementById('explore-arena-checkbox');
+  const exploreArenaRow = document.getElementById('explore-arena-row');
+  const exploreArenaSize = document.getElementById('explore-arena-size');
+  const exploreLoadSeed = document.getElementById('explore-load-seed');
+  const exploreClearSeed = document.getElementById('explore-clear-seed');
+  const exploreExportSeed = document.getElementById('explore-export-seed');
+  const exploreSeedFile = document.getElementById('explore-seed-file');
+  const exploreSeedStatus = document.getElementById('explore-seed-status');
+
+  if (exploreMemory) exploreMemory.value = `${state.explore.memoryMB}`;
+  if (exploreArenaCheckbox) {
+    exploreArenaCheckbox.checked = state.explore.arena !== null;
+    exploreArenaCheckbox.onchange = () => {
+      if (exploreArenaRow) exploreArenaRow.style.display = exploreArenaCheckbox.checked ? '' : 'none';
+    };
+    exploreArenaCheckbox.onchange();
+  }
+  if (exploreArenaSize) exploreArenaSize.value = `${state.explore.arena ?? state.explore.arenaSize}`;
+  showExploreSeedStatus();
+  showExploreError(null);
+
+  if (exploreLoadSeed && exploreSeedFile) {
+    exploreLoadSeed.onclick = () => exploreSeedFile.click();
+    exploreSeedFile.onchange = async () => {
+      const file = exploreSeedFile.files?.[0];
+      exploreSeedFile.value = ''; // so loading the same file again still fires
+      if (!file) return;
+      try {
+        if (file.size > MAX_SEED_FILE_BYTES) throw new Error(`it is larger than ${MAX_SEED_FILE_BYTES / 2 ** 20} MB.`);
+        const { rules, cells } = parseSeedFile(await file.text());
+        pendingExploreSeed = { name: file.name, rules, cells };
+        if (ruleBirth) ruleBirth.value = stringifyRule(rules.birth);
+        if (ruleSurvival) ruleSurvival.value = stringifyRule(rules.survival);
+        showExploreError(null);
+      } catch (err) {
+        showExploreError(`${file.name} can't be used: ${err.message}`);
+      }
+      showExploreSeedStatus();
+    };
+  }
+  if (exploreClearSeed) {
+    exploreClearSeed.onclick = () => {
+      pendingExploreSeed = null;
+      fillRuleInputs('explore');
+      showExploreSeedStatus();
+    };
+  }
+  if (exploreExportSeed) {
+    exploreExportSeed.disabled = !(isExplore() && currentSeedFile());
+    exploreExportSeed.onclick = () => {
+      const text = currentSeedFile();
+      if (!text) return;
+      const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'explore-seed.json';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    };
+  }
+  function showExploreSeedStatus() {
+    if (exploreSeedStatus) {
+      exploreSeedStatus.textContent = pendingExploreSeed
+        ? `Using ${pendingExploreSeed.name}: ${(pendingExploreSeed.cells.length / 3).toLocaleString('en')} cells.`
+        : 'Using the shape.';
+    }
+    if (exploreClearSeed) exploreClearSeed.hidden = !pendingExploreSeed;
+  }
+
+  /** Explore's settings from the dialog. Throws an Error saying what's wrong. */
+  function buildExploreConfig() {
+    const rules = parseRules(ruleBirth?.value, ruleSurvival?.value);
+    const memoryMB = Number(exploreMemory?.value);
+    if (!Number.isInteger(memoryMB) || memoryMB < 64 || memoryMB > 16384) {
+      throw new Error('The memory limit must be a whole number of MB, from 64 to 16384.');
+    }
+    let arena = null;
+    if (exploreArenaCheckbox?.checked) {
+      arena = Number(exploreArenaSize?.value);
+      if (!Number.isInteger(arena) || arena < 8 || arena > 1024) {
+        throw new Error('The arena size must be a whole number of cells, from 8 to 1024.');
+      }
+    }
+    let cells;
+    let label;
+    let shape = null; // the shape settings to remember, when the seed is a shape
+    if (pendingExploreSeed) {
+      ({ cells } = pendingExploreSeed);
+      label = pendingExploreSeed.name;
+    } else {
+      const key = modalShapeSelect?.value || state.shapeKey;
+      const size = Number(sizeInput.value);
+      const density = Number(densityInput.value);
+      const noise = key === 'perlin' || key === 'worley';
+      const regionSize = noise ? Number(regionSizeInput?.value) || 0 : 0;
+      if (!Number.isInteger(size) || size < 1 || size > MAX_SHAPE_SIZE) {
+        throw new Error(`In Explore, the seed's size must be a whole number from 1 to ${MAX_SHAPE_SIZE}.`);
+      }
+      if (!(density >= 0 && density <= 1)) throw new Error("The seed's density must be from 0 to 1.");
+      if (!Number.isInteger(regionSize) || regionSize < 0 || regionSize > 2 * MAX_SHAPE_SIZE) {
+        throw new Error(`In Explore, the region size must be a whole number up to ${2 * MAX_SHAPE_SIZE}.`);
+      }
+      const shapes = {
+        perlin: () => perlinShape(size, density, regionSize || null),
+        worley: () => worleyShape(size, density, regionSize || null),
+        cube: () => cubeOfSide(size, density),
+        tetrahedron: () => tetrahedronShape(size, density),
+        octahedron: () => octahedronShape(size, density),
+      };
+      if (!shapes[key]) throw new Error('Pick a shape for the seed.');
+      cells = shapeSeed(shapes[key](), size, regionSize);
+      label = key;
+      shape = { key, params: noise ? { size, density, regionSize } : { size, density } };
+    }
+    if (!cells.length) throw new Error('The seed has no live cells: raise its density or its size.');
+    const box = arenaBox(arena);
+    if (box) {
+      for (let i = 0; i < cells.length; i++) {
+        const a = i % 3;
+        if (cells[i] < box.min[a] || cells[i] > box.max[a]) {
+          throw new Error(`The seed doesn't fit inside a ${arena}³ arena: make the arena bigger or the seed smaller.`);
+        }
+      }
+    }
+    return { rules, cells, memoryMB, arena, label, shape };
+  }
   
   // Initialize boundary rules inputs
   const boundaryCornerBirth = document.getElementById('boundary-corner-birth');
@@ -1401,6 +1593,42 @@ function openShapeModal() {
     // Get selected simulation mode from active card
     const activeCard = document.querySelector('.mode-card.active');
     const selectedMode = activeCard ? activeCard.dataset.mode : 'gameOfLife';
+
+    // Explore streams from a Worker instead of precomputing (src/explore/)
+    if (selectedMode === 'explore') {
+      let config;
+      try {
+        config = buildExploreConfig();
+      } catch (err) {
+        showExploreError(err.message); // the dialog stays open
+        return;
+      }
+      state.simulationMode = 'explore';
+      state.useRule30 = false;
+      state.useRule30_2D = false;
+      state.useSineWave = false;
+      state.useSandpile = false;
+      state.explore = {
+        rules: config.rules,
+        memoryMB: config.memoryMB,
+        arena: config.arena,
+        arenaSize: Number(exploreArenaSize?.value) || state.explore.arenaSize,
+        seedFile: pendingExploreSeed,
+      };
+      // The seed's shape settings, so the dialog opens with them next time
+      if (config.shape) {
+        state.shapeKey = config.shape.key;
+        state.shapeParams[config.shape.key] = config.shape.params;
+      }
+      modal.classList.add('hidden');
+      cleanup();
+      pendingShapeKey = null;
+      resetControlsUI();
+      initControls(); // the title and the GPU toggle follow the mode
+      startExplore(config);
+      return;
+    }
+
     state.simulationMode = selectedMode;
     updateSimulationModeTitle();
 
@@ -1591,6 +1819,7 @@ function openShapeModal() {
     modal.classList.add('hidden');
     cleanup();
     pendingShapeKey = null;
+    stopExplore(); // if Explore was running, its Worker and view go
     await initSimulation();
 
     // Update displays

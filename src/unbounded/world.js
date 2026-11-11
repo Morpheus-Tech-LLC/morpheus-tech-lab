@@ -76,10 +76,12 @@ export class World {
    *   step that would bring a cell to life outside it ends the run
    * @param {(bytes: number) => ArrayBuffer} [options.allocate] - how a slab is obtained. A
    *   RangeError from it means the browser refused the memory. Tests replace it.
+   * @param {boolean} [options.fingerprint] - keep a fingerprint of the cells (fingerprint()),
+   *   for spotting a pattern that repeats. Off by default: it costs a little per live cell.
    */
   constructor({
     rules, chunkSize = 16, slabBytes = DEFAULT_SLAB_BYTES, limits = {}, arena = null,
-    allocate = (bytes) => new ArrayBuffer(bytes),
+    allocate = (bytes) => new ArrayBuffer(bytes), fingerprint = false,
   } = {}) {
     if (!CHUNK_SIZES.includes(chunkSize)) {
       throw new WorldError(`The chunk size must be one of ${CHUNK_SIZES.join(', ')}.`);
@@ -106,6 +108,7 @@ export class World {
     };
     this.arena = arena && checkArena(arena);
     this.allocate = allocate;
+    this.fingerprinting = fingerprint;
 
     this.slabs = []; // Uint8Array views, one per slab
     this.free = []; // free slots, the lowest last
@@ -139,9 +142,30 @@ export class World {
     return this.chunks.size;
   }
 
-  /** Bytes of cell memory the engine holds: its slabs. */
+  /** Bytes of cell memory the engine holds: its slabs. Grows a whole slab at a time. */
   get memoryBytes() {
     return this.slabs.length * this.slabBytes;
+  }
+
+  /** Bytes of that memory the chunks use now: grows and shrinks with the pattern. */
+  get usedBytes() {
+    return this.chunks.size * this.slotBytes;
+  }
+
+  /**
+   * A 64-bit fingerprint of the live cells, as text: two independent 32-bit sums of a hash of
+   * each cell's coordinates. Equal cells, in place, give equal fingerprints whatever the chunk
+   * layout; different cells give different ones except by a one-in-2⁶⁴ chance. Needs the
+   * `fingerprint` option.
+   */
+  fingerprint() {
+    let a = 0;
+    let b = 0;
+    for (const slot of this.chunks.values()) {
+      a = (a + this.meta.hashA[slot]) | 0;
+      b = (b + this.meta.hashB[slot]) | 0;
+    }
+    return `${(a >>> 0).toString(16)}:${(b >>> 0).toString(16)}`;
   }
 
   /** @returns {{min: number[], max: number[]} | null} the live cells' bounding box */
@@ -212,6 +236,61 @@ export class World {
     return out;
   }
 
+  /**
+   * @param {{axis: number, index: number}} [plane] - only the chunks that cross the plane
+   *   where coordinate `axis` (0, 1, 2 for x, y, z) equals `index`
+   * @returns {Int32Array} the chunks that hold live cells, as x, y, z, live quadruples: each
+   *   chunk's lowest corner in cells, and how many of its cells are alive
+   */
+  chunkList(plane = null) {
+    const out = new Int32Array(4 * this.chunks.size);
+    const { n } = this;
+    const across = plane && [this.meta.cx, this.meta.cy, this.meta.cz][plane.axis];
+    let k = 0;
+    for (const slot of this.chunks.values()) {
+      const live = this.meta.live[slot];
+      if (!live) continue;
+      if (plane && across[slot] !== plane.index >> this.shift) continue;
+      out[k++] = this.meta.cx[slot] * n;
+      out[k++] = this.meta.cy[slot] * n;
+      out[k++] = this.meta.cz[slot] * n;
+      out[k++] = live;
+    }
+    return k === out.length ? out : out.slice(0, k);
+  }
+
+  /**
+   * @returns {Int32Array} the live cells in the plane where coordinate `axis` (0, 1, 2 for x, y,
+   *   z) equals `index`, as x, y, z triples. Reads only the chunks that cross the plane.
+   */
+  cellsInPlane(axis, index) {
+    const { n, shift } = this;
+    const across = [this.meta.cx, this.meta.cy, this.meta.cz][axis];
+    const chunk = index >> shift;
+    const local = index & this.mask;
+    const stride = [1, n, n * n];
+    // The other two axes, which the plane spans
+    const [u, v] = [0, 1, 2].filter((a) => a !== axis);
+    const found = [];
+    for (const slot of this.chunks.values()) {
+      if (!this.meta.live[slot] || across[slot] !== chunk) continue;
+      const [slab, base] = this.current(slot);
+      const origin = [this.meta.cx[slot] * n, this.meta.cy[slot] * n, this.meta.cz[slot] * n];
+      const start = base + local * stride[axis];
+      for (let j = 0; j < n; j++) {
+        for (let i = 0; i < n; i++) {
+          if (!slab[start + i * stride[u] + j * stride[v]]) continue;
+          const cell = [0, 0, 0];
+          cell[axis] = index;
+          cell[u] = origin[u] + i;
+          cell[v] = origin[v] + j;
+          found.push(cell[0], cell[1], cell[2]);
+        }
+      }
+    }
+    return Int32Array.from(found);
+  }
+
   // ---- Internals, shared with step.js ----
 
   localIndex(x, y, z) {
@@ -246,6 +325,8 @@ export class World {
       this.meta.cz[slot] = cz;
       this.meta.live[slot] = 0;
       this.meta.touch[slot] = 0;
+      this.meta.hashA[slot] = 0;
+      this.meta.hashB[slot] = 0;
       this.chunks.set(key, slot);
       this.chunksCreated++;
       if (this.chunks.size > this.chunksPeak) this.chunksPeak = this.chunks.size;
@@ -291,10 +372,17 @@ export class World {
     const box = [n, n, n, -1, -1, -1];
     let live = 0;
     let classes = 0;
+    let hashA = 0;
+    let hashB = 0;
+    const ox = this.meta.cx[slot] * n, oy = this.meta.cy[slot] * n, oz = this.meta.cz[slot] * n;
     for (let i = 0; i < this.volume; i++) {
       if (!slab[base + i]) continue;
       const x = i & mask, y = (i >> shift) & mask, z = i >> (2 * shift);
       live++;
+      if (this.fingerprinting) {
+        hashA = (hashA + cellHashA(ox + x, oy + y, oz + z)) | 0;
+        hashB = (hashB + cellHashB(ox + x, oy + y, oz + z)) | 0;
+      }
       classes |= 1 << (borderClass(x, n) + 3 * borderClass(y, n) + 9 * borderClass(z, n));
       if (x < box[0]) box[0] = x;
       if (y < box[1]) box[1] = y;
@@ -304,6 +392,8 @@ export class World {
       if (z > box[5]) box[5] = z;
     }
     setFacts(this.meta, slot, live, classes, box, n);
+    this.meta.hashA[slot] = hashA;
+    this.meta.hashB[slot] = hashB;
   }
 
   stop(reason) {
@@ -315,7 +405,7 @@ export class World {
 // ---- Per-slot facts ----
 
 function newMeta(slots) {
-  const meta = { live: null, touch: null, cx: null, cy: null, cz: null, box: null };
+  const meta = { live: null, touch: null, cx: null, cy: null, cz: null, box: null, hashA: null, hashB: null };
   return growMeta(meta, slots);
 }
 
@@ -332,7 +422,29 @@ function growMeta(meta, slots) {
     cy: grow(meta.cy, slots),
     cz: grow(meta.cz, slots),
     box: grow(meta.box, 6 * slots), // min x, y, z, max x, y, z, local to the chunk
+    hashA: grow(meta.hashA, slots), // the chunk's share of the fingerprint
+    hashB: grow(meta.hashB, slots),
   };
+}
+
+// Two independent hashes of a cell's coordinates, for the fingerprint: each mixes the three
+// coordinates with different odd constants, then scrambles the bits (a murmur-style finaliser)
+export function cellHashA(x, y, z) {
+  let h = Math.imul(x, 0x9e3779b1) ^ Math.imul(y, 0x85ebca77) ^ Math.imul(z, 0xc2b2ae3d);
+  h ^= h >>> 16;
+  h = Math.imul(h, 0x7feb352d);
+  h ^= h >>> 15;
+  h = Math.imul(h, 0x846ca68b);
+  return h ^ (h >>> 16);
+}
+
+export function cellHashB(x, y, z) {
+  let h = Math.imul(x, 0x27d4eb2f) ^ Math.imul(y, 0x165667b1) ^ Math.imul(z, 0xd3a2646c | 1);
+  h ^= h >>> 15;
+  h = Math.imul(h, 0x2c1b3c6d);
+  h ^= h >>> 12;
+  h = Math.imul(h, 0x297a2d39);
+  return h ^ (h >>> 15);
 }
 
 /**

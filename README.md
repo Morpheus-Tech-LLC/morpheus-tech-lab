@@ -100,10 +100,32 @@ The 3D model was determined to be best represented mathematically by a three dim
 | **Rule 30** | Wolfram's elementary automaton, in 1D or 2D |
 | **Sine Wave** | A continuous wave field, a smooth visual reference |
 | **Abelian Sandpile** | One grain of sand dropped at the centre each generation; piles topple and spread into fractal patterns |
+| **Explore** | Game of Life 3D without walls: the pattern grows as far as it likes, for as long as it runs. Pause, step, restart and set its speed; choose the rules, a seed shape or a seed file; set a memory limit, and optionally an arena that ends the run at its edge. The 2D view shows one slice, across the pattern's extent; the grid shows the 16³-cell chunks it occupies. A run stops once its pattern dies or settles into a still life or a repeating cycle, which then keeps playing. Export the seed to load it again later |
 
-Seeds: cube, tetrahedron, octahedron, Perlin noise and Worley noise. The default is a 50×50×50
+The lab opens in Explore, paused on a 10³ cube; the settings button switches mode.
+
+Seeds: cube, tetrahedron, octahedron, Perlin noise and Worley noise. Game of Life 3D's default is a 50×50×50
 grid over 100 generations. The whole run is computed before it plays, so you can scrub and play
 it backwards instantly.
+
+Explore works differently: it computes one generation at a time, in a background thread, for as
+long as it runs, and keeps only the current one, so it can't play backwards. The view draws up
+to 300,000 live cells; past that it draws the 16³-cell chunks that hold them, as boxes. Its
+memory limit starts at a cautious 512 MB: the browser caps each tab's memory, and a page can't
+learn that cap, so the limit stops a run cleanly before the browser or the system does.
+
+An Explore seed file is JSON: its format and version, the rules, and the live cells as
+`[x, y, z]` whole numbers, centred near `[0, 0, 0]`. **Export current** writes one, and you can
+write or edit one by hand:
+
+```json
+{
+  "format": "morpheus-tech-lab/explore-seed",
+  "version": 1,
+  "rules": { "birth": [9, 10], "survival": [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15] },
+  "cells": [[0, 0, 0], [1, 0, 0], [0, 1, 0]]
+}
+```
 
 ### Limits
 **GPU or CPU.** Game of Life 3D and Rule 30 (1D and 2D) compute on your GPU with WebGPU when

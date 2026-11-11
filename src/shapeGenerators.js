@@ -155,6 +155,23 @@ export function cubeShape(halfSize = 5, prob = 1) {
   };
 }
 
+/**
+ * A cube `side` cells wide, centred like the other shapes. cubeShape() takes half a side and
+ * fills twice that, so it can't make an odd side; Explore uses this one.
+ */
+export function cubeOfSide(side, prob = 1) {
+  return (grid, size) => {
+    const start = Math.floor(size / 2) - Math.floor(side / 2);
+    for (let x = start; x < start + side; x++) {
+      for (let y = start; y < start + side; y++) {
+        for (let z = start; z < start + side; z++) {
+          if (Math.random() < prob) grid.set(x, y, z, 1);
+        }
+      }
+    }
+  };
+}
+
 export function tetrahedronShape(height = 7, prob = 1.0) {
   return (grid, size) => {
     const center = Math.floor(size / 2);

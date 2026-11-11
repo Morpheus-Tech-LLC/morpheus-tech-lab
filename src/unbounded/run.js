@@ -12,15 +12,24 @@
 //
 // Messages to the run:
 //   {type: 'start', world: {rules, chunkSize?, slabBytes?, limits?, arena?}, seed: Int32Array,
-//    run: {kind: 'timed', seconds} | {kind: 'open', paused?, rate?}, generations?}
+//    run: {kind: 'timed', seconds} | {kind: 'open', paused?, rate?, settle?}, generations?}
+//     settle: end when every cell has died ('died') or the cells repeat, in place, those of
+//     an earlier generation ('repeat', with the cycle: {from, period}; the generation count
+//     goes back to `from`, whose cells they are)
 //   {type: 'pause'} {type: 'resume'} {type: 'step'}   open-ended runs only
 //   {type: 'rate', rate}                                open-ended runs only; null for flat out
 //   {type: 'stop'}
-//   {type: 'snapshot', id}
+//   {type: 'cycle', id, budget}                         after 'repeat': every generation of the cycle
+//   {type: 'snapshot', id, budget?, slice?: {axis, index}}
+//     cells, or chunks past `budget` live cells; with a slice, only those in the plane where
+//     coordinate `axis` (0, 1, 2) equals `index`
 // Messages from the run:
-//   {type: 'state', state: 'running' | 'paused' | 'ended', reason?, stats}
+//   {type: 'state', state: 'running' | 'paused' | 'ended', reason?, cycle?, stats}
+//   {type: 'cycle', id, from, period, frames: Int32Array[] | null}   null past `budget` cells
 //   {type: 'stats', stats}                              at most every STATS_INTERVAL_MS
-//   {type: 'snapshot', id, generation, cells: Int32Array}   the cells' buffer is transferred
+//   {type: 'snapshot', id, generation, live, chunkSize, slice?, cells?: Int32Array, chunks?: Int32Array}
+//     cells as x, y, z triples, or chunks as x, y, z, live quadruples (World.chunkList()); the
+//     array's buffer is transferred
 //   {type: 'error', id?, message}
 //
 // Statistics go out on their own at most four times a second, and with every change of state.
@@ -34,6 +43,8 @@ import { step as stepWorld } from './step.js';
 export const STATS_INTERVAL_MS = 250;
 /** How long the loop steps before yielding to messages, unless one generation takes longer. */
 export const SLICE_MS = 16;
+/** How many generations back a settling run looks for a repeat: the longest period it spots. */
+export const REPEAT_WINDOW = 10_000;
 
 /** The reasons a run can end: the engine's limits, plus the run's own. */
 export const END_REASONS = [
@@ -41,6 +52,8 @@ export const END_REASONS = [
   'stopped', // stopped by hand
   'deadline', // a timed run reached its deadline
   'generation-limit', // the run completed the generations it was given
+  'died', // a settling run: no live cells remain
+  'repeat', // a settling run: the cells repeat, in place, an earlier generation's
   'error', // a fault in the engine; the message says what
 ];
 
@@ -57,7 +70,9 @@ export const END_REASONS = [
  * @property {number} chunksCreated
  * @property {{min: number[], max: number[]} | null} extent - the live cells' bounding box
  * @property {number} memoryBytes - the bytes of the slabs the engine holds: exact for the cells,
- *   without the browser's own overhead
+ *   without the browser's own overhead. It grows a slab at a time, and the memory limit counts it.
+ * @property {number} usedBytes - the bytes of those slabs the chunks use now, two copies of
+ *   each chunk's cells: it follows the pattern
  */
 
 export class Run {
@@ -97,7 +112,8 @@ export class Run {
       case 'step': return this.openOnly('step') && this.state === 'paused' && this.stepByHand();
       case 'rate': return this.openOnly('rate') && this.live() && this.changeRate(message.rate);
       case 'stop': return this.live() && this.end('stopped');
-      case 'snapshot': return this.snapshot(message.id);
+      case 'snapshot': return this.snapshot(message.id, message.budget, message.slice);
+      case 'cycle': return this.cycle(message.id, message.budget);
       default: throw new RunError(`Unknown message ${JSON.stringify(message?.type)}.`);
     }
   }
@@ -114,10 +130,18 @@ export class Run {
       throw new RunError('The generations must be a whole number.');
     }
 
-    const world = new World(options);
+    const settle = !timed && Boolean(run.settle);
+    const world = new World({ ...options, fingerprint: settle });
     world.setCells(triples(seed));
     this.world = world;
     this.kind = run.kind;
+    this.settle = settle;
+    this.cycleFound = null;
+    if (settle) {
+      this.seen = new Map(); // fingerprint -> generation, for the last REPEAT_WINDOW generations
+      this.order = [];
+      this.remember();
+    }
     this.generations = generations;
     this.livePeak = world.liveCells;
     this.runningMs = 0;
@@ -173,11 +197,69 @@ export class Run {
     const live = this.world.liveCells;
     if (live > this.livePeak) this.livePeak = live;
     if (this.rate) this.dueAt = Math.max(this.dueAt + 1000 / this.rate, this.now());
+    if (this.settle && this.settled(live)) return true;
     if (this.world.generation >= this.generations) {
       this.end('generation-limit');
       return true;
     }
     return false;
+  }
+
+  /** A settling run ends once every cell has died or the cells repeat. @returns {boolean} */
+  settled(live) {
+    if (live === 0) {
+      this.end('died');
+      return true;
+    }
+    const key = this.world.fingerprint();
+    const from = this.seen.get(key);
+    if (from !== undefined) {
+      this.cycleFound = { from, period: this.world.generation - from };
+      // The cells now are generation `from`'s, so the count goes back there: a settled run
+      // reports the generation its cycle began, where its cells stay or keep returning
+      this.world.generation = from;
+      this.end('repeat');
+      return true;
+    }
+    this.remember(key);
+    return false;
+  }
+
+  remember(key = this.world.fingerprint()) {
+    this.seen.set(key, this.world.generation);
+    this.order.push(key);
+    if (this.order.length > REPEAT_WINDOW) this.seen.delete(this.order.shift());
+  }
+
+  /**
+   * Every generation of the cycle a 'repeat' found, as cells, starting with the current one
+   * (the cycle's first). The world steps once round the cycle to make them, which brings it
+   * back to the same cells; its generation count is put back. Null frames past `budget` cells
+   * in all.
+   */
+  cycle(id, budget = Infinity) {
+    if (!this.cycleFound) throw new RunError('The run has not settled into a repeating cycle.');
+    const { world } = this;
+    const { from, period } = this.cycleFound;
+    const reason = world.stopReason;
+    const generation = world.generation;
+    let frames = [];
+    let cells = 0;
+    world.stopReason = null;
+    try {
+      for (let i = 0; i < period; i++) {
+        if (frames) {
+          cells += world.liveCells;
+          frames = cells > budget ? null : [...frames, world.cells()];
+        }
+        const ended = this.stepWorld(world);
+        if (ended) throw new Error(`The cycle could not be replayed (${ended}).`);
+      }
+    } finally {
+      world.stopReason = reason;
+      world.generation = generation;
+    }
+    this.post({ type: 'cycle', id, from, period, frames }, frames ? frames.map((f) => f.buffer) : []);
   }
 
   stepByHand() {
@@ -229,6 +311,7 @@ export class Run {
   sendState(reason) {
     const message = { type: 'state', state: this.state, stats: this.stats() };
     if (reason) message.reason = reason;
+    if (reason === 'repeat') message.cycle = this.cycleFound;
     this.post(message);
   }
 
@@ -259,13 +342,34 @@ export class Run {
       chunksCreated: world.chunksCreated,
       extent: world.extent(),
       memoryBytes: world.memoryBytes,
+      usedBytes: world.usedBytes,
     };
   }
 
-  snapshot(id) {
+  /**
+   * Sends the live cells, or, if there are more than `budget` of them, the chunks that hold
+   * them: a view can't draw more cells than its budget smoothly, and a chunk list is far smaller.
+   * A slice limits both to one plane.
+   */
+  snapshot(id, budget = Infinity, slice = null) {
     if (!this.world) throw new RunError('There is nothing to snapshot before the run starts.');
-    const cells = this.world.cells();
-    this.post({ type: 'snapshot', id, generation: this.world.generation, cells }, [cells.buffer]);
+    if (slice && !([0, 1, 2].includes(slice.axis) && Number.isInteger(slice.index))) {
+      throw new RunError('A slice is {axis: 0, 1 or 2, index: a whole number}.');
+    }
+    const { world } = this;
+    const live = world.liveCells;
+    const message = { type: 'snapshot', id, generation: world.generation, live, chunkSize: world.n };
+    let array;
+    if (slice) {
+      message.slice = { axis: slice.axis, index: slice.index };
+      const cells = world.cellsInPlane(slice.axis, slice.index);
+      array = cells.length / 3 > budget ? world.chunkList(slice) : cells;
+      message[array === cells ? 'cells' : 'chunks'] = array;
+    } else {
+      array = live > budget ? world.chunkList() : world.cells();
+      message[live > budget ? 'chunks' : 'cells'] = array;
+    }
+    this.post(message, [array.buffer]);
   }
 
   live() {

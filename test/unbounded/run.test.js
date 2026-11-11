@@ -8,6 +8,7 @@ import assert from 'node:assert/strict';
 import { World } from '../../src/unbounded/world.js';
 import { step } from '../../src/unbounded/step.js';
 import { Run, STATS_INTERVAL_MS } from '../../src/unbounded/run.js';
+import { ReferenceWorld, sortCells } from '../../src/unbounded/reference.js';
 import { GROWING, randomSeed, cellsOf, difference } from './helpers.js';
 
 const SEED = randomSeed({ min: [-3, -3, -3], size: [6, 6, 6], randomSeed: 1 });
@@ -51,8 +52,8 @@ function fakeRun({ msPerStep = 10, stepper = step } = {}) {
     }
     if (limit !== Infinity) time = Math.max(time, limit);
   };
-  const start = ({ world = WORLD, run: kind, generations } = {}) => {
-    const message = { type: 'start', world, seed: Int32Array.from(SEED.flat()), run: kind };
+  const start = ({ world = WORLD, run: kind, generations, seed = SEED } = {}) => {
+    const message = { type: 'start', world, seed: Int32Array.from(seed.flat()), run: kind };
     if (generations !== undefined) message.generations = generations;
     run.receive(message);
   };
@@ -232,6 +233,8 @@ test('statistics arrive at most four times a second', () => {
   assert.ok(last.livePeak >= last.live);
   assert.ok(last.chunksPeak >= last.chunks && last.chunksCreated >= last.chunksPeak);
   assert.equal(last.memoryBytes, f.run.world.memoryBytes);
+  assert.equal(last.usedBytes, f.run.world.chunkCount * 2 * 8 ** 3, 'two copies of each 8³ chunk');
+  assert.ok(last.usedBytes <= last.memoryBytes);
   assert.ok(last.extent.min.length === 3 && last.extent.max.length === 3);
 });
 
@@ -260,6 +263,155 @@ test('snapshots are made only when asked for, and transfer their cells', () => {
   } finally {
     World.prototype.cells = cells;
   }
+});
+
+test('past its budget, a snapshot sends the chunks instead of the cells', () => {
+  const f = fakeRun();
+  f.start({ run: { kind: 'open' } });
+  f.until(500);
+  const { world } = f.run;
+  const live = world.liveCells;
+
+  f.run.receive({ type: 'snapshot', id: 1, budget: live });
+  const [cells] = f.of('snapshot');
+  assert.equal(cells.cells.length, 3 * live, 'at the budget: cells');
+  assert.equal(cells.chunks, undefined);
+
+  f.run.receive({ type: 'snapshot', id: 2, budget: live - 1 });
+  const chunks = f.of('snapshot')[1];
+  assert.equal(chunks.cells, undefined, 'past it: chunks');
+  assert.equal(chunks.live, live);
+  assert.equal(chunks.chunkSize, 8);
+  assert.deepEqual(chunks.transfer, [chunks.chunks.buffer]);
+  let total = 0;
+  const seen = new Set();
+  for (let i = 0; i < chunks.chunks.length; i += 4) {
+    const [x, y, z, n] = chunks.chunks.subarray(i, i + 4);
+    assert.ok(x % 8 === 0 && y % 8 === 0 && z % 8 === 0, 'each is a chunk\'s lowest corner');
+    assert.ok(n > 0);
+    seen.add(`${x},${y},${z}`);
+    total += n;
+  }
+  assert.equal(total, live, 'the chunks hold every live cell');
+  // Exactly the chunks the cells fall in
+  const expected = new Set();
+  for (let i = 0; i < cells.cells.length; i += 3) {
+    expected.add([0, 1, 2].map((a) => Math.floor(cells.cells[i + a] / 8) * 8).join(','));
+  }
+  assert.deepEqual([...seen].sort(), [...expected].sort());
+});
+
+test('a slice snapshot sends only the plane\'s cells, or past the budget the chunks it crosses', () => {
+  const f = fakeRun();
+  f.start({ run: { kind: 'open' } });
+  f.until(400);
+  f.run.receive({ type: 'snapshot', id: 1 });
+  const all = f.of('snapshot')[0].cells;
+  for (const axis of [0, 1, 2]) {
+    for (const index of [-9, -3, 0, 5, 8, 40]) { // across chunk boundaries, and outside the pattern
+      f.run.receive({ type: 'snapshot', id: 2, slice: { axis, index } });
+      const slice = f.of('snapshot').at(-1);
+      assert.deepEqual(slice.slice, { axis, index });
+      const expected = [];
+      for (let i = 0; i < all.length; i += 3) {
+        if (all[i + axis] === index) expected.push(`${all[i]},${all[i + 1]},${all[i + 2]}`);
+      }
+      const got = [];
+      for (let i = 0; i < slice.cells.length; i += 3) got.push(`${slice.cells[i]},${slice.cells[i + 1]},${slice.cells[i + 2]}`);
+      assert.deepEqual(got.sort(), expected.sort(), `axis ${axis}, index ${index}`);
+    }
+  }
+  // Past the budget, the chunks that cross the plane
+  f.run.receive({ type: 'snapshot', id: 3, budget: 0, slice: { axis: 2, index: 1 } });
+  const chunks = f.of('snapshot').at(-1).chunks;
+  assert.ok(chunks.length > 0);
+  for (let i = 0; i < chunks.length; i += 4) assert.equal(chunks[i + 2], 0, 'z = 1 lies in the chunks from z = 0');
+  f.run.receive({ type: 'snapshot', id: 4, slice: { axis: 3, index: 0 } });
+  assert.equal(f.of('error').at(-1).id, 4);
+});
+
+// ---- Settling: a run that ends when its pattern dies or repeats ----
+
+const ALL = Array.from({ length: 27 }, (_, i) => i);
+// Found by a search: under B4/S1 this seed settles into a period-2 cycle from generation 9
+const OSCILLATOR = {
+  rules: { birth: [4], survival: [1] },
+  seed: [[3, 1, 0], [3, 2, 0], [0, 3, 3], [2, 2, 2], [0, 0, 1], [3, 3, 3], [2, 3, 3], [3, 1, 2]],
+};
+
+test('a settling run ends when every cell has died', () => {
+  const f = fakeRun();
+  f.start({ run: { kind: 'open', settle: true }, world: { ...WORLD, rules: { birth: [26], survival: [] } } });
+  f.until();
+  assert.equal(f.ended().reason, 'died');
+  assert.equal(f.ended().stats.generation, 1);
+});
+
+test('a still life ends the run as a repeat of period 1', () => {
+  const f = fakeRun();
+  f.start({ run: { kind: 'open', settle: true }, world: { ...WORLD, rules: { birth: [26], survival: ALL } } });
+  f.until();
+  const end = f.ended();
+  assert.equal(end.reason, 'repeat');
+  assert.deepEqual(end.cycle, { from: 0, period: 1 });
+  assert.equal(end.stats.generation, 0, 'the count goes back to where the cycle began');
+});
+
+test('an oscillator ends the run where it first repeats, and its cycle can be replayed', () => {
+  const f = fakeRun();
+  f.start({ run: { kind: 'open', settle: true }, world: { ...WORLD, rules: OSCILLATOR.rules }, seed: OSCILLATOR.seed });
+  f.until();
+  const end = f.ended();
+  assert.equal(end.reason, 'repeat');
+  assert.deepEqual(end.cycle, { from: 9, period: 2 });
+  assert.equal(end.stats.generation, 9, 'the count goes back to where the cycle began');
+
+  // The reference agrees: generation 11 is generation 9, and 10 differs
+  const reference = new ReferenceWorld(OSCILLATOR.rules, OSCILLATOR.seed);
+  const generations = [reference.cells()];
+  for (let g = 1; g <= 11; g++) {
+    reference.step();
+    generations.push(reference.cells());
+  }
+  assert.deepEqual(generations[11], generations[9]);
+  assert.notDeepEqual(generations[10], generations[9]);
+  for (let g = 0; g < 9; g++) assert.notDeepEqual(generations[g], generations[9], `generation ${g} is not in the cycle`);
+
+  // The cycle's frames: generations 9 and 10, and the world is left as it was
+  f.run.receive({ type: 'cycle', id: 5 });
+  const cycle = f.of('cycle')[0];
+  assert.equal(cycle.id, 5);
+  assert.deepEqual([cycle.from, cycle.period], [9, 2]);
+  const asCells = (flat) => {
+    const cells = [];
+    for (let i = 0; i < flat.length; i += 3) cells.push([flat[i], flat[i + 1], flat[i + 2]]);
+    return sortCells(cells);
+  };
+  assert.deepEqual(asCells(cycle.frames[0]), generations[9]);
+  assert.deepEqual(asCells(cycle.frames[1]), generations[10]);
+  assert.deepEqual(cycle.transfer, cycle.frames.map((frame) => frame.buffer));
+  assert.equal(f.run.world.generation, 9);
+  assert.equal(f.run.world.stopReason, 'repeat');
+  assert.equal(difference(cellsOf(f.run.world), generations[9]), null);
+
+  // Past the budget, no frames
+  f.run.receive({ type: 'cycle', id: 6, budget: 1 });
+  assert.equal(f.of('cycle')[1].frames, null);
+});
+
+test('a run settles only when asked to', () => {
+  const dies = { ...WORLD, rules: { birth: [26], survival: [] } };
+  const open = fakeRun();
+  open.start({ run: { kind: 'open' }, world: dies, generations: 30 });
+  open.until();
+  assert.equal(open.ended().reason, 'generation-limit', 'an open run that isn\'t settling keeps going');
+
+  const timed = fakeRun();
+  timed.start({ run: { kind: 'timed', seconds: 0.2, settle: true }, world: dies });
+  timed.until();
+  assert.equal(timed.ended().reason, 'deadline', 'a timed run never settles');
+  timed.run.receive({ type: 'cycle', id: 1 });
+  assert.match(timed.of('error')[0].message, /not settled/);
 });
 
 test('commands a run won\'t act on are refused, and the run carries on', () => {
