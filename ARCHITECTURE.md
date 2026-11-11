@@ -52,6 +52,14 @@ Game of Life 3D and both Rule 30 modes also run on the GPU (`src/gpu/engine.js` 
 WGSL in `src/shaders/`), with one compute dispatch per generation. The GPU gives exactly the
 CPU's grids; the CPU functions above are the reference.
 
+**Unbounded world** (`src/unbounded/`, not on the page yet): Game of Life 3D without edges.
+Space is divided into chunks of 16³ cells (8³ or 32³ also work), held in a `Map` from chunk
+coordinate to slot. A chunk is allocated when live cells reach it and released once it is empty.
+Each slot lives in a large slab (64 MB by default) and holds two copies of its chunk, the
+current generation and the next. `step()` advances every chunk by one generation together, then
+checks the limits; it keeps no history. Rules are any birth and survival counts except B0.
+`ReferenceWorld` is a deliberately simple engine for the tests to check it against.
+
 **Seed**: a shape function from `shapeGenerators.js` (perlin, cube, tetrahedron, octahedron,
 worley, rule30). Its parameters are in `state.shapeParams`.
 
@@ -86,6 +94,16 @@ shaders, using only the browser's WebGPU API, and must give exactly the CPU's ge
 (`src/gpu/compare.js` checks this). The CPU path stays: it is the fallback when WebGPU, an
 adapter or a device is missing or fails, and the definition of what each mode does. With the
 GPU, memory and rendering, not the step, set the size limit (README §4).
+
+**An unbounded engine beside the dense one (#35).** The dense grids wrap or clamp at their
+edges and allocate all their memory up front, so a pattern can never outgrow them. The
+unbounded engine's memory follows the live cells instead. It is new code next to the existing
+modes, which keep precomputing as before. Every generation is one lockstep over the whole world,
+so the chunk layout and processing order can never change a result. Refusing B0 makes skipping
+empty space exact. Cells live in slabs outside the JavaScript heap, which browsers cap at a few
+GB whatever the machine has, and a slab is the only point where the engine asks for memory, so
+running out is a catchable error. A limit ends a run with the last complete generation whole,
+never clipped, so a run can always be replayed to the same place.
 
 **Vanilla JS and one state object.** Kept small enough to read in one sitting, as befits public
 demo code. The lab hasn't needed more structure yet.

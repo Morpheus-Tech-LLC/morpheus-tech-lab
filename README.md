@@ -149,8 +149,8 @@ Requires Node.js 20.19 or newer (for Vite 7).
 2. `npm install`
 3. `npm run dev`, then open http://localhost:5180
 
-`npm run build` writes the production site to `dist/`, and `npm run preview` serves it. There are
-no automated tests yet. Releases are published to GitHub Pages by the maintainers, following
+`npm run build` writes the production site to `dist/`, and `npm run preview` serves it. `npm test`
+runs the automated tests. Releases are published to GitHub Pages by the maintainers, following
 [RELEASING.md](RELEASING.md); see [CHANGELOG.md](CHANGELOG.md) for what each version changed.
 
 

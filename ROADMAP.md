@@ -21,7 +21,22 @@ and none of them has a date.
 
 ## The engine
 
-The engine items are not listed yet. They will be added here.
+An unbounded engine, where a pattern can grow without walls, and contests built on it. The plan,
+with the decisions behind it, is [#44](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/issues/44).
+Each item is one of its sub-issues, and builds on the ones before it, except the last. Ideas
+for after it are talked through in [Discussion #45](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/discussions/45).
+
+| # | Item | Description |
+|---|------|-------------|
+| [#35](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/issues/35) | **Unbounded engine core** | Game of Life 3D without edges: chunks allocated where the cells are, one lockstep per generation, with tests (in progress) |
+| [#36](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/issues/36) | **Engine in a Web Worker** | Timed and open-ended runs off the main thread, with live statistics |
+| [#37](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/issues/37) | **Explore** | A new mode: the unbounded world, run indefinitely, with no score |
+| [#38](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/issues/38) | **Canonical state and replay** | A hash of the world's state, and a verifier that replays a result from its seed |
+| [#39](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/issues/39) | **Benchmarks** | Measurements that pin the chunk size and the contests' values |
+| [#40](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/issues/40) | **Contests and Speed** | A Contests view, the Speed contest and a Hall of Fame |
+| [#41](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/issues/41) | **Methuselah** | A Discovery contest: the longest-lived pattern that settles inside an arena |
+| [#42](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/issues/42) | **Contained chaos** | A Discovery contest: a pattern that never settles and never escapes |
+| [#43](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/issues/43) | **Caps become advice** | The existing modes' size and generation caps become popovers that explain the memory each run needs |
 
 ## New demos
 
