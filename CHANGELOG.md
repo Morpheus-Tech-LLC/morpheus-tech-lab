@@ -28,6 +28,11 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
 
 ### Changed
 - The lab opens in Explore, paused on a 10³ cube, instead of Game of Life 3D (#37).
+- Every issue goes through the same stages, idea, planning, ready and in progress, to completed
+  or cancelled, each shown by a label, with its kind as the issue type. An idea needs only what
+  it is and why; its Done when is settled when its plan is, and a plan's pieces become
+  sub-issues only once the plan is accepted. Work starts from a `ready` issue, which replaces
+  `approved`, and an issue closes as completed when its pull request merges (#54).
 
 ## [1.6.0] — 2026-11-10
 

@@ -1,31 +1,24 @@
 name: Idea
-description: Suggest a new demo or feature for the lab.
+description: Suggest a new demo or feature for the lab, in a few lines.
 labels: ["idea"]
+type: Feature
 body:
   - type: markdown
     attributes:
       value: |
         Thanks for the idea. Check the
         [roadmap](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/blob/main/ROADMAP.md)
-        first, in case it's already there. To talk an idea through before proposing it, use
+        first, in case it's already there. To talk an idea through before suggesting it, use
         [Discussions](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/discussions).
 
-        Work starts once a maintainer approves the idea with the `approved` label. An idea too
-        big for one pull request is split into smaller issues then.
-  - type: dropdown
-    id: kind
-    attributes:
-      label: Kind
-      options:
-        - A new demo
-        - A feature
-    validations:
-      required: true
+        Keep it short: what it is and why. If a maintainer accepts it, its plan, including what
+        it is done when, is worked out on this issue in the planning stage. CONTRIBUTING.md
+        explains [how an issue moves](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/blob/main/CONTRIBUTING.md#how-an-issue-moves).
   - type: textarea
     id: what
     attributes:
       label: What it is
-      description: Describe the demo or feature, and what a visitor would see and do with it.
+      description: The demo or feature, and what a visitor would see and do with it.
     validations:
       required: true
   - type: textarea
@@ -33,18 +26,5 @@ body:
     attributes:
       label: Why
       description: Why it belongs in the lab, and who it helps.
-    validations:
-      required: true
-  - type: textarea
-    id: done-when
-    attributes:
-      label: Done when
-      description: >-
-        What a visitor can do once it ships, and what must still hold (for example, the GPU
-        still gives exactly the CPU's generations). A maintainer settles it when approving the
-        idea, in the approval comment that a pull request is reviewed against.
-      placeholder: |
-        - A visitor can ...
-        - ... still works as before.
     validations:
       required: true
