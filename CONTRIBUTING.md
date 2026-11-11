@@ -27,9 +27,9 @@ Every issue goes through the same stages:
 
 **Idea → Planning → Ready → In progress → Completed or Cancelled**
 
-While an issue is open, exactly one label says its stage. Once it closes, GitHub's close reason
-says how it ended. Its type says what kind it is: a **Feature**, a **Bug**, or a **Task** (one
-piece of a plan).
+While an issue is open, exactly one label says its stage. Closing it removes that label: from
+then on, GitHub's close reason says how it ended, so a closed issue has no stage label. Its type
+says what kind it is: a **Feature**, a **Bug**, or a **Task** (one piece of a plan).
 
 | Stage | How an issue gets there | What it means |
 |---|---|---|
@@ -37,8 +37,8 @@ piece of a plan).
 | **Planning** (`planning`) | A maintainer accepts the idea, with the comment `Accepted for planning.` | Its plan is written into the issue, [as below](#planning) |
 | **Ready** (`ready`) | A maintainer accepts the plan, with the comment `Ready. Done when: …` | Anyone can claim it. That comment is what the pull request is reviewed against, even if the issue is edited later |
 | **In progress** (`in progress`) | Someone claims it, [as below](#claim-it), and a maintainer changes the label | Someone is working on it |
-| **Completed** (closed as completed) | A maintainer closes it when its pull request merges into `development` | Done. The changelog says when it goes live |
-| **Cancelled** (closed as not planned) | A maintainer closes it at any stage, saying why in one line | It won't happen. A duplicate is closed as a duplicate, with a link |
+| **Completed** (closed as completed, no label) | A maintainer closes it when its pull request merges into `development`, and removes its stage label | Done. The changelog says when it goes live |
+| **Cancelled** (closed as not planned, no label) | A maintainer closes it at any stage, removes its stage label, and says why in one line | It won't happen. A duplicate is closed as a duplicate, with a link |
 
 Only maintainers can add labels and close issues, so a contributor can't move their own issue
 along. Some issues skip a stage, and some go back one:
@@ -47,6 +47,27 @@ along. Some issues skip a stage, and some go back one:
   usual case for a bug: once someone has reproduced it, its plan is its expected behaviour.
 - **A lapsed claim** sends an issue back to ready. **A change of direction** sends it back to
   planning, with a comment saying why, so anyone with a claim or a pull request sees it.
+
+### Moving an issue
+
+For maintainers. Each move changes the label and leaves a comment, so the issue's history says
+when and why it moved:
+
+| Move | Label | Comment |
+|---|---|---|
+| Accept an idea | `idea` → `planning` | `Accepted for planning.` |
+| Accept the plan | `planning` (or `idea`) → `ready` | `Ready. Done when:` and the final Done when |
+| Mark a claim | `ready` → `in progress` | The claim itself is the comment |
+| Complete it | remove `in progress`, close as completed | `Completed: merged into development in #N.` |
+| Cancel it | remove its stage label, close as not planned | One line saying why |
+| Close a duplicate | remove its stage label, close as a duplicate | `Duplicate of #N.` |
+
+With the GitHub CLI, completing issue 54 after pull request 55 merges looks like this:
+
+```sh
+gh issue close 54 --reason completed --comment "Completed: merged into development in #55." \
+  && gh issue edit 54 --remove-label "in progress"
+```
 
 ### Accepting an idea
 
@@ -193,7 +214,7 @@ into pieces.
    it, using only these: `Resolves #123` for the one issue it does in full, `Related to #124`
    for an issue it touches but doesn't work on, and `Opens #125` for a follow-up issue you
    opened. GitHub doesn't act on these in a pull request into `development`: the maintainer
-   who merges it closes the issue marked `Resolves`.
+   who merges it closes the issue marked `Resolves` and removes its stage label.
 
 ### Keep your branch current
 
@@ -212,7 +233,8 @@ git push --force-with-lease
    contributor's pull request, they wait until a maintainer approves them. Both must pass
    before it can merge.
 2. A maintainer reviews it. Push any changes they ask for to the same branch. Then they merge
-   it into `development`, and close the issue it marks `Resolves` as completed.
+   it into `development`, close the issue it marks `Resolves` as completed, and remove its stage
+   label.
 3. The change goes live at the next release.
 
 ## Sign off your commits (DCO)

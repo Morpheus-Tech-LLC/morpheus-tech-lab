@@ -32,7 +32,8 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
   or cancelled, each shown by a label, with its kind as the issue type. An idea needs only what
   it is and why; its Done when is settled when its plan is, and a plan's pieces become
   sub-issues only once the plan is accepted. Work starts from a `ready` issue, which replaces
-  `approved`, and an issue closes as completed when its pull request merges (#54).
+  `approved`, and an issue closes as completed, without its stage label, when its pull request
+  merges (#54).
 
 ## [1.6.0] — 2026-11-10
 
