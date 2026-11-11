@@ -83,6 +83,16 @@ ends when every cell has died or a fingerprint matches one of the last 10,000 ge
 the view loops while the count stays put. A fingerprint is a hash, not a proof: scoring a
 contest on a repeat needs #38's canonical state.
 
+**Results** (`canonical.js`, `verify.js`): a run's state at one generation, as canonical bytes: a
+header (sorted JSON: the format's version, the generation, and the run's whole definition, which is
+its contest id, rules, seed, arena and the limits stated in the pattern's terms) and a body (the
+live cells sorted by z, y, x, as zigzag varints of the difference from the cell before). Its
+SHA-256 hash goes in a result file, beside run details (timings, statistics, browser) that are
+outside the hash. `verifyResult()` replays the run from its seed to the stated generation and
+compares hashes, and checks an ending the pattern decides by taking one more step; with a
+reference table (every generation's hash, made once by `scripts/reference-hashes.mjs`) it looks
+the hash up instead. `scripts/verify.mjs` runs it in Node.
+
 **Seed**: a shape function from `shapeGenerators.js` (perlin, cube, tetrahedron, octahedron,
 worley, rule30). Its parameters are in `state.shapeParams`.
 
@@ -134,6 +144,16 @@ receives. Statistics are throttled and snapshots sent only on request, so a run 
 watching spends its time on generations. A timed run's deadline is checked before each
 generation commits, never mid-step, so its count is the generations completed in time, and the
 last one stands whole. Each run gets a fresh Worker, so ending one returns all its memory.
+
+**Results are checked by replay, with no server (#38).** The lab is a static site, so a result
+can't be trusted for what it says, only for what replaying it gives. The hash covers the run's
+definition and the cells, never the chunk layout or the machine, so any engine on any machine
+agrees. The definition is always in full, so a file can be checked on its own, and only the
+format's version is hashed, not the engine's: the cells follow from the rules and the seed alone,
+so an engine fix makes a wrong result fail instead of protecting it. A fixed-seed run (Speed) is
+checked by looking its hash up in a precomputed table, so checking never needs hardware as fast
+as the entrant's. Result files come from strangers, so they are read as data, against an exact
+format, and the verifier has its own generation and memory limits.
 
 **Vanilla JS and one state object.** Kept small enough to read in one sitting, as befits public
 demo code. The lab hasn't needed more structure yet.

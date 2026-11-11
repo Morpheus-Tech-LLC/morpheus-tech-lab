@@ -172,8 +172,9 @@ Requires Node.js 20.19 or newer (for Vite 7).
 3. `npm run dev`, then open http://localhost:5180
 
 `npm run build` writes the production site to `dist/`, and `npm run preview` serves it. `npm test`
-runs the automated tests. Releases are published to GitHub Pages by the maintainers, following
-[RELEASING.md](RELEASING.md); see [CHANGELOG.md](CHANGELOG.md) for what each version changed.
+runs the automated tests. `node scripts/verify.mjs <result.json>` checks a result file from the
+unbounded engine by replaying it (try it on `test/unbounded/fixtures/example-result.json`).
+Releases are published to GitHub Pages by the maintainers, following [RELEASING.md](RELEASING.md); see [CHANGELOG.md](CHANGELOG.md) for what each version changed.
 
 
 ## 7. License

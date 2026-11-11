@@ -23,9 +23,12 @@ ROADMAP.md               The public roadmap: the engine, new demos, the brand re
 RELEASING.md             Branches, versions, changelog format and the release steps
 CHANGELOG.md             What each version changed (Keep a Changelog)
 scripts/brand.mjs        `sync --org <brand repo>` re-pins the brand at a tag (maintainers); `check` verifies the lock
+scripts/verify.mjs       Checks a result file from the unbounded engine in Node: by replay, or by lookup with --table
+scripts/reference-hashes.mjs Computes a run's reference table: the hash of every generation, for checking Speed by lookup
 vite.config.js           base '/', because the site is served from the domain root
 test/                    `npm test` (Node's built-in node:test, no dependency): unbounded/ checks the unbounded engine,
-                         and its run loop on a fake clock and in a worker_threads Worker; explore/ checks
+                         its run loop on a fake clock and in a worker_threads Worker, the canonical hash and
+                         the verifier (fixtures/ holds an example result and a hand-edited copy); explore/ checks
                          Explore's seeds, seed files and camera framing
 src/
   main.js                Boot: Explore (startExplore()) by default, or initSimulation(); then animate()
@@ -51,6 +54,10 @@ src/
   unbounded/reference.js ReferenceWorld: a deliberately simple Set-of-strings engine the tests check world.js against
   unbounded/run.js       Run: the run loop (timed and open-ended runs, pause, step, stop, settling), statistics and snapshots
   unbounded/run.worker.js The Web Worker that serves one Run
+  unbounded/canonical.js The canonical state (a run's definition, the generation, the cells as bytes), its SHA-256
+                         hash, the result file (readResult() reads one as untrusted data) and the reference table
+  unbounded/verify.js    verifyResult(): replays a result, or looks it up in a table; verified, mismatch, refused
+                         or not checked
   unbounded/driver.js    EngineDriver: the page's side of a run; starts a fresh Worker per run and relays its messages
   explore/               The Explore mode: the unbounded engine on the page (#37)
   explore/explore.js     Starts and drives the run, the control bar's commands in Explore, the HUD box and notices
@@ -130,6 +137,12 @@ src/
   checks its deadline after a generation is computed and before it is committed (`step()`'s
   `veto`), so a generation that finishes late is discarded like one that crosses a limit.
   Statistics go out at most every 250 ms on their own; snapshots only when asked for.
+- **The canonical bytes are a public format.** A result's hash depends only on the run's
+  definition, the generation and the cells: never the chunk size, the order cells were added in,
+  timings or the machine. Any change to the bytes (`canonical.js`) bumps `FORMAT_VERSION`, and the
+  known-answer test in `test/unbounded/canonical.test.js` must fail first. Result files come from
+  strangers: read them only through `readResult()`, which refuses anything over 1 MB or not exactly
+  the format, and never run anything from one.
 - The unbounded engine asks for cell memory only by adding a slab (`World.addSlab()`), so a refusal
   is one catchable `RangeError` in one place. Keep it that way.
 - `state.reset()` keeps the scene, renderer and camera, so a rebuild reuses one WebGL context.
