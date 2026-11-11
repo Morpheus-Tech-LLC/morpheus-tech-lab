@@ -1,87 +1,123 @@
 # Contributing to Morpheus Tech Lab
 
 Thanks for helping build the lab. New automata, simulators, fixes and docs are all welcome.
-Work starts from an issue a maintainer has approved, so start there.
+Work starts from an issue that is **ready**, so start there.
 
 Everyone taking part in the project, in issues, Discussions, pull requests and anywhere else,
 follows the [code of conduct](CODE_OF_CONDUCT.md).
 
 ## Find something to work on
 
-Pick an issue labelled
-[`approved`](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/labels/approved): those are
-ready to pick up, each sized for one pull request. Approved issues that suit a first
-contribution are also labelled
-[`good first issue`](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/labels/good%20first%20issue).
+- **[Work to pick up](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/issues?q=is%3Aissue%20is%3Aopen%20label%3Aready)**:
+  open issues labelled `ready`, each sized for one pull request. Those that suit a first
+  contribution are also labelled
+  [`good first issue`](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/labels/good%20first%20issue).
+- **[The board](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/issues?q=is%3Aissue%20is%3Aopen%20no%3Aparent-issue)**:
+  every open issue except the pieces of a plan, which show inside their plan instead.
+
 The [roadmap](ROADMAP.md) says where the lab is heading. Questions go to
 [Discussions](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/discussions).
 
-To suggest something new, open an issue with the Idea or Bug report form. Work on it starts
-once a maintainer approves it.
+To suggest something new, open an issue with the Idea or Bug report form: say what it is and
+why, nothing more. It starts as an idea, and goes through the stages below.
 
-## From an approved issue to a pull request
+## How an issue moves
 
-You, or your agent, can go from an approved issue to a pull request without waiting on anyone.
-The pull request's "What changed" is your plan, and it is reviewed together with the code.
+Every issue goes through the same stages:
 
-1. **Approval.** A maintainer approves an idea or a bug, as
-   [below](#how-an-issue-is-approved): the `approved` label, and a comment giving the **Done
-   when** your pull request is reviewed against. Approved means approved as one pull request.
-2. **Claim it.** Comment on the issue, in this form:
-   ```
-   Working on this.
-   Ready for review by: YYYY-MM-DD
-   Confidence: N/10
-   ```
-   - The date is when your pull request will be ready for review.
-   - The confidence runs from 0 to 10: 10 means you are sure to be ready by that date, 0 that
-     you have no idea whether you will be.
-   - A claim without both a date and a confidence counts as no date and no certainty.
-   - Post a new date and confidence whenever your estimate changes. The latest one counts.
-   - If the date passes with neither an update nor a pull request, the claim lapses.
-   - An agent's claim uses the same form, and the person running the agent answers for the
-     estimate.
+**Idea → Planning → Ready → In progress → Completed or Cancelled**
 
-   Claims don't lock an issue. Others may start in parallel, and if two pull requests arrive,
-   the maintainer picks one. A claim's date and confidence show how firm it is, so others can
-   decide whether to start too.
-3. **Build it and open the pull request,** as below.
+While an issue is open, exactly one label says its stage. Once it closes, GitHub's close reason
+says how it ended. Its type says what kind it is: a **Feature**, a **Bug**, or a **Task** (one
+piece of a plan).
 
-Every pull request resolves an approved issue. The one exception is a small fix, such as a typo
-or a broken link, which can come without an issue.
+| Stage | How an issue gets there | What it means |
+|---|---|---|
+| **Idea** (`idea`) | Anyone files it with the Idea or Bug report form | A suggestion: what and why. Nothing is promised |
+| **Planning** (`planning`) | A maintainer accepts the idea, with the comment `Accepted for planning.` | Its plan is written into the issue, [as below](#planning) |
+| **Ready** (`ready`) | A maintainer accepts the plan, with the comment `Ready. Done when: …` | Anyone can claim it. That comment is what the pull request is reviewed against, even if the issue is edited later |
+| **In progress** (`in progress`) | Someone claims it, [as below](#claim-it), and a maintainer changes the label | Someone is working on it |
+| **Completed** (closed as completed) | A maintainer closes it when its pull request merges into `development` | Done. The changelog says when it goes live |
+| **Cancelled** (closed as not planned) | A maintainer closes it at any stage, saying why in one line | It won't happen. A duplicate is closed as a duplicate, with a link |
 
-### How an issue is approved
+Only maintainers can add labels and close issues, so a contributor can't move their own issue
+along. Some issues skip a stage, and some go back one:
 
-A maintainer reads each new idea and bug, and does one of these:
+- **A plan small enough to settle on the spot** goes straight from idea to ready. That is the
+  usual case for a bug: once someone has reproduced it, its plan is its expected behaviour.
+- **A lapsed claim** sends an issue back to ready. **A change of direction** sends it back to
+  planning, with a comment saying why, so anyone with a claim or a pull request sees it.
 
-- **Approve it.** They settle its **Done when**, meaning what a visitor can do once it ships and
-  what must still hold, until a reviewer could check it by using the lab. They add the
-  `approved` label, and comment `Approved. Done when: …` with the final text. That comment is
-  what a pull request is reviewed against, even if the issue is edited later. For a bug, the
-  Done when is usually its "What you expected".
-- **Split it.** An idea too big for one pull request becomes sub-issues of it, each with its
-  own Done when, each approved on its own. The parent is never picked up itself, and it closes
-  once its sub-issues have shipped.
+### Accepting an idea
+
+A maintainer reads each new idea and bug report, and does one of these:
+
+- **Accept it** into planning, or straight to ready.
 - **Ask.** They comment with what is missing or unclear. Revise the issue, and they decide
   again.
-- **Decline it.** They close it as not planned, or as a duplicate with a link, and say why in
-  one line.
+- **Cancel it.** They close it as not planned, or as a duplicate with a link, and say why in one
+  line.
 
-A bug is approved once someone has reproduced it. If the direction changes, a maintainer
-removes the label and comments why, so anyone with a claim or a pull request sees it. Only
-maintainers can add labels, so contributors can't approve their own issues.
-
-An idea is approved when:
+An idea is accepted when:
 
 - **It fits the lab:** a demo or feature that runs in the browser as a static site, with no
   backend or framework, written as original work with no code or internals from other
   projects or products.
 - **It fits the direction:** it is on the [roadmap](ROADMAP.md), or a maintainer wants it there.
-- **Its Done when is checkable:** concrete enough that a reviewer can confirm it by using the
-  lab.
-- **It fits in one pull request,** or splits into pieces that each do.
 - **A visitor's browser can afford it:** it doesn't push memory or the frame rate past what a
   visitor's tab can handle.
+
+A bug is accepted once someone has reproduced it.
+
+### Planning
+
+The plan is written into the issue, below the idea, by the person who suggested it, a
+maintainer, or whoever wants to build it. It settles:
+
+- **The design:** how it will work, and the choices behind it.
+- **The Done when:** what a visitor can do once it ships, and what must still hold, until a
+  reviewer could check it by using the lab. For a bug, it is usually the expected behaviour.
+- **The pieces,** if it is too big for one pull request: a list in the plan, each with its own
+  Done when. They stay a list, not issues, until the plan is accepted.
+
+A maintainer accepts the plan when its Done when is checkable and it fits in one pull request,
+or splits into pieces that each do. They add the `ready` label and comment `Ready. Done when: …`
+with the final text.
+
+**A plan with pieces.** When it is accepted, each piece becomes a sub-issue of the plan (type
+Task, labelled `ready`), so the plan shows their progress, and the board shows only the plan.
+The plan itself is never claimed: it moves to in progress when its first piece is claimed, and
+closes as completed once its last piece does.
+
+### Claim it
+
+Before you start on a ready issue, comment on it, in this form:
+
+```
+Working on this.
+Ready for review by: YYYY-MM-DD
+Confidence: N/10
+```
+
+- The date is when your pull request will be ready for review.
+- The confidence runs from 0 to 10: 10 means you are sure to be ready by that date, 0 that you
+  have no idea whether you will be.
+- A claim without both a date and a confidence counts as no date and no certainty.
+- Post a new date and confidence whenever your estimate changes. The latest one counts.
+- If the date passes with neither an update nor a pull request, the claim lapses.
+- An agent's claim uses the same form, and the person running the agent answers for the
+  estimate.
+
+A maintainer then moves the issue to in progress. Claims don't lock an issue. Others may start in
+parallel, and if two pull requests arrive, the maintainer picks one. A claim's date and
+confidence show how firm it is, so others can decide whether to start too.
+
+Then build it and open the pull request, [as below](#make-a-change). You, or your agent, can go
+from a ready issue to a pull request without waiting on anyone. The pull request's "What
+changed" says how you did it, and it is reviewed together with the code.
+
+Every pull request resolves a ready or in-progress issue. The one exception is a small fix, such
+as a typo or a broken link, which can come without an issue.
 
 ## Report a vulnerability
 
@@ -137,9 +173,9 @@ badge says where the next run computes.
 
 ## Make a change
 
-One issue, one pull request: a pull request resolves exactly one approved issue, all of it. If
-an approved issue turns out too big for one pull request, say so on the issue, and a
-maintainer splits it.
+One issue, one pull request: a pull request resolves exactly one issue, all of it. If an issue
+turns out too big for one pull request, say so on it, and it goes back to planning to be split
+into pieces.
 
 1. Branch from the lab's `development`:
    ```sh
@@ -156,8 +192,8 @@ maintainer splits it.
    fill in the template. List each issue, one per line, with how the pull request relates to
    it, using only these: `Resolves #123` for the one issue it does in full, `Related to #124`
    for an issue it touches but doesn't work on, and `Opens #125` for a follow-up issue you
-   opened. GitHub doesn't act on these in a pull request into `development`. At release, the
-   release pull request closes the issue marked `Resolves`.
+   opened. GitHub doesn't act on these in a pull request into `development`: the maintainer
+   who merges it closes the issue marked `Resolves`.
 
 ### Keep your branch current
 
@@ -176,8 +212,8 @@ git push --force-with-lease
    contributor's pull request, they wait until a maintainer approves them. Both must pass
    before it can merge.
 2. A maintainer reviews it. Push any changes they ask for to the same branch. Then they merge
-   it into `development`.
-3. The change goes live at the next release, and the issue it marks `Resolves` closes then.
+   it into `development`, and close the issue it marks `Resolves` as completed.
+3. The change goes live at the next release.
 
 ## Sign off your commits (DCO)
 

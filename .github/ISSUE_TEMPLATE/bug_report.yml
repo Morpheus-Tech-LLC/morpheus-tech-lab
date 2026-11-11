@@ -1,6 +1,7 @@
 name: Bug report
 description: Something in the lab doesn't work as it should.
-labels: ["bug"]
+labels: ["idea"]
+type: Bug
 body:
   - type: markdown
     attributes:
@@ -8,7 +9,8 @@ body:
         Thanks for reporting a bug. For a security vulnerability, don't open an issue: follow
         [SECURITY.md](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/blob/main/SECURITY.md).
 
-        Work on a fix starts once a maintainer approves the bug with the `approved` label.
+        Once a maintainer has reproduced the bug, it is ready for anyone to fix. CONTRIBUTING.md
+        explains [how an issue moves](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/blob/main/CONTRIBUTING.md#how-an-issue-moves).
   - type: textarea
     id: what-happened
     attributes:

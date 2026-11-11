@@ -44,9 +44,9 @@ below, `origin` is the lab.
    and updates the mirrors (`package.json`, the lockfile root, the README's Release line).
    An agent may draft this commit's changes.
 3. **Open a pull request from `development` to `main`** titled `Release X.Y.Z`. Its description
-   lists `Closes #N`, one per line, for every issue that a pull request it ships marked
-   `Resolves`; merging it into `main` closes them. Wait for the DCO and build checks to pass,
-   then merge it **with a merge commit**, never a squash or rebase.
+   lists the issues it ships, one per line (`Shipped: #N`): each closed as completed when its
+   pull request merged into `development`. Wait for the DCO and build checks to pass, then
+   merge it **with a merge commit**, never a squash or rebase.
 4. **Tag the merge commit:**
    ```sh
    git fetch origin && git tag -a vX.Y.Z origin/main -m "Release X.Y.Z" && git push origin vX.Y.Z

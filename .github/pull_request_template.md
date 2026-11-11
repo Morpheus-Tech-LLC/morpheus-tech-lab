@@ -4,10 +4,9 @@
 - Resolves #123     This pull request does all of the issue. Exactly one per pull request.
 - Related to #124   It touches the issue, but doesn't work on it.
 - Opens #125        It leaves work for later, in an issue you opened for it.
-The issue you resolve must be labelled "approved". Only a small fix, such as a typo or a broken
-link, can come without one: then delete the line. Add a sentence if a relation needs it.
-Nothing closes until the release: maintainers close the issue marked "Resolves" when the
-release ships. -->
+The issue you resolve must be labelled "ready" or "in progress". Only a small fix, such as a
+typo or a broken link, can come without one: then delete the line. Add a sentence if a relation
+needs it. The maintainer who merges this closes the issue marked "Resolves" as completed. -->
 
 - Resolves #
 
@@ -32,7 +31,7 @@ changes on screen. -->
 <!-- Tick the boxes after you open the pull request, by clicking them. -->
 
 - [ ] This pull request targets `development`, not `main`.
-- [ ] It resolves one issue labelled `approved`, or it is a small fix, such as a typo or a broken link.
+- [ ] It resolves one issue labelled `ready` or `in progress`, or it is a small fix, such as a typo or a broken link.
 - [ ] Every commit is signed off (`git commit -s`). See [CONTRIBUTING.md](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/blob/development/CONTRIBUTING.md#sign-off-your-commits-dco).
 - [ ] There is a line under `## [Unreleased]` in `CHANGELOG.md`.
 - [ ] `npm run build` and `npm test` pass.
