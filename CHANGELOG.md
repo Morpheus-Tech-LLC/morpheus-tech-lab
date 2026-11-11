@@ -25,6 +25,11 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
   300,000 live cells, and shows the engine's statistics; a run that stops keeps its last
   generation on screen, with the reason. A run stops counting once its pattern dies or settles
   into a still life or a repeating cycle, and a cycle keeps playing (#37).
+- Results from the unbounded engine can be checked without a server: a run's state hashes the
+  same on any machine and at any chunk size, a result file records it, and
+  `scripts/verify.mjs` replays the file from its seed to confirm it, or looks it up in a table
+  of every generation's hash made by `scripts/reference-hashes.mjs`. Files are read as untrusted
+  data (#38).
 
 ### Changed
 - The lab opens in Explore, paused on a 10³ cube, instead of Game of Life 3D (#37).

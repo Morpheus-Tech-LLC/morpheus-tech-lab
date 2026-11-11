@@ -56,11 +56,15 @@ export class StopSignal extends Error {
   }
 }
 
-/** A world that can't be built or seeded as asked. */
+/**
+ * A world that can't be built or seeded as asked. `reason` is set when a seed didn't fit in
+ * memory ('memory-limit' or 'out-of-memory'): the machine's limit, not the seed's fault.
+ */
 export class WorldError extends Error {
-  constructor(message) {
+  constructor(message, reason = null) {
     super(message);
     this.name = 'WorldError';
+    this.reason = reason;
   }
 }
 
@@ -198,7 +202,7 @@ export class World {
       }
     } catch (err) {
       if (err instanceof StopSignal) {
-        throw new WorldError(`The seed doesn't fit in memory (${err.reason}).`);
+        throw new WorldError(`The seed doesn't fit in memory (${err.reason}).`, err.reason);
       }
       throw err;
     }

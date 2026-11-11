@@ -31,7 +31,7 @@ for after it are talked through in [Discussion #45](https://github.com/Morpheus-
 | [#35](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/issues/35) | **Unbounded engine core** | Game of Life 3D without edges: chunks allocated where the cells are, one lockstep per generation, with tests (in progress) |
 | [#36](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/issues/36) | **Engine in a Web Worker** | Timed and open-ended runs off the main thread, with live statistics (in progress) |
 | [#37](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/issues/37) | **Explore** | A new mode: the unbounded world, run indefinitely, with no score (in progress) |
-| [#38](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/issues/38) | **Canonical state and replay** | A hash of the world's state, and a verifier that replays a result from its seed |
+| [#38](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/issues/38) | **Canonical state and replay** | A hash of the world's state, and a verifier that replays a result from its seed (in progress) |
 | [#39](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/issues/39) | **Benchmarks** | Measurements that pin the chunk size and the contests' values |
 | [#40](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/issues/40) | **Contests and Speed** | A Contests view, the Speed contest and a Hall of Fame |
 | [#41](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/issues/41) | **Methuselah** | A Discovery contest: the longest-lived pattern that settles inside an arena |
