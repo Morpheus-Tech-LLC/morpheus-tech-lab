@@ -110,6 +110,8 @@ export class World {
     this.slabs = []; // Uint8Array views, one per slab
     this.free = []; // free slots, the lowest last
     this.chunks = new Map(); // chunk key -> slot
+    this.chunksCreated = 0; // chunks ever allocated, including a step's empty neighbours
+    this.chunksPeak = 0; // the most chunks allocated at once
     this.parity = 0; // which copy in each slot is the current generation
     this.generation = 0;
     this.stopReason = null;
@@ -245,6 +247,8 @@ export class World {
       this.meta.live[slot] = 0;
       this.meta.touch[slot] = 0;
       this.chunks.set(key, slot);
+      this.chunksCreated++;
+      if (this.chunks.size > this.chunksPeak) this.chunksPeak = this.chunks.size;
     }
     return slot;
   }

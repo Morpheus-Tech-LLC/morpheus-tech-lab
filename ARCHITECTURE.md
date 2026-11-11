@@ -59,6 +59,11 @@ Each slot lives in a large slab (64 MB by default) and holds two copies of its c
 current generation and the next. `step()` advances every chunk by one generation together, then
 checks the limits; it keeps no history. Rules are any birth and survival counts except B0.
 `ReferenceWorld` is a deliberately simple engine for the tests to check it against.
+A run (`run.js`) steps a world in a Web Worker (`run.worker.js`), either until a deadline (a
+timed run: only generations completed before it count) or until stopped (an open-ended run,
+which can also pause, step one generation and cap its rate). On the page, `EngineDriver`
+(`driver.js`) starts each run in a fresh Worker, sends its commands, and receives statistics
+(at most four times a second) and, on request, snapshots of the live cells.
 
 **Seed**: a shape function from `shapeGenerators.js` (perlin, cube, tetrahedron, octahedron,
 worley, rule30). Its parameters are in `state.shapeParams`.
@@ -104,6 +109,13 @@ empty space exact. Cells live in slabs outside the JavaScript heap, which browse
 GB whatever the machine has, and a slab is the only point where the engine asks for memory, so
 running out is a catchable error. A limit ends a run with the last complete generation whole,
 never clipped, so a run can always be replayed to the same place.
+
+**The unbounded engine runs in a Worker (#36).** A run can work flat out for as long as it
+lasts, so it runs off the page's thread, and the page only sends commands and draws what it
+receives. Statistics are throttled and snapshots sent only on request, so a run nobody is
+watching spends its time on generations. A timed run's deadline is checked before each
+generation commits, never mid-step, so its count is the generations completed in time, and the
+last one stands whole. Each run gets a fresh Worker, so ending one returns all its memory.
 
 **Vanilla JS and one state object.** Kept small enough to read in one sitting, as befits public
 demo code. The lab hasn't needed more structure yet.

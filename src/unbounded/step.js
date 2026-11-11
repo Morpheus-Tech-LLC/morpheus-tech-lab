@@ -7,8 +7,9 @@
 // 2. Every chunk in the work set reads generation t, from its own current copy and its
 //    neighbours' current copies, and writes generation t+1 to its other copy. Nothing is
 //    updated in place, so the order the chunks are processed in can't change the result.
-// 3. The candidate generation is checked against the limits. If one is crossed, the step is
-//    discarded: the run ends with that reason, and generation t stands, whole and unclipped.
+// 3. The candidate generation is checked against the caller's veto (a timed run's deadline),
+//    then the limits. If either ends the run, the step is discarded: the run ends with that
+//    reason, and generation t stands, whole and unclipped.
 // 4. Otherwise every chunk switches to its new copy at once, and chunks left empty are released.
 //
 // Space with no live cell in or next to it is skipped, and that is exact: rules.js refuses B0,
@@ -22,9 +23,12 @@ import { COORDINATE_LIMIT, StopSignal, boxOf, inBox, longestSide, setFacts, bord
  * @param {object} [options]
  * @param {(slots: number[]) => void} [options.order] - may reorder the work set in place
  *   before it is computed; the tests use it to show that the order doesn't matter
+ * @param {() => string | null} [options.veto] - called once generation t+1 is computed, before
+ *   anything else: a reason it returns ends the run and discards the generation, as a limit
+ *   does. A timed run uses it to drop a generation that finished after its deadline.
  * @returns {string | null} the stop reason if the run has ended, or null
  */
-export function step(world, { order } = {}) {
+export function step(world, { order, veto } = {}) {
   if (world.stopReason) return world.stopReason;
 
   // 1. The work set
@@ -58,11 +62,11 @@ export function step(world, { order } = {}) {
   if (order) order(work);
   for (const slot of work) computeChunk(world, slot);
 
-  // 3. Check the candidate against the limits
+  // 3. Check the candidate against the veto, then the limits
   let cells = 0;
   for (const slot of work) cells += world.next.live[slot];
   const box = boxOf(world.next, work, world.n);
-  const reason = box && limitCrossed(world, box, cells);
+  const reason = (veto && veto()) || (box && limitCrossed(world, box, cells));
   if (reason) {
     for (const slot of created) world.release(slot);
     return world.stop(reason);

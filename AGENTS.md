@@ -24,7 +24,8 @@ RELEASING.md             Branches, versions, changelog format and the release st
 CHANGELOG.md             What each version changed (Keep a Changelog)
 scripts/brand.mjs        `sync --org <brand repo>` re-pins the brand at a tag (maintainers); `check` verifies the lock
 vite.config.js           base '/', because the site is served from the domain root
-test/                    `npm test` (Node's built-in node:test, no dependency): unbounded/ checks the unbounded engine
+test/                    `npm test` (Node's built-in node:test, no dependency): unbounded/ checks the unbounded engine,
+                         and its run loop on a fake clock and in a worker_threads Worker
 src/
   main.js                Boot: initSimulation(), then animate()
   brand/tokens.css       Brand pin: the Morpheus Tech brand tokens. Not imported yet. Never hand-edit
@@ -47,6 +48,11 @@ src/
   unbounded/step.js      step(): one generation, a lockstep over every chunk, or the limit that ends the run
   unbounded/rules.js     validateRules() (refuses B0) and the rule lookup table
   unbounded/reference.js ReferenceWorld: a deliberately simple Set-of-strings engine the tests check world.js against
+  unbounded/run.js       Run: the run loop (timed and open-ended runs, pause, step, stop), statistics and snapshots
+  unbounded/run.worker.js The Web Worker that serves one Run
+  unbounded/driver.js    EngineDriver: the page's side of a run; starts a fresh Worker per run and relays its messages
+  unbounded/workbench.html Not bundled: a dev page (/src/unbounded/workbench.html under `npm run dev`) that checks
+                         the Worker in the browser and drives a run by hand
   unbounded/compareDense.js Not bundled: run from the dev console to check the engine against convolve3D()
   color.css, style.css   Theme colours and layout
   assets/images/         Logos, README images
@@ -107,6 +113,11 @@ src/
   and, while a pattern stays 2 cells clear of the walls, `convolve3D()`'s with wrapping off.
   Change either engine and run `npm test`; after a change to the step, also run
   `src/unbounded/compareDense.js` from the dev console.
+- **The page never steps the unbounded engine.** A run lives in its own Worker (`driver.js`),
+  which the loop in `run.js` yields between generations so commands get through. A timed run
+  checks its deadline after a generation is computed and before it is committed (`step()`'s
+  `veto`), so a generation that finishes late is discarded like one that crosses a limit.
+  Statistics go out at most every 250 ms on their own; snapshots only when asked for.
 - The unbounded engine asks for cell memory only by adding a slab (`World.addSlab()`), so a refusal
   is one catchable `RangeError` in one place. Keep it that way.
 - `state.reset()` keeps the scene, renderer and camera, so a rebuild reuses one WebGL context.
