@@ -15,7 +15,7 @@
 // Space with no live cell in or next to it is skipped, and that is exact: rules.js refuses B0,
 // so a dead cell with no live neighbour can't be born.
 
-import { COORDINATE_LIMIT, StopSignal, boxOf, inBox, longestSide, setFacts, borderClass } from './world.js';
+import { COORDINATE_LIMIT, StopSignal, boxOf, inBox, longestSide, setFacts, borderClass, cellHashA, cellHashB } from './world.js';
 
 /**
  * Advances the world one generation, unless a limit ends the run.
@@ -78,6 +78,8 @@ export function step(world, { order, veto } = {}) {
     world.meta.live[slot] = world.next.live[slot];
     world.meta.touch[slot] = world.next.touch[slot];
     world.meta.box.set(world.next.box.subarray(6 * slot, 6 * slot + 6), 6 * slot);
+    world.meta.hashA[slot] = world.next.hashA[slot];
+    world.meta.hashB[slot] = world.next.hashB[slot];
     if (!world.meta.live[slot]) world.release(slot);
   }
   world.generation++;
@@ -146,6 +148,10 @@ function computeChunk(world, slot) {
   const box = [n, n, n, -1, -1, -1];
   let live = 0;
   let classes = 0;
+  const fingerprinting = world.fingerprinting;
+  const gx = ox * n, gy = oy * n, gz = oz * n;
+  let hashA = 0;
+  let hashB = 0;
   for (let z = 0; z < n; z++) {
     const zClass = 9 * borderClass(z, n);
     for (let y = 0; y < n; y++) {
@@ -161,6 +167,10 @@ function computeChunk(world, slot) {
         if (next) {
           live++;
           classes |= 1 << (rowClass + borderClass(x, n));
+          if (fingerprinting) {
+            hashA = (hashA + cellHashA(gx + x, gy + y, gz + z)) | 0;
+            hashB = (hashB + cellHashB(gx + x, gy + y, gz + z)) | 0;
+          }
           if (x < box[0]) box[0] = x;
           if (x > box[3]) box[3] = x;
           if (y < box[1]) box[1] = y;
@@ -175,6 +185,8 @@ function computeChunk(world, slot) {
   world.next.cy[slot] = oy;
   world.next.cz[slot] = oz;
   setFacts(world.next, slot, live, classes, box, n);
+  world.next.hashA[slot] = hashA;
+  world.next.hashB[slot] = hashB;
 }
 
 // [first local cell, length, first padded cell] of a neighbour's cells that border this chunk

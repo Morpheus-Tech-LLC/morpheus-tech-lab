@@ -8,16 +8,26 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
 ## [Unreleased]
 
 ### Added
-- An unbounded Game of Life 3D engine, `src/unbounded/`, not on the page yet: space is divided
+- An unbounded Game of Life 3D engine, `src/unbounded/`, which Explore shows: space is divided
   into chunks allocated only where the cells are, every generation is one lockstep over the
   whole world, B0 rules are refused, and limits end a run without clipping it (#35).
 - Automated tests: `npm test` runs Node's built-in test runner, and CI's `build` check runs it on
   every pull request. The tests check the unbounded engine against a simple reference engine,
   cell for cell (#35).
-- The unbounded engine runs in a Web Worker, not on the page yet: timed runs that count only the
+- The unbounded engine runs in a Web Worker: timed runs that count only the
   generations completed before their deadline, and open-ended runs that pause, step, resume and
   cap their rate; statistics at most four times a second (live cells, chunks, generations per
   second, extent, memory), and snapshots of the live cells only when asked for (#36).
+- Explore, a new mode: Game of Life 3D without walls, run indefinitely, with pause, step,
+  restart and a speed control; a shape or a seed file as the seed, editable rules (B0 is
+  refused, with the reason), a memory limit explained in a popover, an optional arena, and
+  seed export. The view grows with the pattern and follows it, draws the chunks as boxes past
+  300,000 live cells, and shows the engine's statistics; a run that stops keeps its last
+  generation on screen, with the reason. A run stops counting once its pattern dies or settles
+  into a still life or a repeating cycle, and a cycle keeps playing (#37).
+
+### Changed
+- The lab opens in Explore, paused on a 10³ cube, instead of Game of Life 3D (#37).
 
 ## [1.6.0] — 2026-11-10
 

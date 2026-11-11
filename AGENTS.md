@@ -25,9 +25,10 @@ CHANGELOG.md             What each version changed (Keep a Changelog)
 scripts/brand.mjs        `sync --org <brand repo>` re-pins the brand at a tag (maintainers); `check` verifies the lock
 vite.config.js           base '/', because the site is served from the domain root
 test/                    `npm test` (Node's built-in node:test, no dependency): unbounded/ checks the unbounded engine,
-                         and its run loop on a fake clock and in a worker_threads Worker
+                         and its run loop on a fake clock and in a worker_threads Worker; explore/ checks
+                         Explore's seeds, seed files and camera framing
 src/
-  main.js                Boot: initSimulation(), then animate()
+  main.js                Boot: Explore (startExplore()) by default, or initSimulation(); then animate()
   brand/tokens.css       Brand pin: the Morpheus Tech brand tokens. Not imported yet. Never hand-edit
   state.js               The one shared, mutable `state` object: settings, rules, scene handles, history
   simulationModel.js     Builds the Three.js Points geometry from the history; updatePoints() per frame
@@ -42,15 +43,20 @@ src/
   gpu/computeControl.js  The GPU compute toggle: its GPU/CPU badge, the remembered choice, the "why not" popover
   gpu/compare.js         Not bundled: run from the dev console to check the GPU's generations against the CPU's
   shaders/*.wgsl         The WGSL compute shaders: gameOfLife3D.wgsl, rule30.wgsl (1D and 2D)
-  unbounded/             Game of Life 3D without edges. Not wired into the page yet. Imports no `state`, so it runs
+  unbounded/             Game of Life 3D without edges, shown by Explore. Imports no `state`, so it runs
                          in Node, a Web Worker or the browser (compareDense.js excepted)
   unbounded/world.js     World: the chunk store (chunks as slots in large slabs), seeding, and the limits
   unbounded/step.js      step(): one generation, a lockstep over every chunk, or the limit that ends the run
   unbounded/rules.js     validateRules() (refuses B0) and the rule lookup table
   unbounded/reference.js ReferenceWorld: a deliberately simple Set-of-strings engine the tests check world.js against
-  unbounded/run.js       Run: the run loop (timed and open-ended runs, pause, step, stop), statistics and snapshots
+  unbounded/run.js       Run: the run loop (timed and open-ended runs, pause, step, stop, settling), statistics and snapshots
   unbounded/run.worker.js The Web Worker that serves one Run
   unbounded/driver.js    EngineDriver: the page's side of a run; starts a fresh Worker per run and relays its messages
+  explore/               The Explore mode: the unbounded engine on the page (#37)
+  explore/explore.js     Starts and drives the run, the control bar's commands in Explore, the HUD box and notices
+  explore/view.js        ExploreView: the growing point cloud, chunk boxes past RENDER_BUDGET, the arena and chunk grid
+  explore/framing.js     The camera distance that fits the pattern, and easing (no Three.js; tested in Node)
+  explore/seed.js        Shapes lifted into the unbounded world, rule text, the seed file format (tested in Node)
   unbounded/workbench.html Not bundled: a dev page (/src/unbounded/workbench.html under `npm run dev`) that checks
                          the Worker in the browser and drives a run by hand
   unbounded/compareDense.js Not bundled: run from the dev console to check the engine against convolve3D()
@@ -69,12 +75,18 @@ src/
 - **Stream, keep no history (the unbounded engine).** `src/unbounded/` computes one generation
   at a time, for as long as a run lasts, and keeps only the current one. Space is chunked
   (16³ cells by default), and a chunk exists only where there are live cells or cells that can
-  be born. It is not wired into the page yet.
+  be born. The Explore mode (`src/explore/`) shows it.
 - **Changing a setting rebuilds.** Mode, size, seed or rules all go through `initSimulation()`
   again (from `controls.js`).
 - **Mode flags.** `state.simulationMode` names the mode, and the booleans `useRule30`,
   `useRule30_2D`, `useSineWave` and `useSandpile` steer `generateSimulation()`. Size and
   generations are remembered per mode in `state.modeValues`.
+- **Explore streams instead.** `simulationMode === 'explore'` never reaches `initSimulation()`
+  or `generateSimulation()`: on Apply, `controls.js` calls `startExplore()`, and leaving the mode
+  calls `stopExplore()`. `animate()` calls `exploreFrame()` instead of advancing `currentGen`, and
+  the play, step and reverse handlers check `isExplore()` first. Explore clears all four flags,
+  which `gpuModeOf()` would read as Game of Life 3D, so code that looks at the flags must check
+  for Explore first, as `computeControl.js` does. Its settings live in `state.explore`.
 - **GPU first, CPU after.** For Game of Life 3D and Rule 30, `generateSimulation()` runs
   `evolveOnGpu()` when `state.gpuCompute` is on and a device is ready, then its CPU loop computes
   whatever generations remain: all of them if the GPU was off or unavailable, the rest if the

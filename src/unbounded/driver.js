@@ -17,8 +17,9 @@ export class EngineDriver {
    * @param {object} [options]
    * @param {(stats: import('./run.js').Stats) => void} [options.onStats] - at most four times a
    *   second while running
-   * @param {(state: string, stats: import('./run.js').Stats, reason?: string) => void} [options.onState]
-   *   - 'running', 'paused' or 'ended' (with the reason, one of run.js's END_REASONS)
+   * @param {(state: string, stats: import('./run.js').Stats, reason?: string, cycle?: {from: number, period: number}) => void} [options.onState]
+   *   - 'running', 'paused' or 'ended' (with the reason, one of run.js's END_REASONS, and for
+   *   'repeat' the cycle it found)
    * @param {(message: string) => void} [options.onError] - a command refused, or a fault
    * @param {() => Worker} [options.createWorker] - the tests pass an in-process stand-in
    */
@@ -63,14 +64,38 @@ export class EngineDriver {
   /**
    * The live cells, now. Costs the engine a pass over its chunks, so ask only when there is a
    * view to draw them.
-   * @returns {Promise<{generation: number, cells: Int32Array}>}
+   * @param {object} [options]
+   * @param {number} [options.budget] - past this many live cells, send the chunks instead
+   * @param {{axis: number, index: number}} [options.slice] - only the plane where coordinate
+   *   `axis` (0, 1, 2 for x, y, z) equals `index`
+   * @returns {Promise<{generation: number, live: number, chunkSize: number,
+   *   cells?: Int32Array, chunks?: Int32Array}>} cells as x, y, z triples, or chunks as x, y, z,
+   *   live quadruples
    */
-  snapshot() {
+  snapshot({ budget, slice } = {}) {
     if (!this.worker) return Promise.reject(new Error('There is no run to snapshot.'));
     const id = this.nextId++;
     return new Promise((resolve, reject) => {
       this.pending.set(id, { resolve, reject });
-      this.send({ type: 'snapshot', id });
+      const message = { type: 'snapshot', id };
+      if (budget !== undefined) message.budget = budget;
+      if (slice) message.slice = slice;
+      this.send(message);
+    });
+  }
+
+  /**
+   * After a settling run ends with 'repeat': every generation of its cycle, as cells.
+   * @param {object} [options]
+   * @param {number} [options.budget] - past this many cells in all, frames is null
+   * @returns {Promise<{from: number, period: number, frames: Int32Array[] | null}>}
+   */
+  cycle({ budget } = {}) {
+    if (!this.worker) return Promise.reject(new Error('There is no run.'));
+    const id = this.nextId++;
+    return new Promise((resolve, reject) => {
+      this.pending.set(id, { resolve, reject });
+      this.send({ type: 'cycle', id, budget });
     });
   }
 
@@ -96,9 +121,13 @@ export class EngineDriver {
       case 'stats':
         return this.onStats(message.stats);
       case 'state':
-        return this.onState(message.state, message.stats, message.reason);
+        return this.onState(message.state, message.stats, message.reason, message.cycle);
+      case 'cycle':
       case 'snapshot':
-        return this.settle(message.id, (p) => p.resolve({ generation: message.generation, cells: message.cells }));
+        return this.settle(message.id, (p) => {
+          const { type, id, ...snapshot } = message;
+          p.resolve(snapshot);
+        });
       case 'error':
         if (message.id !== undefined && this.pending.has(message.id)) {
           return this.settle(message.id, (p) => p.reject(new Error(message.message)));

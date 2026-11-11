@@ -76,7 +76,7 @@ export const state = {
   clockData: null,
   controlsInitialized: false,
   shapeKey: "cube",
-  simulationMode: "gameOfLife",
+  simulationMode: "explore", // the lab opens in Explore (src/explore/)
   useRule30: false,
   useRule30_2D: false,
   useSineWave: false,
@@ -85,6 +85,15 @@ export const state = {
   // Compute Game of Life 3D and Rule 30 on the GPU when it's available (src/gpu/). The
   // control bar's toggle sets this, and remembers it per browser.
   gpuCompute: true,
+  // Explore (src/explore/): the last run's settings, and its seed file, if one was loaded. The
+  // memory limit (MB) and arena side (cells) defaults are provisional, for #39 to revise.
+  explore: {
+    rules: { birth: [9, 10], survival: initialSurvival },
+    memoryMB: 512,
+    arena: null, // the arena's side in cells, or null for none
+    arenaSize: 64, // what the arena field shows when the arena is off
+    seedFile: null, // {name, rules, cells}
+  },
   sandpileParams: {
     initialSand: 0, // Optional initial sand at center (0 = start empty, 1 grain added per generation)
     threshold: 4, // Threshold for toppling (fixed at 4, not user-adjustable)

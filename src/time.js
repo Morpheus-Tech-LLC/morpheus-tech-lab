@@ -1,6 +1,7 @@
 // animation.js
 import { state } from './state.js';
 import { updatePoints } from './simulationModel.js';
+import { isExplore, exploreFrame, setSpeed } from './explore/explore.js';
 
 let lastFrameTime = 0;
 let lastUpdateTime = 0;
@@ -77,7 +78,9 @@ if (speedControl) {
   speedControl.value = simSpeed;
   speedControl.addEventListener('input', (e) => {
     simSpeed = parseFloat(e.target.value);
-    updateSpeedDisplay();
+    // Explore asks its Worker for that many generations per second instead
+    if (isExplore()) setSpeed(e.target.value);
+    else updateSpeedDisplay();
   });
   updateSpeedDisplay(); // initialize on load
 }
@@ -147,7 +150,10 @@ export function animate(currentTime) {
     if (!lastUpdateTime) lastUpdateTime = currentTime;
     const elapsedSim = currentTime - lastUpdateTime;
 
-    if (elapsedSim >= baseInterval / simSpeed) {
+    if (isExplore()) {
+      // Explore streams generations from its Worker: draw the latest, and follow the pattern
+      exploreFrame(currentTime);
+    } else if (elapsedSim >= baseInterval / simSpeed) {
       lastUpdateTime = currentTime;
 
       if (state.isPlaying) {

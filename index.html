@@ -11,6 +11,11 @@
 </head>
 <body>
   <div id="simulation-mode-title" class="simulation-mode-title"></div>
+  <!-- Explore's notices (src/explore/explore.js): what the view draws, and why a run stopped -->
+  <div id="explore-notice" class="explore-notice" role="status" aria-live="polite">
+    <div id="explore-view-note" class="explore-note" hidden></div>
+    <div id="explore-end-note" class="explore-note explore-note--end" hidden></div>
+  </div>
   <!-- Company (top-right) -->
   <div id="company-brand" class="company-brand-top">
     <a id="company-logo-button-top" href="https://morpheustech.net" target="_blank" rel="noopener noreferrer" aria-label="About Morpheus Tech">
@@ -62,12 +67,16 @@
               <span class="mode-name">Sandpile</span>
               <span class="mode-subtitle">Abelian</span>
             </button>
+            <button class="mode-card" data-mode="explore" id="mode-explore">
+              <span class="mode-name">Explore</span>
+              <span class="mode-subtitle">Unbounded</span>
+            </button>
         </div>
           <div id="mode-description" class="mode-description">
             <p>A classic cellular automaton extended to three dimensions. Cells evolve based on the number of living neighbors, creating complex patterns of growth, stability, and decay in 3D space.</p>
           </div>
         </div>
-        <div class="sim-col" style="grid-column: 1;">
+        <div id="sim-params-section" class="sim-col" style="grid-column: 1;">
           <div class="rules-title">
             <span data-tooltip="Core simulation settings including grid dimensions and number of evolution steps to compute.">Simulation Parameters</span>
           </div>
@@ -107,6 +116,49 @@
           </div>
         </div>
 
+        <!-- Explore (src/explore/): what limits a run, and the seed file -->
+        <div id="explore-section" class="explore-col" style="display: none;">
+        <div class="rules-title">
+          <span data-tooltip="Explore runs Game of Life 3D in a world without walls: the pattern can grow as far as memory allows.">Explore</span>
+        </div>
+        <div class="modal-field-row">
+          <div class="label-row">
+            <label class="modal-label" for="explore-memory">
+              <span data-tooltip="How much memory the engine may use for cells, in MB. Your browser caps each tab's memory, whatever your computer has, and a page can't find out that cap in advance. If the browser refuses memory, the run stops cleanly and keeps its last generation; if the system closes the tab first, which is likelier with little memory, the run is lost. This limit stops the run before that. Try about 1024 on a typical laptop and 2048 to 4096 on a strong desktop; 512 is cautious, for phones and small machines.">Memory limit (MB)</span>
+            </label>
+            <span class="input-range-hint">64 - 16384</span>
+          </div>
+          <input type="number" id="explore-memory" class="glass-input" min="64" max="16384" step="64" value="512" />
+        </div>
+        <div class="modal-field-row">
+          <label class="modal-label" for="explore-arena-checkbox" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <input type="checkbox" id="explore-arena-checkbox" style="width: auto; cursor: pointer;" />
+            <span data-tooltip="A box around the centre. A step that would bring a cell to life outside it ends the run, as in the Discovery contests.">Arena</span>
+          </label>
+        </div>
+        <div class="modal-field-row" id="explore-arena-row" style="display: none;">
+          <div class="label-row">
+            <label class="modal-label" for="explore-arena-size">
+              <span data-tooltip="The arena's side, in cells. It is centred on the seed's centre.">Arena size</span>
+            </label>
+            <span class="input-range-hint">8 - 1024</span>
+          </div>
+          <input type="number" id="explore-arena-size" class="glass-input" min="8" max="1024" step="1" value="64" />
+        </div>
+        <div class="modal-field-row">
+          <div class="label-row">
+            <span class="modal-label"><span data-tooltip="Load a seed file exported from Explore: its cells and rules replace the shape and rules above.">Seed file</span></span>
+          </div>
+          <div class="explore-file-row">
+            <button type="button" id="explore-load-seed" class="glass-button explore-small-button">Load…</button>
+            <button type="button" id="explore-clear-seed" class="glass-button explore-small-button" hidden>Use the shape</button>
+            <button type="button" id="explore-export-seed" class="glass-button explore-small-button" disabled>Export current</button>
+            <input type="file" id="explore-seed-file" accept=".json,application/json" hidden />
+          </div>
+          <div id="explore-seed-status" class="explore-seed-status">Using the shape.</div>
+        </div>
+        <div id="explore-error" class="explore-error" role="alert" hidden></div>
+      </div>
         <div id="seed-section" class="seed-col">
           <div class="rules-title">
             <span data-tooltip="Configuration for the initial state of the simulation. Choose a shape pattern and set its size and density to determine starting conditions.">Initial Seed</span>
@@ -338,6 +390,22 @@
       <div class="info-line"><span class="label">Isolation</span><span id="rules-isolation" class="value">0-4</span></div>
       <div class="info-line"><span class="label">Overcrowding</span><span id="rules-overcrowd" class="value">16-26</span></div>
     </div>
+    <div id="glass-info-explore" class="glass-display glass-display--compact">
+      <div class="box-title">Explore</div>
+      <div class="info-line"><span class="label">Generation</span><span id="explore-generation" class="value">0</span></div>
+      <div class="info-line"><span class="label">Live cells</span><span id="explore-live" class="value">0</span></div>
+      <div class="info-line"><span class="label">Peak</span><span id="explore-live-peak" class="value">0</span></div>
+      <div class="info-line"><span class="label">Chunks</span><span id="explore-chunks" class="value">0</span></div>
+      <div class="info-line"><span class="label">Gen/s</span><span id="explore-rate" class="value">0</span></div>
+      <div class="info-line"><span class="label">Extent</span><span id="explore-extent" class="value">–</span></div>
+      <div class="info-line"><span class="label">Settled</span><span id="explore-settled" class="value">no</span></div>
+    </div>
+    <!-- Explore only: the engine's cell memory, apart from the browser's own -->
+    <div id="glass-info-memory" class="glass-display glass-display--compact">
+      <div class="box-title">Engine Memory</div>
+      <div class="info-line"><span class="label">In use</span><span id="explore-memory-live" class="value">0 KB</span></div>
+      <div class="info-line"><span class="label">Reserved</span><span id="explore-memory-used" class="value">0 MB</span></div>
+    </div>
   </div>
   <!-- === FOOTER ICONS === -->
   <div id="footer-icons">
@@ -421,6 +489,13 @@
             <circle id="leftStepCircle" cx="5" cy="8" r="9" fill="currentColor" class="step-circle"/>
             <line x1="14" y1="8" x2="36" y2="8" stroke="currentColor" stroke-width="2.5"/>
             <circle id="rightStepCircle" cx="45" cy="8" r="9" fill="currentColor" class="step-circle"/>
+          </svg>
+        </button>
+        <!-- Explore only: start again from the same seed and rules -->
+        <button id="restartButton" class="glass-button" aria-label="Restart from the seed" title="Restart from the seed">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <path d="M4 12a8 8 0 1 0 2.4-5.7" />
+            <path d="M4 3v5h5" />
           </svg>
         </button>
       </div>
@@ -809,7 +884,9 @@
   /* Compact single info box overrides */
   #glass-info-shape.glass-display--compact,
   #glass-info-rules.glass-display--compact,
-  #glass-info-sim.glass-display--compact {
+  #glass-info-sim.glass-display--compact,
+  #glass-info-explore.glass-display--compact,
+  #glass-info-memory.glass-display--compact {
     padding: 10px 12px;
     border-radius: 12px;
     margin: 5px;
@@ -822,7 +899,9 @@
 
   #glass-info-shape .info-line,
   #glass-info-rules .info-line,
-  #glass-info-sim .info-line {
+  #glass-info-sim .info-line,
+  #glass-info-explore .info-line,
+  #glass-info-memory .info-line {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
@@ -833,7 +912,9 @@
 
   #glass-info-shape .label,
   #glass-info-rules .label,
-  #glass-info-sim .label {
+  #glass-info-sim .label,
+  #glass-info-explore .label,
+  #glass-info-memory .label {
     color: var(--color-info-display-text);
     font-weight: 600;
     font-size: 12px;
@@ -841,7 +922,9 @@
 
   #glass-info-shape .value,
   #glass-info-rules .value,
-  #glass-info-sim .value {
+  #glass-info-sim .value,
+  #glass-info-explore .value,
+  #glass-info-memory .value {
     font-size: 16px;
     color: var(--color-control-font); /* blue-ish theme accent */
     font-weight: 600;
@@ -1732,6 +1815,13 @@
     transition: background 0.2s ease, box-shadow 0.2s ease;
   }
   .glass-select:hover { box-shadow: 0 6px 14px var(--color-control-hover); }
+  /* The open list is drawn by the browser: ask for its dark style, and colour the options to
+     match the dialog (a translucent background would show as white there) */
+  .glass-select { color-scheme: dark; }
+  .glass-select option {
+    background-color: #1c2430;
+    color: rgba(200, 220, 255, 0.95);
+  }
 
   /* Modal */
   .modal.hidden { display: none; }
@@ -2345,6 +2435,116 @@
     color: rgba(255, 255, 255, 1);
     text-shadow: 0 0 4px rgba(100, 150, 255, 0.8), 0 1px 2px rgba(0, 0, 0, 0.5);
     font-weight: 800;
+  }
+
+  /* ==== Explore (src/explore/) ==== */
+  .mode-card[data-mode="explore"] {
+    border-left: 3px solid rgba(240, 110, 140, 0.6);
+  }
+  .mode-card[data-mode="explore"].active {
+    border-left: 3px solid rgba(255, 130, 160, 0.9);
+    background: rgba(100, 45, 60, 0.7);
+  }
+  .modal-grid .explore-col {
+    grid-column: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .explore-file-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .explore-small-button {
+    padding: 5px 10px;
+  }
+  .explore-small-button[disabled] {
+    opacity: 0.45;
+    cursor: default;
+  }
+  .explore-small-button[hidden] {
+    display: none;
+  }
+  .explore-seed-status {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--color-info-display-text);
+    opacity: 0.85;
+  }
+  .explore-error {
+    margin-top: 8px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 120, 100, 0.6);
+    background: rgba(90, 30, 30, 0.6);
+    color: #ffd9d2;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+  .explore-error[hidden] {
+    display: none;
+  }
+  /* What the view draws, and why a run stopped: under the mode title */
+  .explore-notice {
+    position: fixed;
+    top: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    width: max-content;
+    max-width: min(560px, calc(100vw - 32px));
+    pointer-events: none;
+  }
+  .explore-note {
+    padding: 6px 12px;
+    border-radius: 8px;
+    background: rgba(35, 45, 60, 0.88);
+    border: 1px solid rgba(120, 180, 255, 0.35);
+    color: rgba(200, 220, 255, 0.95);
+    font-size: 14px;
+    line-height: 1.4;
+    text-align: center;
+  }
+  .explore-note--end {
+    border-color: rgba(255, 170, 90, 0.7);
+  }
+  .explore-note[hidden] {
+    display: none;
+  }
+  /* Explore's HUD box and Restart button show only in Explore, which has no fixed size and
+     no reverse (a stream only runs forward) */
+  #glass-info-explore,
+  #glass-info-memory,
+  #restartButton {
+    display: none;
+  }
+  #restartButton {
+    width: 60px;
+    height: 60px;
+    padding: 0;
+    border-radius: 6px;
+  }
+  body.mode-explore #glass-info-explore,
+  body.mode-explore #glass-info-memory {
+    display: inline-block;
+  }
+  body.mode-explore #restartButton {
+    display: flex;
+  }
+  body.mode-explore #glass-info-sim {
+    display: none;
+  }
+  body.mode-explore #reverseButton {
+    opacity: 0.35;
+    pointer-events: none;
   }
 </style>
 <script>
