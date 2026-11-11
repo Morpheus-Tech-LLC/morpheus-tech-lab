@@ -7,6 +7,14 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
 
 ## [Unreleased]
 
+### Added
+- An unbounded Game of Life 3D engine, `src/unbounded/`, not on the page yet: space is divided
+  into chunks allocated only where the cells are, every generation is one lockstep over the
+  whole world, B0 rules are refused, and limits end a run without clipping it (#35).
+- Automated tests: `npm test` runs Node's built-in test runner, and CI's `build` check runs it on
+  every pull request. The tests check the unbounded engine against a simple reference engine,
+  cell for cell (#35).
+
 ## [1.6.0] — 2026-11-10
 
 ### Added

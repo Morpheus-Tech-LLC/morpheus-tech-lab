@@ -105,9 +105,11 @@ git remote add upstream https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab.g
 npm ci          # install exactly what package-lock.json pins
 npm run dev     # dev server at http://localhost:5180
 npm run build   # production build to dist/; run it before you open a pull request
+npm test        # the automated tests; run them before you open a pull request too
 ```
 
-There are no automated tests yet, so check your change in the browser, in each mode it touches.
+The automated tests cover the unbounded engine (`src/unbounded/`) only, so also check your change
+in the browser, in each mode it touches.
 
 ### Test the GPU path
 
@@ -147,7 +149,7 @@ maintainer splits it.
    and [ARCHITECTURE.md](ARCHITECTURE.md) for how the pieces fit.
 3. Add a line under `## [Unreleased]` in [CHANGELOG.md](CHANGELOG.md) saying what changed, for
    a reader of the release notes.
-4. Run `npm run build`, commit with `git commit -s` (below), and push the branch to your fork:
+4. Run `npm run build` and `npm test`, commit with `git commit -s` (below), and push the branch to your fork:
    `git push -u origin my-change`. Keep each commit's subject line to 72 characters or less:
    GitHub cuts a longer one short in the pull request's title.
 5. Open a pull request from your fork's branch against **`development`**, never `main`, and
@@ -170,7 +172,7 @@ git push --force-with-lease
 
 ## What happens next
 
-1. The `build` (`npm ci` and `npm run build`) and `DCO` (below) checks run. On a first-time
+1. The `build` (`npm ci`, `npm run build` and `npm test`) and `DCO` (below) checks run. On a first-time
    contributor's pull request, they wait until a maintainer approves them. Both must pass
    before it can merge.
 2. A maintainer reviews it. Push any changes they ask for to the same branch. Then they merge

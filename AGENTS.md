@@ -7,7 +7,7 @@ pull requests, DCO sign-off, changelog) is in [CONTRIBUTING.md](CONTRIBUTING.md)
 ## Module layout
 
 ```
-.github/workflows/ci.yml The `build` (npm ci, npm run build) and `DCO` (sign-off) checks, required on main
+.github/workflows/ci.yml The `build` (npm ci, npm run build, npm test) and `DCO` (sign-off) checks, required on main
 .github/ISSUE_TEMPLATE/  Issue forms: bug_report.yml, idea.yml (with "Done when"); config.yml turns off blank issues and links Discussions (GitHub adds the security-report entry itself)
 .github/pull_request_template.md  The pull-request template: each issue and its relation, what changed, how it was tested, screenshots, and the checklist
 index.html               All markup: HUD, control bar, configuration modal, info panels
@@ -24,6 +24,7 @@ RELEASING.md             Branches, versions, changelog format and the release st
 CHANGELOG.md             What each version changed (Keep a Changelog)
 scripts/brand.mjs        `sync --org <brand repo>` re-pins the brand at a tag (maintainers); `check` verifies the lock
 vite.config.js           base '/', because the site is served from the domain root
+test/                    `npm test` (Node's built-in node:test, no dependency): unbounded/ checks the unbounded engine
 src/
   main.js                Boot: initSimulation(), then animate()
   brand/tokens.css       Brand pin: the Morpheus Tech brand tokens. Not imported yet. Never hand-edit
@@ -40,6 +41,13 @@ src/
   gpu/computeControl.js  The GPU compute toggle: its GPU/CPU badge, the remembered choice, the "why not" popover
   gpu/compare.js         Not bundled: run from the dev console to check the GPU's generations against the CPU's
   shaders/*.wgsl         The WGSL compute shaders: gameOfLife3D.wgsl, rule30.wgsl (1D and 2D)
+  unbounded/             Game of Life 3D without edges. Not wired into the page yet. Imports no `state`, so it runs
+                         in Node, a Web Worker or the browser (compareDense.js excepted)
+  unbounded/world.js     World: the chunk store (chunks as slots in large slabs), seeding, and the limits
+  unbounded/step.js      step(): one generation, a lockstep over every chunk, or the limit that ends the run
+  unbounded/rules.js     validateRules() (refuses B0) and the rule lookup table
+  unbounded/reference.js ReferenceWorld: a deliberately simple Set-of-strings engine the tests check world.js against
+  unbounded/compareDense.js Not bundled: run from the dev console to check the engine against convolve3D()
   color.css, style.css   Theme colours and layout
   assets/images/         Logos, README images
 ```
@@ -52,6 +60,10 @@ src/
 - **Precompute, then play.** `initSimulation()` computes the whole history,
   `state.simulationData[0..generations]`, one `Grid3D` per generation, before anything plays.
   Playback, reverse and scrubbing only change `state.currentGen` and call `updatePoints()`.
+- **Stream, keep no history (the unbounded engine).** `src/unbounded/` computes one generation
+  at a time, for as long as a run lasts, and keeps only the current one. Space is chunked
+  (16³ cells by default), and a chunk exists only where there are live cells or cells that can
+  be born. It is not wired into the page yet.
 - **Changing a setting rebuilds.** Mode, size, seed or rules all go through `initSimulation()`
   again (from `controls.js`).
 - **Mode flags.** `state.simulationMode` names the mode, and the booleans `useRule30`,
@@ -80,6 +92,23 @@ src/
 - Any GPU failure falls back to the CPU without an error: no WebGPU, no adapter, a device that
   fails to start, or a device lost mid-run. Every GPU file starts with
   `// SPDX-License-Identifier: Apache-2.0`, and uses only the browser's WebGPU API.
+- **The unbounded engine steps in lockstep.** Every chunk is always at the same generation. A
+  step reads only generation t and writes t+1 to each chunk's other copy; nothing is updated in
+  place, and the result never depends on the order the chunks are processed in. Chunks are how
+  cells are stored, not the order they are computed in.
+- **B0 is refused** (`validateRules()`): a dead cell with no live neighbour is never born. That
+  is what makes skipping empty space exact.
+- **A limit never wraps, clips or drops a cell.** It ends the run with its reason
+  (`cell-limit`, `extent-limit`, `coordinate-limit`, `memory-limit`, `out-of-memory`,
+  `arena-edge`), discards the step that would have crossed it, and keeps the last complete
+  generation whole. Limits that can end a scored run are stated in cells, extent and
+  generations, so a replay stops in the same place on any machine.
+- **The unbounded engine gives exactly the reference's cells** (`src/unbounded/reference.js`),
+  and, while a pattern stays 2 cells clear of the walls, `convolve3D()`'s with wrapping off.
+  Change either engine and run `npm test`; after a change to the step, also run
+  `src/unbounded/compareDense.js` from the dev console.
+- The unbounded engine asks for cell memory only by adding a slab (`World.addSlab()`), so a refusal
+  is one catchable `RangeError` in one place. Keep it that way.
 - `state.reset()` keeps the scene, renderer and camera, so a rebuild reuses one WebGL context.
 - `public/CNAME` and `base: '/'` go together. Without both, the deployed site breaks.
 - Pinned brand files match `brand.lock`; `npm run build` refuses to build otherwise. Only

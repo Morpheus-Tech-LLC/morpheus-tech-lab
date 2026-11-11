@@ -8,6 +8,7 @@
     "dev": "vite",
     "build": "node scripts/brand.mjs check && vite build",
     "preview": "vite preview",
+    "test": "node --test",
     "deploy": "npm run build && gh-pages -d dist",
     "brand:sync": "node scripts/brand.mjs sync",
     "brand:check": "node scripts/brand.mjs check"

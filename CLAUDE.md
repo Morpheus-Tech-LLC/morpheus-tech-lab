@@ -29,6 +29,7 @@ Everything committed here is published: the source on GitHub, the build on the o
 | `npm ci` | Install the locked dependencies (first run) |
 | `npm run dev` | Vite dev server, http://localhost:5180 |
 | `npm run build` | Check the brand pin, then build to `dist/` (not tracked) |
+| `npm test` | Run the tests (Node's built-in `node:test`, in `test/`) |
 | `npm run preview` | Serve the built `dist/` locally, also on 5180 |
 | `npm run deploy` | Build, then publish `dist/` to the `gh-pages` branch, which is live at once |
 | `npm run brand:check` | Fail if a pinned brand file no longer matches `brand.lock` |
@@ -43,7 +44,9 @@ release.
 - Vanilla JavaScript (ES modules), no framework, no TypeScript.
 - Three.js for rendering (`Points` cloud and `OrbitControls`).
 - Vite for build and dev. `gh-pages` for deploy.
-- No tests yet. CI (`.github/workflows/ci.yml`) runs the `build` and `DCO` checks on every pull request.
+- Tests use Node's built-in `node:test` and cover the unbounded engine (`src/unbounded/`). CI
+  (`.github/workflows/ci.yml`) runs the `build` check, which includes `npm test`, and the `DCO`
+  check on every pull request.
 
 ## Branches and versions
 

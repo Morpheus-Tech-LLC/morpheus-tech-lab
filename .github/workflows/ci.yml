@@ -1,5 +1,6 @@
 # Checks every pull request, and every push to the long-lived branches.
-# The job names "build" and "DCO" are the required status checks on main.
+# The job names "build" and "DCO" are the required status checks on main. The build job also
+# runs the tests, so they are required too.
 name: CI
 
 on:
@@ -24,6 +25,8 @@ jobs:
       - run: npm ci
       # Also runs the brand check (scripts/brand.mjs check).
       - run: npm run build
+      # The unit tests (node:test, test/), so they are required wherever build is.
+      - run: npm test
 
   dco:
     name: DCO

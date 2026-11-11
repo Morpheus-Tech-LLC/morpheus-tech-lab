@@ -19,7 +19,7 @@ For a small fix with no issue, say what it fixes. -->
 
 ## How you tested it
 
-<!-- There are no automated tests yet. Which modes did you check, in which browser and OS? -->
+<!-- Which tests did you add or run, and which modes did you check, in which browser and OS? -->
 
 ## Screenshots and media
 
@@ -35,4 +35,4 @@ changes on screen. -->
 - [ ] It resolves one issue labelled `approved`, or it is a small fix, such as a typo or a broken link.
 - [ ] Every commit is signed off (`git commit -s`). See [CONTRIBUTING.md](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/blob/development/CONTRIBUTING.md#sign-off-your-commits-dco).
 - [ ] There is a line under `## [Unreleased]` in `CHANGELOG.md`.
-- [ ] `npm run build` passes.
+- [ ] `npm run build` and `npm test` pass.
