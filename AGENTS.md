@@ -25,17 +25,26 @@ CHANGELOG.md             What each version changed (Keep a Changelog)
 scripts/brand.mjs        `sync --org <brand repo>` re-pins the brand at a tag (maintainers); `check` verifies the lock
 scripts/verify.mjs       Checks a result file from the unbounded engine in Node: by replay, or by lookup with --table
 scripts/reference-hashes.mjs Computes a run's reference table: the hash of every generation, for checking Speed by lookup
+scripts/bench.mjs        Benchmarks for the unbounded engine (#39): chunk sizes, seeds and rules, bytes against bit-packed
+                         cells, the dense convolve3D(), serialization, the Speed candidates and the Discovery worst case
+scripts/bench/           The bench's parts: lib.mjs (timing, seeds, rules, tables; no Node APIs), bitpacked.mjs (a
+                         bit-packed one-chunk step, bench only), candidates.mjs (Speed candidates, each rebuilt from a
+                         number; --run writes one's run), worst-case.mjs (writes the Discovery worst-case result file)
 vite.config.js           base '/', because the site is served from the domain root
 test/                    `npm test` (Node's built-in node:test, no dependency): unbounded/ checks the unbounded engine,
                          its run loop on a fake clock and in a worker_threads Worker, the canonical hash and
-                         the verifier (fixtures/ holds an example result and a hand-edited copy); explore/ checks
+                         the verifier (fixtures/ holds an example result and a hand-edited copy), and the engine
+                         against convolve3D() (dense.test.js); explore/ checks
                          Explore's seeds, seed files and camera framing
 src/
   main.js                Boot: Explore (startExplore()) by default, or initSimulation(); then animate()
   brand/tokens.css       Brand pin: the Morpheus Tech brand tokens. Not imported yet. Never hand-edit
   state.js               The one shared, mutable `state` object: settings, rules, scene handles, history
   simulationModel.js     Builds the Three.js Points geometry from the history; updatePoints() per frame
-  matrixFunctions.js     The automata: generateSimulation() and each mode's evolve step (the CPU reference)
+  matrixFunctions.js     The automata: generateSimulation() and each mode's evolve step (the CPU reference);
+                         convolve3D() here passes `state`'s settings to denseStep.js
+  denseStep.js           convolve3D(grid, {wrapping, rules, boundaryRules}): the dense Game of Life 3D step, without
+                         `state`, so Node can run it
   grid3D.js              Grid3D: a dense size³ Uint8Array plus an `active` list of live cells
   shapeGenerators.js     Seed shapes: perlin, cube, tetrahedron, octahedron, worley, rule30
   space.js               Scene, camera, renderer, OrbitControls (stored on `state`)
@@ -47,7 +56,7 @@ src/
   gpu/compare.js         Not bundled: run from the dev console to check the GPU's generations against the CPU's
   shaders/*.wgsl         The WGSL compute shaders: gameOfLife3D.wgsl, rule30.wgsl (1D and 2D)
   unbounded/             Game of Life 3D without edges, shown by Explore. Imports no `state`, so it runs
-                         in Node, a Web Worker or the browser (compareDense.js excepted)
+                         in Node, a Web Worker or the browser
   unbounded/world.js     World: the chunk store (chunks as slots in large slabs), seeding, and the limits
   unbounded/step.js      step(): one generation, a lockstep over every chunk, or the limit that ends the run
   unbounded/rules.js     validateRules() (refuses B0) and the rule lookup table
@@ -66,7 +75,12 @@ src/
   explore/seed.js        Shapes lifted into the unbounded world, rule text, the seed file format (tested in Node)
   unbounded/workbench.html Not bundled: a dev page (/src/unbounded/workbench.html under `npm run dev`) that checks
                          the Worker in the browser and drives a run by hand
-  unbounded/compareDense.js Not bundled: run from the dev console to check the engine against convolve3D()
+  unbounded/memory.html  Not bundled: a dev page (/src/unbounded/memory.html under `npm run dev`) that measures how
+                         much one tab can take in slabs (memory.worker.js), and times Speed candidates in the
+                         Worker, alone or two side by side, drawn as they grow. Never ship or link it: reaching
+                         the browser's cap can close the tab
+  unbounded/compareDense.js Not bundled: checks the engine against convolve3D(), cell for cell; `npm test`, the
+                         bench and the dev console run it
   color.css, style.css   Theme colours and layout
   assets/images/         Logos, README images
 ```
@@ -108,7 +122,8 @@ src/
 - Game of Life 3D boundary rules (corner, edge, face) apply only when grid wrapping is off.
   Isolation and overcrowding are always derived from survival, never set by hand.
 - **The GPU gives exactly the CPU's generations**, cell for cell, wrapping or not, with the
-  same edge, face and corner rules. The CPU evolve steps in `matrixFunctions.js` are the
+  same edge, face and corner rules. The CPU evolve steps in `matrixFunctions.js` (Game of Life 3D's in
+  `denseStep.js`) are the
   reference, quirks included (a dead cell with no live neighbour is never born; with wrapping
   off, neighbours clamp to the grid). Change a CPU step and its shader together, and check
   with `src/gpu/compare.js` at 50³ and 100³, wrapping on and off, before opening a pull
@@ -130,8 +145,10 @@ src/
   generations, so a replay stops in the same place on any machine.
 - **The unbounded engine gives exactly the reference's cells** (`src/unbounded/reference.js`),
   and, while a pattern stays 2 cells clear of the walls, `convolve3D()`'s with wrapping off.
-  Change either engine and run `npm test`; after a change to the step, also run
-  `src/unbounded/compareDense.js` from the dev console.
+  Change either engine and run `npm test`, which checks both; after a change to the step, also
+  run `src/unbounded/compareDense.js` from the dev console at 100³, which takes longer. A change
+  to the step or the cells' layout also reruns `node scripts/bench.mjs`, whose numbers pinned the
+  contests' values (#39).
 - **The page never steps the unbounded engine.** A run lives in its own Worker (`driver.js`),
   which the loop in `run.js` yields between generations so commands get through. A timed run
   checks its deadline after a generation is computed and before it is committed (`step()`'s

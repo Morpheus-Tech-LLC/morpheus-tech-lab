@@ -14,8 +14,11 @@ import { ExploreView, RENDER_BUDGET } from './view.js';
 import { toSeedFile, arenaBox, shapeSeed } from './seed.js';
 import { cubeOfSide } from '../shapeGenerators.js';
 
-/** Provisional defaults, for #39 to revise from measurements. */
-export const DEFAULT_MEMORY_MB = 512;
+/**
+ * Defaults pinned by #39's measurements: one tab in Chrome on a 16 GB machine could take 6 GB of
+ * slabs, so 1 GB stays well under any laptop browser's cap. The arena is the Discovery contests'.
+ */
+export const DEFAULT_MEMORY_MB = 1024;
 export const DEFAULT_ARENA = 64;
 /** How long after the visitor lets go of the view the camera starts following again. */
 const FOLLOW_AFTER_MS = 3000;

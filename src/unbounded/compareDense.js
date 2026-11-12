@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 // Checks the unbounded engine against the lab's dense Game of Life 3D step, convolve3D(), with
-// wrapping off. The app doesn't import this; run it from the browser console while
-// `npm run dev` is up:
+// wrapping off. The app doesn't import this. `npm test` runs it on small grids, the bench
+// (scripts/bench.mjs) times it, and it runs from the browser console while `npm run dev` is up:
 //
 //   const { compareWithDense } = await import('/src/unbounded/compareDense.js');
 //   await compareWithDense({ size: 100, generations: 100 });
+//
+// It reads no `state`: the rules default to the lab's starting ones (B9,10/S5-15). To check the
+// rules set in the lab, pass them: `rules: (await import('/src/state.js')).state.rules`.
 //
 // With wrapping off, convolve3D() clamps at the walls, so a cell on a wall counts a neighbour
 // more than once, and the wall cells follow the boundary rules. The unbounded world has no
@@ -13,13 +16,13 @@
 // wall, so that no cell on a wall, or next to one, is ever a candidate. This script checks that
 // clearance every generation, in both engines, and fails if the pattern comes closer.
 
-import { state } from '../state.js';
 import { Grid3D } from '../grid3D.js';
-import { convolve3D } from '../matrixFunctions.js';
+import { convolve3D } from '../denseStep.js';
 import { World } from './world.js';
 import { step } from './step.js';
 
 const CLEARANCE = 2;
+const LAB_RULES = { birth: [9, 10], survival: [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15] };
 
 /**
  * @param {object} [options]
@@ -28,11 +31,11 @@ const CLEARANCE = 2;
  * @param {number} [options.seedSize] - the side of the random seed's box, centred in the grid
  * @param {number} [options.density] - the share of the seed's box alive
  * @param {number} [options.randomSeed] - makes the random seed repeatable
- * @param {{birth: number[], survival: number[]}} [options.rules] - default: state.rules
+ * @param {{birth: number[], survival: number[]}} [options.rules] - default: the lab's starting rules
  * @returns {Promise<object>} a summary; `mismatch` is null, or the first difference found
  */
 export async function compareWithDense({
-  size = 100, generations = 100, seedSize = 10, density = 0.3, randomSeed = 1, rules = state.rules,
+  size = 100, generations = 100, seedSize = 10, density = 0.3, randomSeed = 1, rules = LAB_RULES,
 } = {}) {
   const { birth, survival } = rules;
   if (!survival?.length) {
@@ -54,44 +57,40 @@ export async function compareWithDense({
   const world = new World({ rules: { birth, survival } });
   world.setCells(seed.active);
 
-  const saved = { gridWrapping: state.gridWrapping, rules: state.rules };
-  Object.assign(state, { gridWrapping: false, rules: { ...state.rules, birth, survival } });
-  try {
-    let dense = seed;
-    let denseMs = 0, unboundedMs = 0;
-    let closest = clearanceOf(seed.active, size);
-    let mismatch = null;
-    for (let g = 1; g <= generations && !mismatch; g++) {
-      let started = performance.now();
-      dense = convolve3D(dense);
-      denseMs += performance.now() - started;
+  // Wrapping off and no boundary rules: the walls only clamp, and the pattern keeps clear of them
+  const dense3D = (grid) => convolve3D(grid, { wrapping: false, rules: { birth, survival } });
+  let dense = seed;
+  let denseMs = 0, unboundedMs = 0;
+  let closest = clearanceOf(seed.active, size);
+  let mismatch = null;
+  for (let g = 1; g <= generations && !mismatch; g++) {
+    let started = performance.now();
+    dense = dense3D(dense);
+    denseMs += performance.now() - started;
 
-      started = performance.now();
-      const stopped = step(world);
-      unboundedMs += performance.now() - started;
-      if (stopped) {
-        mismatch = { generation: g, reason: `the unbounded run ended: ${stopped}` };
-        break;
-      }
-
-      const cells = triples(world.cells());
-      closest = Math.min(closest, clearanceOf(dense.active, size), clearanceOf(cells, size));
-      if (closest < CLEARANCE) {
-        mismatch = { generation: g, reason: `the pattern came within ${closest} of a wall; the comparison needs ${CLEARANCE}` };
-      } else {
-        mismatch = firstDifference(dense, cells, g);
-      }
+    started = performance.now();
+    const stopped = step(world);
+    unboundedMs += performance.now() - started;
+    if (stopped) {
+      mismatch = { generation: g, reason: `the unbounded run ended: ${stopped}` };
+      break;
     }
-    return {
-      size, generations, rules: { birth, survival },
-      liveCells: { first: seed.active.length, last: dense.active.length },
-      closestToWall: closest,
-      denseMs: Math.round(denseMs), unboundedMs: Math.round(unboundedMs),
-      mismatch,
-    };
-  } finally {
-    Object.assign(state, saved);
+
+    const cells = triples(world.cells());
+    closest = Math.min(closest, clearanceOf(dense.active, size), clearanceOf(cells, size));
+    if (closest < CLEARANCE) {
+      mismatch = { generation: g, reason: `the pattern came within ${closest} of a wall; the comparison needs ${CLEARANCE}` };
+    } else {
+      mismatch = firstDifference(dense, cells, g);
+    }
   }
+  return {
+    size, generations, rules: { birth, survival },
+    liveCells: { first: seed.active.length, last: dense.active.length },
+    closestToWall: closest,
+    denseMs: Math.round(denseMs), unboundedMs: Math.round(unboundedMs),
+    mismatch,
+  };
 }
 
 // The fewest cells between any live cell and the nearest wall

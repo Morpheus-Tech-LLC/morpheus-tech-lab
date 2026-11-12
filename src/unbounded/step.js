@@ -98,9 +98,10 @@ function limitCrossed(world, box, cells) {
 
 /**
  * Writes generation t+1 of one chunk into its other copy, and records its live cells, border
- * contacts and bounding box in world.next. Reads only generation t.
+ * contacts and bounding box in world.next. Reads only generation t. Exported for the bench
+ * (scripts/bench/), which times it on its own; only step() calls it otherwise.
  */
-function computeChunk(world, slot) {
+export function computeChunk(world, slot) {
   const { n, padded: p, sumX, sumXY, table } = world;
   const m = n + 2, mm = m * m, nn = n * n, nm = n * m;
   const { cx, cy, cz } = world.meta;
