@@ -100,7 +100,7 @@ The 3D model was determined to be best represented mathematically by a three dim
 | **Rule 30** | Wolfram's elementary automaton, in 1D or 2D |
 | **Sine Wave** | A continuous wave field, a smooth visual reference |
 | **Abelian Sandpile** | One grain of sand dropped at the centre each generation; piles topple and spread into fractal patterns |
-| **Explore** | Game of Life 3D without walls: the pattern grows as far as it likes, for as long as it runs. Pause, step, restart and set its speed; choose the rules, a seed shape or a seed file; set a memory limit, and optionally an arena that ends the run at its edge. The 2D view shows one slice, across the pattern's extent; the grid shows the 16³-cell chunks it occupies. A run stops once its pattern dies or settles into a still life or a repeating cycle, which then keeps playing. Export the seed to load it again later |
+| **Explore** | Game of Life 3D without walls: the pattern grows as far as it likes, for as long as it runs. Pause, step, restart and set its speed; choose the rules, a seed shape, a preset seed or a seed file; set a memory limit, and optionally an arena that ends the run at its edge. The 2D view shows one slice, across the pattern's extent; the grid shows the 16³-cell chunks it occupies. A run stops once its pattern dies or settles into a still life or a repeating cycle, which then keeps playing. |
 
 The lab opens in Explore, paused on a 10³ cube; the settings button switches mode.
 
@@ -115,9 +115,15 @@ memory limit starts at 1,024 MB: the browser caps each tab's memory, and a page 
 cap, so the limit stops a run cleanly before the browser or the system does. On a 16 GB machine,
 one Chrome tab could take about 6 GB; 512 MB is the cautious choice for phones and small machines.
 
+Explore's Initial Seed is **Custom**, a shape or a seed file with the rules you set, or a
+**Preset**, which brings its own rules: **Cube10**, the 10³ cube Explore opens on under the
+default rules, a dense mass that keeps swelling outward; or **Spreading noise**, 224 cells under
+B7,13,14/S0,2-6,9,13,19,23,24 that look like chaotic noise yet keep spreading. The Speed contest
+runs Cube10.
+
 An Explore seed file is JSON: its format and version, the rules, and the live cells as
-`[x, y, z]` whole numbers, centred near `[0, 0, 0]`. **Export current** writes one, and you can
-write or edit one by hand:
+`[x, y, z]` whole numbers, centred near `[0, 0, 0]`. You can write or edit one by hand; exporting
+the seed on screen will come with the seed editor (#52):
 
 ```json
 {

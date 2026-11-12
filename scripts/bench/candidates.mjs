@@ -36,7 +36,7 @@ import { repeatableRandom, ruleText, sideOf } from './lib.mjs';
 export const SHORTLIST = ['cube', 175, 4001, 5003, 12345, 13724];
 
 /** Names for the candidates worth a name, as Explore's presets will call them. */
-export const NAMES = { cube: 'Default cube', 12345: 'Spreading noise' };
+export const NAMES = { cube: 'Cube10', 12345: 'Spreading noise' };
 
 /** A candidate's label: its id, and its name if it has one. */
 export const labelOf = (id) => (NAMES[id] ? `${id} (${NAMES[id]})` : String(id));

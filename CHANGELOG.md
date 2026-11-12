@@ -20,8 +20,8 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
   second, extent, memory), and snapshots of the live cells only when asked for (#36).
 - Explore, a new mode: Game of Life 3D without walls, run indefinitely, with pause, step,
   restart and a speed control; a shape or a seed file as the seed, editable rules (B0 is
-  refused, with the reason), a memory limit explained in a popover, an optional arena, and
-  seed export. The view grows with the pattern and follows it, draws the chunks as boxes past
+  refused, with the reason), a memory limit explained in a popover, and an optional arena. The
+  view grows with the pattern and follows it, draws the chunks as boxes past
   300,000 live cells, and shows the engine's statistics; a run that stops keeps its last
   generation on screen, with the reason. A run stops counting once its pattern dies or settles
   into a still life or a repeating cycle, and a cycle keeps playing (#37).
@@ -34,6 +34,11 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
   much memory one tab can take in each browser. Their results pin the contests' values: the chunk
   size, the Speed seed, rules and generation ceiling, and the Discovery arena and generation
   budget (#39).
+- Explore's Initial Seed offers a choice of Custom (a shape or a seed file, with your own
+  rules) or Preset: Cube10, which the lab opens on and the Speed contest runs, or Spreading
+  noise, which looks like chaotic noise yet keeps spreading outward. A preset brings its own
+  rules, which the rule fields show but can't change. Exporting the seed on screen leaves the
+  settings, to return with the seed editor (#52) (#58).
 
 ### Changed
 - The lab opens in Explore, paused on a 10³ cube, instead of Game of Life 3D (#37).

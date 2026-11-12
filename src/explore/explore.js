@@ -155,7 +155,10 @@ export function exploreViewChanged() {
   if (session.cycle) session.cycle.redraw = true;
 }
 
-/** The seed and rules on screen as a seed file's text, or null when Explore isn't running. */
+/**
+ * The seed and rules on screen as a seed file's text, or null when Explore isn't running. Nothing
+ * calls it for now: exporting moved out of the settings, for the seed editor (#52) to offer.
+ */
 export function currentSeedFile() {
   return session.config ? toSeedFile(session.config) : null;
 }

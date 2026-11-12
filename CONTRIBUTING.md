@@ -261,7 +261,7 @@ of what changed and why.
   included.
 
 ```
-Explore: preset seeds, the Default cube and Spreading noise
+Explore: preset seeds, Cube10 and Spreading noise
 
 Explore's Seed section offers two ready-made seeds beside the shapes
 and seed files. Choosing one replaces the shape and rules, as a seed
@@ -276,7 +276,7 @@ commit, never a squash or a rebase. Its subject is the pull request's title and 
 body lists the pull request's issues as its description does:
 
 ```
-Explore: preset seeds, the Default cube and Spreading noise (#63)
+Explore: preset seeds, Cube10 and Spreading noise (#63)
 
 Resolves #58
 ```
