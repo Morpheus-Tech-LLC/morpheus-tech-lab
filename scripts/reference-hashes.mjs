@@ -94,10 +94,11 @@ async function main() {
 
   await writeFile(out, tableText(run, hashes));
   const seconds = ((Date.now() - started) / 1000).toFixed(1);
+  const live = `${world.liveCells.toLocaleString('en')} live cells at generation ${world.generation}`;
   if (ended) {
-    console.log(`The run ended at generation ${world.generation} (${ended}). Wrote generations 0 to ${world.generation} to ${out} in ${seconds} s.`);
+    console.log(`The run ended at generation ${world.generation} (${ended}). Wrote generations 0 to ${world.generation} to ${out} in ${seconds} s; ${live}.`);
   } else {
-    console.log(`Wrote generations 0 to ${to} to ${out} in ${seconds} s.`);
+    console.log(`Wrote generations 0 to ${to} to ${out} in ${seconds} s; ${live}.`);
   }
 }
 

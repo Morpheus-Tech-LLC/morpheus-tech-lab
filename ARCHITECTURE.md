@@ -93,6 +93,14 @@ compares hashes, and checks an ending the pattern decides by taking one more ste
 reference table (every generation's hash, made once by `scripts/reference-hashes.mjs`) it looks
 the hash up instead. `scripts/verify.mjs` runs it in Node.
 
+**Benchmarks**: `scripts/bench.mjs` (#39) measures the engine in Node (chunk sizes, seeds, rules,
+a bit-packed step, the dense `convolve3D()` in `denseStep.js`, serialization), times the Speed
+candidates through the real run loop, and projects the Discovery worst case, a result file made by
+`scripts/bench/worst-case.mjs` that `scripts/verify.mjs` replays. The dev page
+`src/unbounded/memory.html` measures what one tab can take in slabs in each browser. Their numbers
+pinned the contests' values: the chunk size, Speed's seed, rules and ceiling, the Discovery arena
+and budget, and Explore's default memory limit.
+
 **Seed**: a shape function from `shapeGenerators.js` (perlin, cube, tetrahedron, octahedron,
 worley, rule30). Its parameters are in `state.shapeParams`.
 

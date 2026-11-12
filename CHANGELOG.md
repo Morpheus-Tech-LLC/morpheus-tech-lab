@@ -30,9 +30,15 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
   `scripts/verify.mjs` replays the file from its seed to confirm it, or looks it up in a table
   of every generation's hash made by `scripts/reference-hashes.mjs`. Files are read as untrusted
   data (#38).
+- Benchmarks for the unbounded engine, `node scripts/bench.mjs`, and a dev page that measures how
+  much memory one tab can take in each browser. Their results pin the contests' values: the chunk
+  size, the Speed seed, rules and generation ceiling, and the Discovery arena and generation
+  budget (#39).
 
 ### Changed
 - The lab opens in Explore, paused on a 10³ cube, instead of Game of Life 3D (#37).
+- Explore's default memory limit is 1,024 MB, up from 512: measured, one browser tab can take
+  about 6 GB of the engine's memory on a 16 GB machine (#39).
 - Every issue goes through the same stages, idea, planning, ready and in progress, to completed
   or cancelled, each shown by a label, with its kind as the issue type. An idea needs only what
   it is and why; its Done when is settled when its plan is, and a plan's pieces become

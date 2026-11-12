@@ -111,8 +111,9 @@ it backwards instantly.
 Explore works differently: it computes one generation at a time, in a background thread, for as
 long as it runs, and keeps only the current one, so it can't play backwards. The view draws up
 to 300,000 live cells; past that it draws the 16³-cell chunks that hold them, as boxes. Its
-memory limit starts at a cautious 512 MB: the browser caps each tab's memory, and a page can't
-learn that cap, so the limit stops a run cleanly before the browser or the system does.
+memory limit starts at 1,024 MB: the browser caps each tab's memory, and a page can't learn that
+cap, so the limit stops a run cleanly before the browser or the system does. On a 16 GB machine,
+one Chrome tab could take about 6 GB; 512 MB is the cautious choice for phones and small machines.
 
 An Explore seed file is JSON: its format and version, the rules, and the live cells as
 `[x, y, z]` whole numbers, centred near `[0, 0, 0]`. **Export current** writes one, and you can

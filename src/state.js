@@ -86,10 +86,10 @@ export const state = {
   // control bar's toggle sets this, and remembers it per browser.
   gpuCompute: true,
   // Explore (src/explore/): the last run's settings, and its seed file, if one was loaded. The
-  // memory limit (MB) and arena side (cells) defaults are provisional, for #39 to revise.
+  // memory limit (MB) and arena side (cells) defaults were pinned by #39's measurements.
   explore: {
     rules: { birth: [9, 10], survival: initialSurvival },
-    memoryMB: 512,
+    memoryMB: 1024,
     arena: null, // the arena's side in cells, or null for none
     arenaSize: 64, // what the arena field shows when the arena is off
     seedFile: null, // {name, rules, cells}
