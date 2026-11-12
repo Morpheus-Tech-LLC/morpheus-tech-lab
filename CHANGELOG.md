@@ -50,6 +50,11 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
   request merges with a merge commit titled with its pull request (`<title> (#N)`) and listing
   its issues; releases and hotfixes into `main` read `Release X.Y.Z (#N)` and
   `Hotfix X.Y.Z (#N)` (#61).
+- A plan is written into its issue, ending with a proposed Done when, before the issue is
+  accepted as ready; the plan's Done when replaces the idea's, and the `Ready. Done when: …`
+  comment freezes the final text. A maintainer assigns whoever claims an issue, and removes the
+  assignee if the claim lapses or the issue goes back to planning, so an assignee always means
+  someone is building it (#62).
 
 ## [1.6.0] — 2026-11-10
 

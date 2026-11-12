@@ -190,9 +190,15 @@ src/
   claim)**, except a small fix such as a typo or a broken link. An issue goes idea → planning →
   ready → in progress → completed or cancelled ([CONTRIBUTING.md](CONTRIBUTING.md#how-an-issue-moves));
   only maintainers move it. Claim it first with a comment giving a date and a confidence, in the
-  form CONTRIBUTING shows; the person running the agent answers for the estimate. The pull
+  form CONTRIBUTING shows; the person running the agent answers for the estimate, and is the one
+  a maintainer assigns. The pull
   request is reviewed against the maintainer's `Ready. Done when: …` comment, not the issue
   body: meet it, or say in "What changed" where it differs.
+- **Don't ask for `ready` before the plan is in the issue.** For an issue in `planning`, the work
+  is its plan: write it into the issue body as a `## Plan` section below the idea, ending with a
+  proposed Done when ([CONTRIBUTING.md](CONTRIBUTING.md#planning)). A plan drafted anywhere else
+  goes into the issue before a maintainer is asked to accept it. The `Ready. Done when: …` comment
+  accepts the plan that is in the issue, never one held elsewhere.
 - **Don't file a plan's pieces as issues before the plan is accepted.** They stay a list in the
   plan; at acceptance each becomes a sub-issue (type Task, `ready`).
 - **Don't invent a commit message format.** A commit message an agent drafts follows "Commit
