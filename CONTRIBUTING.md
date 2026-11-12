@@ -206,11 +206,12 @@ into pieces.
    and [ARCHITECTURE.md](ARCHITECTURE.md) for how the pieces fit.
 3. Add a line under `## [Unreleased]` in [CHANGELOG.md](CHANGELOG.md) saying what changed, for
    a reader of the release notes.
-4. Run `npm run build` and `npm test`, commit with `git commit -s` (below), and push the branch to your fork:
-   `git push -u origin my-change`. Keep each commit's subject line to 72 characters or less:
-   GitHub cuts a longer one short in the pull request's title.
+4. Run `npm run build` and `npm test`, commit with `git commit -s` (below), writing the message
+   as [Commit messages](#commit-messages) says, and push the branch to your fork:
+   `git push -u origin my-change`.
 5. Open a pull request from your fork's branch against **`development`**, never `main`, and
-   fill in the template. List each issue, one per line, with how the pull request relates to
+   fill in the template. Its title is your main commit's subject: it becomes the subject of the
+   merge commit. List each issue, one per line, with how the pull request relates to
    it, using only these: `Resolves #123` for the one issue it does in full, `Related to #124`
    for an issue it touches but doesn't work on, and `Opens #125` for a follow-up issue you
    opened. GitHub doesn't act on these in a pull request into `development`: the maintainer
@@ -227,14 +228,51 @@ git push --force-with-lease
 
 `--force-with-lease` refuses to overwrite commits on your fork that you haven't fetched.
 
+## Commit messages
+
+Every commit message has the same shape, so `git log` on `development` or `main` reads as a list
+of what changed and why.
+
+- **The subject** says what the change does, as a plain sentence: capitalised, no full stop, and
+  at most **65 characters**, so that the ` (#123)` the merge adds still fits in 72. Put an area
+  first only when it helps, as in `Explore: preset seeds`. No type prefixes such as `feat:`.
+- **The body**, after a blank line and wrapped at 72 characters, says what changed and why, for
+  someone reading the history later. How the code works belongs in the code.
+- **The trailers** come last: `Signed-off-by`, which `git commit -s` adds and every commit needs
+  ([below](#sign-off-your-commits-dco)), and `Co-Authored-By` for each co-author, an AI assistant
+  included.
+
+```
+Explore: preset seeds, the Default cube and Spreading noise
+
+Explore's Seed section offers two ready-made seeds beside the shapes
+and seed files. Choosing one replaces the shape and rules, as a seed
+file does, so a visitor can compare a dense pattern with a chaotic
+one without making a file.
+
+Signed-off-by: Your Name <you@example.com>
+```
+
+**The merge commit.** A maintainer merges every pull request into `development` with a merge
+commit, never a squash or a rebase. Its subject is the pull request's title and number, and its
+body lists the pull request's issues as its description does:
+
+```
+Explore: preset seeds, the Default cube and Spreading noise (#63)
+
+Resolves #58
+```
+
+Releases and hotfixes merge into `main` the same way ([RELEASING.md](RELEASING.md#merge-commits)).
+
 ## What happens next
 
 1. The `build` (`npm ci`, `npm run build` and `npm test`) and `DCO` (below) checks run. On a first-time
    contributor's pull request, they wait until a maintainer approves them. Both must pass
    before it can merge.
 2. A maintainer reviews it. Push any changes they ask for to the same branch. Then they merge
-   it into `development`, close the issue it marks `Resolves` as completed, and remove its stage
-   label.
+   it into `development` with a merge commit, [as above](#commit-messages), close the issue it
+   marks `Resolves` as completed, and remove its stage label.
 3. The change goes live at the next release.
 
 ## Sign off your commits (DCO)

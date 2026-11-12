@@ -37,14 +37,19 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
 
 ### Changed
 - The lab opens in Explore, paused on a 10³ cube, instead of Game of Life 3D (#37).
-- Explore's default memory limit is 1,024 MB, up from 512: measured, one browser tab can take
-  about 6 GB of the engine's memory on a 16 GB machine (#39).
 - Every issue goes through the same stages, idea, planning, ready and in progress, to completed
   or cancelled, each shown by a label, with its kind as the issue type. An idea needs only what
   it is and why; its Done when is settled when its plan is, and a plan's pieces become
   sub-issues only once the plan is accepted. Work starts from a `ready` issue, which replaces
   `approved`, and an issue closes as completed, without its stage label, when its pull request
   merges (#54).
+- Explore's default memory limit is 1,024 MB, up from 512: measured, one browser tab can take
+  about 6 GB of the engine's memory on a 16 GB machine (#39).
+- Commit messages follow one standard, written in CONTRIBUTING.md: a plain-sentence subject of
+  at most 65 characters, a body saying what changed and why, then the trailers. Every pull
+  request merges with a merge commit titled with its pull request (`<title> (#N)`) and listing
+  its issues; releases and hotfixes into `main` read `Release X.Y.Z (#N)` and
+  `Hotfix X.Y.Z (#N)` (#61).
 
 ## [1.6.0] — 2026-11-10
 

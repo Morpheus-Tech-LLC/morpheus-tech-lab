@@ -195,6 +195,10 @@ src/
   body: meet it, or say in "What changed" where it differs.
 - **Don't file a plan's pieces as issues before the plan is accepted.** They stay a list in the
   plan; at acceptance each becomes a sub-issue (type Task, `ready`).
+- **Don't invent a commit message format.** A commit message an agent drafts follows "Commit
+  messages" in [CONTRIBUTING.md](CONTRIBUTING.md#commit-messages): a plain-sentence subject of at
+  most 65 characters, a body saying what and why, then the trailers. Merge commits follow
+  [RELEASING.md](RELEASING.md#merge-commits).
 - **Don't make a pull request do more or less than one issue.** It resolves exactly one issue,
   all of it; an issue too big for one goes back to planning to be split. It lists each issue
   with its relation, using only `Resolves`, `Related to` and `Opens`, which GitHub doesn't act
