@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 // Explore's seeds and rules, apart from the page: the existing seed shapes lifted into the
-// unbounded world, rules read from the dialog's text, and the seed file a visitor exports and
+// unbounded world, rules read from the dialog's text, and the seed file a visitor saves and
 // loads back. Nothing here touches the page, so the tests run it in Node.
 
 import { Grid3D } from '../grid3D.js';
@@ -88,13 +88,22 @@ export function arenaBox(side) {
   return { min: [min, min, min], max: [min + side - 1, min + side - 1, min + side - 1] };
 }
 
-/** A seed and its rules as the text of a seed file. */
+/**
+ * A seed and its rules as the text of a seed file.
+ * @param {{rules: {birth: number[], survival: number[]}, cells: ArrayLike<number>}} seed - cells
+ *   as x, y, z triples
+ * @throws {SeedError} past MAX_FILE_CELLS cells, which parseSeedFile() wouldn't read back
+ */
 export function toSeedFile({ rules, cells }) {
-  const list = [];
-  for (let i = 0; i < cells.length; i += 3) list.push([cells[i], cells[i + 1], cells[i + 2]]);
+  const count = cells.length / 3;
+  if (count > MAX_FILE_CELLS) {
+    throw new SeedError(`That's ${count.toLocaleString('en')} live cells; a seed file holds at most ${MAX_FILE_CELLS.toLocaleString('en')}.`);
+  }
+  const lines = new Array(count);
+  for (let i = 0; i < count; i++) lines[i] = `    [${cells[3 * i]}, ${cells[3 * i + 1]}, ${cells[3 * i + 2]}]`;
   const head = JSON.stringify({ format: SEED_FILE_FORMAT, version: SEED_FILE_VERSION, rules }, null, 2);
   // One cell per line keeps a big file readable and diffable
-  return `${head.slice(0, -2)},\n  "cells": [\n${list.map((c) => `    [${c.join(', ')}]`).join(',\n')}\n  ]\n}\n`;
+  return `${head.slice(0, -2)},\n  "cells": [\n${lines.join(',\n')}\n  ]\n}\n`;
 }
 
 /**

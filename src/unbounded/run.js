@@ -12,7 +12,9 @@
 //
 // Messages to the run:
 //   {type: 'start', world: {rules, chunkSize?, slabBytes?, limits?, arena?}, seed: Int32Array,
-//    run: {kind: 'timed', seconds} | {kind: 'open', paused?, rate?, settle?}, generations?}
+//    run: {kind: 'timed', seconds} | {kind: 'open', paused?, rate?, settle?}, generations?, from?}
+//     from: the seed is generation `from` of an earlier run, and the count goes on from there
+//     (Explore loads a saved generation this way); `generations` counts from 0 all the same
 //     settle: end when every cell has died ('died') or the cells repeat, in place, those of
 //     an earlier generation ('repeat', with the cycle: {from, period}; the generation count
 //     goes back to `from`, whose cells they are)
@@ -20,14 +22,14 @@
 //   {type: 'rate', rate}                                open-ended runs only; null for flat out
 //   {type: 'stop'}
 //   {type: 'cycle', id, budget}                         after 'repeat': every generation of the cycle
-//   {type: 'snapshot', id, budget?, slice?: {axis, index}}
+//   {type: 'snapshot', id, budget?, slice?: {axis, index}, stats?: true}
 //     cells, or chunks past `budget` live cells; with a slice, only those in the plane where
-//     coordinate `axis` (0, 1, 2) equals `index`
+//     coordinate `axis` (0, 1, 2) equals `index`; with stats, the statistics of the same moment
 // Messages from the run:
 //   {type: 'state', state: 'running' | 'paused' | 'ended', reason?, cycle?, stats}
 //   {type: 'cycle', id, from, period, frames: Int32Array[] | null}   null past `budget` cells
 //   {type: 'stats', stats}                              at most every STATS_INTERVAL_MS
-//   {type: 'snapshot', id, generation, live, chunkSize, slice?, cells?: Int32Array, chunks?: Int32Array}
+//   {type: 'snapshot', id, generation, live, chunkSize, slice?, stats?, cells?: Int32Array, chunks?: Int32Array}
 //     cells as x, y, z triples, or chunks as x, y, z, live quadruples (World.chunkList()); the
 //     array's buffer is transferred
 //   {type: 'error', id?, message}
@@ -112,13 +114,13 @@ export class Run {
       case 'step': return this.openOnly('step') && this.state === 'paused' && this.stepByHand();
       case 'rate': return this.openOnly('rate') && this.live() && this.changeRate(message.rate);
       case 'stop': return this.live() && this.end('stopped');
-      case 'snapshot': return this.snapshot(message.id, message.budget, message.slice);
+      case 'snapshot': return this.snapshot(message.id, message.budget, message.slice, message.stats);
       case 'cycle': return this.cycle(message.id, message.budget);
       default: throw new RunError(`Unknown message ${JSON.stringify(message?.type)}.`);
     }
   }
 
-  start({ world: options, seed, run, generations = Infinity }) {
+  start({ world: options, seed, run, generations = Infinity, from = 0 }) {
     if (this.state !== 'idle') throw new RunError('This run has already started; start another Worker.');
     if (!(seed instanceof Int32Array) || seed.length % 3) {
       throw new RunError('The seed must be an Int32Array of x, y, z triples.');
@@ -129,10 +131,12 @@ export class Run {
     if (generations !== Infinity && !(Number.isInteger(generations) && generations >= 0)) {
       throw new RunError('The generations must be a whole number.');
     }
+    if (!(Number.isSafeInteger(from) && from >= 0)) throw new RunError('The generation to start from must be a whole number.');
 
     const settle = !timed && Boolean(run.settle);
     const world = new World({ ...options, fingerprint: settle });
     world.setCells(triples(seed));
+    world.generation = from; // only the count: the step never reads it
     this.world = world;
     this.kind = run.kind;
     this.settle = settle;
@@ -148,7 +152,7 @@ export class Run {
     this.runningSince = null;
 
     const now = this.now();
-    this.window = { at: now, generation: 0, runningMs: 0 };
+    this.window = { at: now, generation: from, runningMs: 0 };
     this.lastStatsAt = -Infinity;
     if (timed) {
       this.deadline = now + run.seconds * 1000;
@@ -319,8 +323,11 @@ export class Run {
     if (this.now() - this.lastStatsAt >= STATS_INTERVAL_MS) this.post({ type: 'stats', stats: this.stats() });
   }
 
-  /** The statistics now; the next ones on their own come at least STATS_INTERVAL_MS later. */
-  stats() {
+  /**
+   * The statistics now; the next ones on their own come at least STATS_INTERVAL_MS later.
+   * @param {boolean} [peek] - for a snapshot: leave the rate's window and the timer alone
+   */
+  stats(peek = false) {
     const world = this.world;
     const now = this.now();
     const runningMs = this.runningMs + (this.state === 'running' ? now - this.runningSince : 0);
@@ -328,9 +335,9 @@ export class Run {
     if (this.state === 'running') {
       const ms = runningMs - this.window.runningMs;
       if (ms > 0) rate = ((world.generation - this.window.generation) * 1000) / ms;
-      this.window = { at: now, generation: world.generation, runningMs };
+      if (!peek) this.window = { at: now, generation: world.generation, runningMs };
     }
-    this.lastStatsAt = now;
+    if (!peek) this.lastStatsAt = now;
     return {
       generation: world.generation,
       elapsedMs: runningMs,
@@ -351,7 +358,7 @@ export class Run {
    * them: a view can't draw more cells than its budget smoothly, and a chunk list is far smaller.
    * A slice limits both to one plane.
    */
-  snapshot(id, budget = Infinity, slice = null) {
+  snapshot(id, budget = Infinity, slice = null, withStats = false) {
     if (!this.world) throw new RunError('There is nothing to snapshot before the run starts.');
     if (slice && !([0, 1, 2].includes(slice.axis) && Number.isInteger(slice.index))) {
       throw new RunError('A slice is {axis: 0, 1 or 2, index: a whole number}.');
@@ -359,6 +366,7 @@ export class Run {
     const { world } = this;
     const live = world.liveCells;
     const message = { type: 'snapshot', id, generation: world.generation, live, chunkSize: world.n };
+    if (withStats) message.stats = this.stats(true);
     let array;
     if (slice) {
       message.slice = { axis: slice.axis, index: slice.index };

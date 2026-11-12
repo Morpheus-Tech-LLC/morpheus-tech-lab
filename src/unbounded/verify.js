@@ -22,7 +22,7 @@
 
 import { World, WorldError } from './world.js';
 import { step as stepWorld } from './step.js';
-import { readResult, hashWorld, canonicalJson, worldOptions, ResultError } from './canonical.js';
+import { readResult, hashWorld, canonicalJson, worldOptions, checkResultHashes, ResultError } from './canonical.js';
 
 export const DEFAULT_MAX_GENERATIONS = 100_000;
 export const DEFAULT_MAX_MEMORY = 2 * 1024 ** 3;
@@ -71,6 +71,10 @@ export async function verifyResult(text, {
   }
   const { run, generation, ending } = result;
   const answer = (verdict, message, extra = {}) => ({ verdict, message, result, ...extra });
+
+  // A saved generation's cells and seed hash must be what they claim, before anything else
+  const wrong = await checkResultHashes(result);
+  if (wrong) return answer('mismatch', wrong);
 
   // What the file says about itself, before any replay
   const limit = run.limits.generations;

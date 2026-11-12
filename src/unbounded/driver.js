@@ -41,8 +41,9 @@ export class EngineDriver {
    *   page's copy is emptied.
    * @param {{kind: 'timed', seconds: number} | {kind: 'open', paused?: boolean, rate?: number}} config.run
    * @param {number} [config.generations] - end the run after this many generations
+   * @param {number} [config.from] - the seed is this generation of an earlier run: count from it
    */
-  start({ world, seed, run, generations }) {
+  start({ world, seed, run, generations, from }) {
     this.close();
     const worker = this.createWorker();
     worker.onmessage = (event) => this.receive(event.data);
@@ -50,6 +51,7 @@ export class EngineDriver {
     this.worker = worker;
     const message = { type: 'start', world, seed, run };
     if (generations !== undefined) message.generations = generations;
+    if (from !== undefined) message.from = from;
     worker.postMessage(message, seed?.buffer ? [seed.buffer] : []);
   }
 
@@ -68,11 +70,12 @@ export class EngineDriver {
    * @param {number} [options.budget] - past this many live cells, send the chunks instead
    * @param {{axis: number, index: number}} [options.slice] - only the plane where coordinate
    *   `axis` (0, 1, 2 for x, y, z) equals `index`
-   * @returns {Promise<{generation: number, live: number, chunkSize: number,
+   * @param {boolean} [options.stats] - the statistics of the same moment, too
+   * @returns {Promise<{generation: number, live: number, chunkSize: number, stats?: object,
    *   cells?: Int32Array, chunks?: Int32Array}>} cells as x, y, z triples, or chunks as x, y, z,
    *   live quadruples
    */
-  snapshot({ budget, slice } = {}) {
+  snapshot({ budget, slice, stats } = {}) {
     if (!this.worker) return Promise.reject(new Error('There is no run to snapshot.'));
     const id = this.nextId++;
     return new Promise((resolve, reject) => {
@@ -80,6 +83,7 @@ export class EngineDriver {
       const message = { type: 'snapshot', id };
       if (budget !== undefined) message.budget = budget;
       if (slice) message.slice = slice;
+      if (stats) message.stats = true;
       this.send(message);
     });
   }

@@ -8,7 +8,7 @@ import { World, COORDINATE_LIMIT } from '../../src/unbounded/world.js';
 import { step } from '../../src/unbounded/step.js';
 import {
   canonicalJson, canonicalBytes, encodeCells, sortCells, stateHash, hashWorld, normaliseRun,
-  resultOf, resultText, readResult, tableText, readTable, ResultError, MAX_RESULT_BYTES,
+  resultOf, resultText, readResult, tableText, readTable, ResultError, MAX_RESULT_BYTES, checkResultHashes,
 } from '../../src/unbounded/canonical.js';
 import { GROWING, randomSeed, repeatableRandom } from './helpers.js';
 
@@ -255,4 +255,36 @@ test('a reference table reads back, and a broken one is refused', () => {
   assert.deepEqual(table, { run, hashes });
   assert.throws(() => readTable('not json\n'), ResultError);
   assert.throws(() => readTable(`${tableText(run, hashes)}oops\n`), ResultError);
+});
+
+test('a result may carry its cells and its seed\'s hash, which must be what they claim', async () => {
+  const run = runOf({ limits: { cells: null, extent: null, generations: 30 } });
+  const world = new World({ rules: run.rules });
+  world.setCells(run.seed);
+  while (world.generation < 12) step(world);
+  const text = resultText(await resultOf(world, { run, ending: 'stopped', withCells: true }));
+  const result = readResult(text);
+  assert.equal(result.cells.length, world.liveCells);
+  assert.match(result.seedHash, /^sha256:[0-9a-f]{64}$/);
+  assert.equal(await checkResultHashes(result), null);
+  assert.equal(resultText(readResult(text)), text, 'it reads back as it was written');
+
+  const good = JSON.parse(text);
+  const edit = (fn) => {
+    const copy = structuredClone(good);
+    fn(copy);
+    return JSON.stringify(copy);
+  };
+  const malformed = {
+    'cells not a list': edit((r) => { r.cells = 5; }),
+    'cell not a triple': edit((r) => { r.cells[0] = [1, 2]; }),
+    'cells out of order': edit((r) => { r.cells.reverse(); }),
+    'cell listed twice': edit((r) => { r.cells.splice(1, 0, r.cells[0]); }),
+    'bad seed hash': edit((r) => { r.seedHash = 'sha256:XYZ'; }),
+  };
+  for (const [name, bad] of Object.entries(malformed)) {
+    assert.throws(() => readResult(bad), (err) => err instanceof ResultError && err.message.length > 0, name);
+  }
+  const lying = readResult(edit((r) => { r.cells.pop(); }));
+  assert.match(await checkResultHashes(lying), /cells aren't the ones/);
 });
