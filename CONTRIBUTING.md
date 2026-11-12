@@ -9,9 +9,7 @@ follows the [code of conduct](CODE_OF_CONDUCT.md).
 ## Find something to work on
 
 - **[Work to pick up](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/issues?q=is%3Aissue%20is%3Aopen%20label%3Aready)**:
-  open issues labelled `ready`, each sized for one pull request. Those that suit a first
-  contribution are also labelled
-  [`good first issue`](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/labels/good%20first%20issue).
+  open issues labelled `ready`, each sized for one pull request.
 - **[The board](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/issues?q=is%3Aissue%20is%3Aopen%20no%3Aparent-issue)**:
   every open issue except the pieces of a plan, which show inside their plan instead.
 
