@@ -36,17 +36,24 @@ says what kind it is: a **Feature**, a **Bug**, or a **Task** (one piece of a pl
 | **Idea** (`idea`) | Anyone files it with the Idea or Bug report form | A suggestion: what and why. Nothing is promised |
 | **Planning** (`planning`) | A maintainer accepts the idea, with the comment `Accepted for planning.` | Its plan is written into the issue, [as below](#planning) |
 | **Ready** (`ready`) | A maintainer accepts the plan, with the comment `Ready. Done when: …` | Anyone can claim it. That comment is what the pull request is reviewed against, even if the issue is edited later |
-| **In progress** (`in progress`) | Someone claims it, [as below](#claim-it), and a maintainer changes the label | Someone is working on it |
+| **In progress** (`in progress`) | Someone claims it, [as below](#claim-it), and a maintainer changes the label and assigns them | Someone is working on it: its assignee |
 | **Completed** (closed as completed, no label) | A maintainer closes it when its pull request merges into `development`, and removes its stage label | Done. The changelog says when it goes live |
 | **Cancelled** (closed as not planned, no label) | A maintainer closes it at any stage, removes its stage label, and says why in one line | It won't happen. A duplicate is closed as a duplicate, with a link |
 
-Only maintainers can add labels and close issues, so a contributor can't move their own issue
-along. Some issues skip a stage, and some go back one:
+Only maintainers can add labels, assign people and close issues, so a contributor can't move
+their own issue along. Some issues skip a stage, and some go back one:
 
 - **A plan small enough to settle on the spot** goes straight from idea to ready. That is the
   usual case for a bug: once someone has reproduced it, its plan is its expected behaviour.
 - **A lapsed claim** sends an issue back to ready. **A change of direction** sends it back to
-  planning, with a comment saying why, so anyone with a claim or a pull request sees it.
+  planning, with a comment saying why, so anyone with a claim or a pull request sees it. Either
+  way, its assignees are removed.
+
+**Assignees** show who is building an issue, and nothing else: an issue has one only while it is
+in progress, from the claim until it closes. A closed issue keeps its assignee, as a record of
+who did it. An idea, a plan being written and a ready issue have none, so "ready, no assignee"
+always means free to pick up; someone drafting a plan says so in a comment. A plan with pieces
+is never assigned, as it is never claimed: its pieces are.
 
 ### Moving an issue
 
@@ -57,14 +64,19 @@ when and why it moved:
 |---|---|---|
 | Accept an idea | `idea` → `planning` | `Accepted for planning.` |
 | Accept the plan | `planning` (or `idea`) → `ready` | `Ready. Done when:` and the final Done when |
-| Mark a claim | `ready` → `in progress` | The claim itself is the comment |
+| Mark a claim | `ready` → `in progress`, and assign the claimant | The claim itself is the comment |
+| Lapse a claim | `in progress` → `ready`, and remove the assignee | One line saying the claim lapsed |
+| Send it back to planning | its stage label → `planning`, and remove any assignee | One line saying why |
 | Complete it | remove `in progress`, close as completed | `Completed: merged into development in #N.` |
 | Cancel it | remove its stage label, close as not planned | One line saying why |
 | Close a duplicate | remove its stage label, close as a duplicate | `Duplicate of #N.` |
 
-With the GitHub CLI, completing issue 54 after pull request 55 merges looks like this:
+With the GitHub CLI, marking a claim on issue 54 by `octocat`, then completing it after pull
+request 55 merges, looks like this:
 
 ```sh
+gh issue edit 54 --remove-label ready --add-label "in progress" --add-assignee octocat
+
 gh issue close 54 --reason completed --comment "Completed: merged into development in #55." \
   && gh issue edit 54 --remove-label "in progress"
 ```
@@ -92,18 +104,22 @@ A bug is accepted once someone has reproduced it.
 
 ### Planning
 
-The plan is written into the issue, below the idea, by the person who suggested it, a
-maintainer, or whoever wants to build it. It settles:
+The plan is written into the issue, below the idea, as a `## Plan` section, by the person who
+suggested it, a maintainer, or whoever wants to build it. It goes into the issue first: a plan
+drafted elsewhere is moved into the issue before anyone asks for the issue to be accepted. It
+settles:
 
 - **The design:** how it will work, and the choices behind it.
 - **The Done when:** what a visitor can do once it ships, and what must still hold, until a
   reviewer could check it by using the lab. For a bug, it is usually the expected behaviour.
+  The plan ends with it, as a proposal, and it replaces any Done when the idea had.
 - **The pieces,** if it is too big for one pull request: a list in the plan, each with its own
   Done when. They stay a list, not issues, until the plan is accepted.
 
-A maintainer accepts the plan when its Done when is checkable and it fits in one pull request,
-or splits into pieces that each do. They add the `ready` label and comment `Ready. Done when: …`
-with the final text.
+A maintainer reads the plan in the issue, and accepts it when its Done when is checkable and it
+fits in one pull request, or splits into pieces that each do. They add the `ready` label and
+comment `Ready. Done when: …` with the final text. That comment freezes the Done when: if the
+issue is edited later, the pull request is still reviewed against the comment.
 
 **A plan with pieces.** When it is accepted, each piece becomes a sub-issue of the plan (type
 Task, labelled `ready`), so the plan shows their progress, and the board shows only the plan.
@@ -129,8 +145,10 @@ Confidence: N/10
 - An agent's claim uses the same form, and the person running the agent answers for the
   estimate.
 
-A maintainer then moves the issue to in progress. Claims don't lock an issue. Others may start in
-parallel, and if two pull requests arrive, the maintainer picks one. A claim's date and
+A maintainer then moves the issue to in progress and assigns you. You can't assign yourself
+without triage access to the repository, but your claim comment is what lets a maintainer assign
+you. Claims don't lock an issue. Others may start in parallel, each assigned once they claim it,
+and if two pull requests arrive, the maintainer picks one. A claim's date and
 confidence show how firm it is, so others can decide whether to start too.
 
 Then build it and open the pull request, [as below](#make-a-change). You, or your agent, can go
