@@ -2,8 +2,9 @@ import { state } from "./state.js";
 import { initSimulation, updatePoints } from "./simulationModel.js";
 import * as THREE from 'three';
 import { initComputeControl, updateComputeControl } from "./gpu/computeControl.js";
-import { isExplore, startExplore, stopExplore, togglePlay, stepOnce, restart, currentSeedFile, exploreViewChanged } from "./explore/explore.js";
+import { isExplore, startExplore, stopExplore, togglePlay, stepOnce, restart, exploreViewChanged } from "./explore/explore.js";
 import { shapeSeed, parseRules, parseSeedFile, arenaBox, MAX_SHAPE_SIZE } from "./explore/seed.js";
+import { PRESETS, presetById } from "./explore/presets.js";
 import { perlinShape, worleyShape, cubeOfSide, tetrahedronShape, octahedronShape } from "./shapeGenerators.js";
 
 let pendingShapeKey = null;
@@ -662,6 +663,29 @@ function openShapeModal() {
     if (ruleSurvival) ruleSurvival.value = stringifyRule(rules?.survival ?? []);
   }
 
+  /**
+   * Shows which seed Explore will run: Custom (a shape, or a seed file) or a Preset, whose rules
+   * the rule fields show but can't change. It looks its elements up itself, because updateModeUI()
+   * calls it before Explore's settings below are set up.
+   */
+  function syncExploreSeedKind() {
+    const preset = Boolean(seedSection?.classList.contains('explore-seed') && pendingExploreSeed?.preset);
+    seedSection?.classList.toggle('preset-active', preset);
+    const customRadio = document.getElementById('explore-seed-custom');
+    const presetRadio = document.getElementById('explore-seed-preset');
+    customRadio?.setAttribute('aria-pressed', String(!preset));
+    presetRadio?.setAttribute('aria-pressed', String(preset));
+    for (const input of [ruleBirth, ruleSurvival]) {
+      if (!input) continue;
+      input.readOnly = preset;
+      input.title = preset ? 'A preset brings its own rules. Choose Custom to set your own.' : '';
+    }
+    const select = document.getElementById('explore-preset');
+    if (select && preset) select.value = pendingExploreSeed.preset;
+    const description = document.getElementById('explore-preset-description');
+    if (description) description.textContent = presetById(select?.value)?.description ?? '';
+  }
+
   function showExploreError(message) {
     const el = document.getElementById('explore-error');
     if (!el) return;
@@ -753,6 +777,8 @@ function openShapeModal() {
   }
   
   function updateModeUI(mode) {
+    seedSection?.classList.toggle('explore-seed', mode === 'explore');
+    syncExploreSeedKind();
     // Store current values before switching modes
     if (simSizeInput && simSizeInput.style.display !== 'none') {
       const currentSize = parseInt(simSizeInput.value);
@@ -1271,9 +1297,9 @@ function openShapeModal() {
   const exploreArenaSize = document.getElementById('explore-arena-size');
   const exploreLoadSeed = document.getElementById('explore-load-seed');
   const exploreClearSeed = document.getElementById('explore-clear-seed');
-  const exploreExportSeed = document.getElementById('explore-export-seed');
   const exploreSeedFile = document.getElementById('explore-seed-file');
   const exploreSeedStatus = document.getElementById('explore-seed-status');
+  const explorePreset = document.getElementById('explore-preset');
 
   if (exploreMemory) exploreMemory.value = `${state.explore.memoryMB}`;
   if (exploreArenaCheckbox) {
@@ -1284,6 +1310,44 @@ function openShapeModal() {
     exploreArenaCheckbox.onchange();
   }
   if (exploreArenaSize) exploreArenaSize.value = `${state.explore.arena ?? state.explore.arenaSize}`;
+  if (explorePreset) {
+    if (!explorePreset.options.length) {
+      for (const preset of PRESETS) {
+        const option = document.createElement('option');
+        option.value = preset.id;
+        option.textContent = preset.name;
+        explorePreset.append(option);
+      }
+    }
+    explorePreset.onchange = () => choosePreset(explorePreset.value);
+  }
+  const exploreSeedCustom = document.getElementById('explore-seed-custom');
+  const exploreSeedPreset = document.getElementById('explore-seed-preset');
+  if (exploreSeedCustom) {
+    exploreSeedCustom.onclick = () => {
+      if (pendingExploreSeed?.preset) {
+        pendingExploreSeed = null;
+        fillRuleInputs('explore');
+      }
+      showExploreError(null);
+      showExploreSeedStatus();
+    };
+  }
+  if (exploreSeedPreset) {
+    exploreSeedPreset.onclick = () => {
+      if (!pendingExploreSeed?.preset) choosePreset(explorePreset?.value || PRESETS[0].id);
+    };
+  }
+  /** A preset works like a seed file: its cells and rules replace the shape and rules. */
+  function choosePreset(id) {
+    const preset = presetById(id);
+    if (!preset) return;
+    pendingExploreSeed = { name: preset.name, rules: preset.rules, cells: preset.cells, preset: preset.id };
+    if (ruleBirth) ruleBirth.value = stringifyRule(preset.rules.birth);
+    if (ruleSurvival) ruleSurvival.value = stringifyRule(preset.rules.survival);
+    showExploreError(null);
+    showExploreSeedStatus();
+  }
   showExploreSeedStatus();
   showExploreError(null);
 
@@ -1296,7 +1360,7 @@ function openShapeModal() {
       try {
         if (file.size > MAX_SEED_FILE_BYTES) throw new Error(`it is larger than ${MAX_SEED_FILE_BYTES / 2 ** 20} MB.`);
         const { rules, cells } = parseSeedFile(await file.text());
-        pendingExploreSeed = { name: file.name, rules, cells };
+        pendingExploreSeed = { name: file.name, rules, cells }; // replaces a preset
         if (ruleBirth) ruleBirth.value = stringifyRule(rules.birth);
         if (ruleSurvival) ruleSurvival.value = stringifyRule(rules.survival);
         showExploreError(null);
@@ -1313,28 +1377,15 @@ function openShapeModal() {
       showExploreSeedStatus();
     };
   }
-  if (exploreExportSeed) {
-    exploreExportSeed.disabled = !(isExplore() && currentSeedFile());
-    exploreExportSeed.onclick = () => {
-      const text = currentSeedFile();
-      if (!text) return;
-      const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'explore-seed.json';
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-    };
-  }
   function showExploreSeedStatus() {
     if (exploreSeedStatus) {
-      exploreSeedStatus.textContent = pendingExploreSeed
-        ? `Using ${pendingExploreSeed.name}: ${(pendingExploreSeed.cells.length / 3).toLocaleString('en')} cells.`
-        : 'Using the shape.';
+      const cells = pendingExploreSeed && `${(pendingExploreSeed.cells.length / 3).toLocaleString('en')} cells`;
+      exploreSeedStatus.textContent = !pendingExploreSeed ? 'Using the shape.'
+        : pendingExploreSeed.preset ? `Using the preset ${pendingExploreSeed.name}: ${cells}.`
+          : `Using ${pendingExploreSeed.name}: ${cells}.`;
     }
-    if (exploreClearSeed) exploreClearSeed.hidden = !pendingExploreSeed;
+    if (exploreClearSeed) exploreClearSeed.hidden = !pendingExploreSeed || Boolean(pendingExploreSeed.preset);
+    syncExploreSeedKind();
   }
 
   /** Explore's settings from the dialog. Throws an Error saying what's wrong. */

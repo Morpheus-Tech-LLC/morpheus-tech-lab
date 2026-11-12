@@ -35,7 +35,7 @@ test/                    `npm test` (Node's built-in node:test, no dependency): 
                          its run loop on a fake clock and in a worker_threads Worker, the canonical hash and
                          the verifier (fixtures/ holds an example result and a hand-edited copy), and the engine
                          against convolve3D() (dense.test.js); explore/ checks
-                         Explore's seeds, seed files and camera framing
+                         Explore's seeds, presets, seed files and camera framing
 src/
   main.js                Boot: Explore (startExplore()) by default, or initSimulation(); then animate()
   brand/tokens.css       Brand pin: the Morpheus Tech brand tokens. Not imported yet. Never hand-edit
@@ -73,6 +73,8 @@ src/
   explore/view.js        ExploreView: the growing point cloud, chunk boxes past RENDER_BUDGET, the arena and chunk grid
   explore/framing.js     The camera distance that fits the pattern, and easing (no Three.js; tested in Node)
   explore/seed.js        Shapes lifted into the unbounded world, rule text, the seed file format (tested in Node)
+  explore/presets.js     Preset seeds with their own rules: Cube10 and Spreading noise (#39's candidate
+                         12345, its cells written out; a test checks them against scripts/bench/candidates.mjs)
   unbounded/workbench.html Not bundled: a dev page (/src/unbounded/workbench.html under `npm run dev`) that checks
                          the Worker in the browser and drives a run by hand
   unbounded/memory.html  Not bundled: a dev page (/src/unbounded/memory.html under `npm run dev`) that measures how

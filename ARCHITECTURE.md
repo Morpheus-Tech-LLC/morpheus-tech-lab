@@ -71,8 +71,9 @@ which can also pause, step one generation and cap its rate). On the page, `Engin
 of cells, of the chunks that hold them.
 
 **Explore** (`src/explore/`): the mode that shows the unbounded world. Its seed is one of the
-shapes, lifted into world coordinates around the origin (`seed.js`), or a seed file, JSON with
-the rules and the cells. `explore.js` runs it through `EngineDriver`, with no history:
+shapes, lifted into world coordinates around the origin (`seed.js`), a preset with its own rules
+(`presets.js`), or a seed file, JSON with the rules and the cells. A preset or a seed file
+replaces the shape and the rules. `explore.js` runs it through `EngineDriver`, with no history:
 `state.simulationData` stays null. `view.js` draws the latest snapshot in a point buffer that
 grows with the pattern, or the occupied chunks as boxes past 300,000 cells, and moves the camera
 to keep the pattern in view (`framing.js`). In the 2D view it asks the Worker for one plane of

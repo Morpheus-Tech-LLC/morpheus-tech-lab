@@ -145,25 +145,26 @@
           </div>
           <input type="number" id="explore-arena-size" class="glass-input" min="8" max="1024" step="1" value="64" />
         </div>
-        <div class="modal-field-row">
-          <div class="label-row">
-            <span class="modal-label"><span data-tooltip="Load a seed file exported from Explore: its cells and rules replace the shape and rules above.">Seed file</span></span>
-          </div>
-          <div class="explore-file-row">
-            <button type="button" id="explore-load-seed" class="glass-button explore-small-button">Load…</button>
-            <button type="button" id="explore-clear-seed" class="glass-button explore-small-button" hidden>Use the shape</button>
-            <button type="button" id="explore-export-seed" class="glass-button explore-small-button" disabled>Export current</button>
-            <input type="file" id="explore-seed-file" accept=".json,application/json" hidden />
-          </div>
-          <div id="explore-seed-status" class="explore-seed-status">Using the shape.</div>
-        </div>
         <div id="explore-error" class="explore-error" role="alert" hidden></div>
       </div>
         <div id="seed-section" class="seed-col">
           <div class="rules-title">
             <span data-tooltip="Configuration for the initial state of the simulation. Choose a shape pattern and set its size and density to determine starting conditions.">Initial Seed</span>
           </div>
-          <div class="modal-field-row">
+          <div class="modal-field-row explore-only">
+            <div class="explore-seed-kind" role="group" aria-label="Initial seed">
+              <button type="button" id="explore-seed-custom" class="seed-kind-option" aria-pressed="true" title="A shape, or a seed file, with the rules you set">Custom</button>
+              <button type="button" id="explore-seed-preset" class="seed-kind-option" aria-pressed="false" title="A ready-made seed that brings its own rules">Preset</button>
+            </div>
+          </div>
+          <div class="modal-field-row explore-only preset-only">
+            <label class="modal-label" for="explore-preset">
+              <span data-tooltip="A ready-made seed with its own rules, which the rule fields show and can't change.">Preset</span>
+            </label>
+            <select id="explore-preset" class="glass-select"></select>
+            <div id="explore-preset-description" class="explore-seed-status"></div>
+          </div>
+          <div class="modal-field-row seed-shape-row">
             <label class="modal-label" for="modal-shape-select">
               <span data-tooltip="The geometric pattern used as the initial state. Options include procedural noise patterns (Perlin, Worley) and geometric shapes (Cube, Tetrahedron, Octahedron).">Shape</span>
             </label>
@@ -176,7 +177,7 @@
             <!-- <option value="rule30">Rule 30</option> -->
           </select>
           </div>
-          <div class="modal-field-row">
+          <div class="modal-field-row seed-shape-row">
             <div class="label-row">
               <label id="shape-size-label" class="modal-label" for="shape-size">
                 <span id="shape-size-label-text" data-tooltip="The size of the initial seed shape within the simulation grid. Must be smaller than the simulation size.">Size</span>
@@ -185,7 +186,7 @@
             </div>
             <input type="number" id="shape-size" class="glass-input" min="1" step="1" />
           </div>
-          <div class="modal-field-row">
+          <div class="modal-field-row seed-shape-row">
             <div class="label-row">
               <label id="shape-density-label" class="modal-label" for="shape-density">
                 <span id="shape-density-label-text" data-tooltip="The probability (0.0 to 1.0) that a cell within the seed shape will be initially alive. Higher values create denser initial patterns.">Density</span>
@@ -194,7 +195,7 @@
             </div>
             <input type="number" id="shape-density" class="glass-input" min="0" max="1" step="0.01" />
           </div>
-          <div class="modal-field-row hidden" id="shape-region-size-row">
+          <div class="modal-field-row seed-shape-row hidden" id="shape-region-size-row">
             <div class="label-row">
               <label id="shape-region-size-label" class="modal-label" for="shape-region-size">
                 <span id="shape-region-size-label-text" data-tooltip="Controls the scale of noise features for Perlin and Worley patterns. Larger values create smoother, larger-scale variations.">Region Size</span>
@@ -202,6 +203,17 @@
               <span class="input-range-hint" id="shape-region-size-range">min: 1</span>
             </div>
             <input type="number" id="shape-region-size" class="glass-input" min="1" step="1" />
+          </div>
+          <div class="modal-field-row explore-only">
+            <div class="label-row">
+              <span class="modal-label"><span data-tooltip="Load an Explore seed file: its cells and rules replace the shape and rules.">Seed file</span></span>
+            </div>
+            <div class="explore-file-row">
+              <button type="button" id="explore-load-seed" class="glass-button explore-small-button custom-only">Load…</button>
+              <button type="button" id="explore-clear-seed" class="glass-button explore-small-button custom-only" hidden>Use the shape</button>
+              <input type="file" id="explore-seed-file" accept=".json,application/json" hidden />
+            </div>
+            <div id="explore-seed-status" class="explore-seed-status">Using the shape.</div>
           </div>
         </div>
 
@@ -2468,6 +2480,55 @@
   }
   .explore-small-button[hidden] {
     display: none;
+  }
+  /* Explore's seed choice (Initial Seed): Custom shows the shape rows, Preset the preset list */
+  .seed-col:not(.explore-seed) .explore-only,
+  .seed-col:not(.preset-active) .preset-only,
+  .seed-col.explore-seed.preset-active .seed-shape-row,
+  .seed-col.preset-active .custom-only {
+    display: none !important;
+  }
+  /* Custom / Preset: drawn like the control bar's 3D / 2D switch */
+  .explore-seed-kind {
+    display: flex;
+    width: 100%;
+    border: 1px solid rgba(100, 150, 200, 0.3);
+    border-radius: 6px;
+    background: rgba(35, 45, 60, 0.7);
+    overflow: hidden;
+  }
+  .seed-kind-option {
+    flex: 1;
+    padding: 8px 0;
+    border: none;
+    background: transparent;
+    color: rgba(200, 220, 255, 0.95);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .seed-kind-option + .seed-kind-option {
+    border-left: 1px solid rgba(100, 150, 200, 0.3);
+  }
+  .seed-kind-option:hover {
+    background: rgba(45, 60, 80, 0.8);
+  }
+  .seed-kind-option[aria-pressed="true"] {
+    background: rgba(77, 163, 255, 0.25);
+    color: rgba(220, 235, 255, 1);
+    box-shadow: inset 0 0 0 1px rgba(77, 163, 255, 0.35);
+    font-weight: 700;
+  }
+  .seed-kind-option:focus-visible {
+    outline: 2px solid rgba(120, 180, 255, 0.8);
+    outline-offset: -2px;
+  }
+  .modal-field-row .glass-input[readonly] {
+    opacity: 0.6;
+    cursor: default;
   }
   .explore-seed-status {
     margin-top: 4px;
