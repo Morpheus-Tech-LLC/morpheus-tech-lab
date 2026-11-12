@@ -1,3 +1,6 @@
+<!-- Your title becomes the merge commit's subject: what the change does, as a plain sentence,
+capitalised, no full stop, at most 65 characters. See "Commit messages" in CONTRIBUTING.md. -->
+
 ## Issue(s)
 
 <!-- One line per issue, using only these relations, written exactly like this:
