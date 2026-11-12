@@ -72,6 +72,9 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
   assignee if the claim lapses or the issue goes back to planning, so an assignee always means
   someone is building it (#62).
 
+### Removed
+- The `good first issue` label: the `ready` label alone says what work can be picked up (#71).
+
 ### Fixed
 - In Explore, after settings were applied, Restart restarted the run more than once a click (#66).
 
