@@ -35,7 +35,7 @@ test/                    `npm test` (Node's built-in node:test, no dependency): 
                          its run loop on a fake clock and in a worker_threads Worker, the canonical hash and
                          the verifier (fixtures/ holds an example result and a hand-edited copy), and the engine
                          against convolve3D() (dense.test.js); explore/ checks
-                         Explore's seeds, presets, seed files and camera framing
+                         Explore's seeds, presets, seed files, saves and camera framing
 src/
   main.js                Boot: Explore (startExplore()) by default, or initSimulation(); then animate()
   brand/tokens.css       Brand pin: the Morpheus Tech brand tokens. Not imported yet. Never hand-edit
@@ -69,7 +69,10 @@ src/
                          or not checked
   unbounded/driver.js    EngineDriver: the page's side of a run; starts a fresh Worker per run and relays its messages
   explore/               The Explore mode: the unbounded engine on the page (#37)
-  explore/explore.js     Starts and drives the run, the control bar's commands in Explore, the HUD box and notices
+  explore/explore.js     Starts and drives the run, the control bar's commands in Explore, the HUD box and notices,
+                         and the save popover
+  explore/save.js        Save this generation (a result file with the generation's cells, as a contest entry is)
+                         and Save seed, and reading either back for Load… (tested in Node)
   explore/view.js        ExploreView: the growing point cloud, chunk boxes past RENDER_BUDGET, the arena and chunk grid
   explore/framing.js     The camera distance that fits the pattern, and easing (no Three.js; tested in Node)
   explore/seed.js        Shapes lifted into the unbounded world, rule text, the seed file format (tested in Node)
@@ -160,8 +163,9 @@ src/
   definition, the generation and the cells: never the chunk size, the order cells were added in,
   timings or the machine. Any change to the bytes (`canonical.js`) bumps `FORMAT_VERSION`, and the
   known-answer test in `test/unbounded/canonical.test.js` must fail first. Result files come from
-  strangers: read them only through `readResult()`, which refuses anything over 1 MB or not exactly
-  the format, and never run anything from one.
+  strangers: read them only through `readResult()`, which refuses anything over 128 MB or not
+  exactly the format, and never run anything from one. A result's optional `cells` and `seedHash`
+  are claims too: `checkResultHashes()` confirms them before they are used.
 - The unbounded engine asks for cell memory only by adding a slab (`World.addSlab()`), so a refusal
   is one catchable `RangeError` in one place. Keep it that way.
 - `state.reset()` keeps the scene, renderer and camera, so a rebuild reuses one WebGL context.
@@ -180,6 +184,9 @@ src/
   generation limits can freeze or crash a visitor's tab; test at the new maximums, on the GPU
   and on the CPU, before raising them.
 - `controls.js` re-inits on almost every input. A change there easily triggers double rebuilds.
+  `initControls()` runs again on every Apply, so a handler it sets is an `onclick` property, or
+  an `addEventListener` guarded to run once: a listener added twice runs twice (a toggle then
+  opens and shuts on one click).
 
 ## What NOT to do
 

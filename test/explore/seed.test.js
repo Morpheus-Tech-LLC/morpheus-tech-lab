@@ -7,13 +7,13 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   shapeSeed, parseCounts, parseRules, toSeedFile, parseSeedFile, arenaBox,
-  SeedError, MAX_SHAPE_SIZE, SEED_FILE_FORMAT,
+  SeedError, MAX_SHAPE_SIZE, MAX_FILE_CELLS, SEED_FILE_FORMAT,
 } from '../../src/explore/seed.js';
 import { RuleError } from '../../src/unbounded/rules.js';
 import { World } from '../../src/unbounded/world.js';
 import { step } from '../../src/unbounded/step.js';
 import * as shapes from '../../src/shapeGenerators.js';
-import { cellsOf } from '../unbounded/helpers.js';
+import { cellsOf, GROWING, randomSeed } from '../unbounded/helpers.js';
 
 const RULES = { birth: [9, 10], survival: [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15] };
 
@@ -128,4 +128,57 @@ test('a seed file that is wrong is refused, saying why', () => {
   assert.throws(() => parseSeedFile(file({ cells: [[0, 0, 2 ** 20]] })), /Cell 1/);
   assert.throws(() => parseSeedFile(file({ cells: [[1, 2, 3], [1, 2, 3]] })), /listed twice/);
   assert.equal(parseSeedFile(file({ cells: [] })).cells.length, 0);
+});
+
+// Save this generation (#66): the cells a run holds at generation N, and its rules, as a seed file
+
+function triplesOf(flat) {
+  const triples = [];
+  for (let i = 0; i < flat.length; i += 3) triples.push([flat[i], flat[i + 1], flat[i + 2]]);
+  return triples;
+}
+
+test('a saved generation loads back as that generation, and runs on the same', () => {
+  const world = new World({ rules: GROWING });
+  world.setCells(randomSeed({ min: [-3, -3, -3], size: [6, 6, 6], randomSeed: 1 }));
+  for (let g = 0; g < 60; g++) assert.equal(step(world), null);
+  assert.ok(world.liveCells > 100, 'the pattern is still going');
+
+  const loaded = parseSeedFile(toSeedFile({ rules: GROWING, cells: world.cells() }));
+  assert.deepEqual(loaded.rules, GROWING);
+  const restored = new World({ rules: loaded.rules });
+  restored.setCells(triplesOf(loaded.cells));
+  assert.deepEqual(cellsOf(restored), cellsOf(world), 'generation 0 of the new run is generation 60');
+  for (let g = 0; g < 20; g++) {
+    assert.equal(step(world), null);
+    assert.equal(step(restored), null);
+  }
+  assert.deepEqual(cellsOf(restored), cellsOf(world), 'and they stay together');
+});
+
+test('a generation saved before the first step is the seed', () => {
+  const seed = shapeSeed(shapes.cubeOfSide(10, 1), 10);
+  const world = new World({ rules: RULES });
+  world.setCells(triplesOf(seed));
+  const loaded = parseSeedFile(toSeedFile({ rules: RULES, cells: world.cells() }));
+  const sorted = (flat) => triplesOf(flat).map(String).sort();
+  assert.deepEqual(sorted(loaded.cells), sorted(seed));
+});
+
+test('a seed file holds at most a million cells, and none are lost up to that', () => {
+  const cube = (side) => {
+    const cells = new Int32Array(3 * side ** 3);
+    let k = 0;
+    for (let z = 0; z < side; z++) for (let y = 0; y < side; y++) for (let x = 0; x < side; x++) cells.set([x, y, z], 3 * k++);
+    return cells;
+  };
+  const full = cube(100); // 1,000,000 cells, the most a file holds
+  assert.equal(full.length / 3, MAX_FILE_CELLS);
+  const loaded = parseSeedFile(toSeedFile({ rules: RULES, cells: full }));
+  assert.deepEqual(loaded.cells, full);
+
+  const over = new Int32Array(full.length + 3);
+  over.set(full);
+  over.set([100, 0, 0], full.length);
+  assert.throws(() => toSeedFile({ rules: RULES, cells: over }), (err) => err instanceof SeedError && /1,000,001 live cells.*at most 1,000,000/.test(err.message));
 });

@@ -39,6 +39,17 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
   noise, which looks like chaotic noise yet keeps spreading outward. A preset brings its own
   rules, which the rule fields show but can't change. Exporting the seed on screen leaves the
   settings, to return with the seed editor (#52) (#58).
+- Explore saves a run from two buttons, Save this generation in its box and Save seed in the Seed
+  box, each with a popover saying what the file holds and where it goes (Chrome and Edge ask where to save it, other browsers download it). Save this
+  generation saves the generation on screen, running or paused, as a result file, the same file a
+  contest entry is: the seed, rules and arena, the generation, how the run stands, the hash of its
+  cells and of the seed, the run's statistics, and every live cell. `scripts/verify.mjs` confirms
+  it, and loaded under Custom it carries on from that generation. Save seed saves the seed the run
+  started from. A generation of more than 1,000,000 live cells isn't saved, and the popover says
+  why (#66).
+- A result file may carry its generation's cells and its seed's hash, which are checked against
+  the file's hashes before anything uses them; result files may be up to 128 MB, up from 1 MB
+  (#66).
 
 ### Changed
 - The lab opens in Explore, paused on a 10³ cube, instead of Game of Life 3D (#37).
@@ -60,6 +71,9 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
   comment freezes the final text. A maintainer assigns whoever claims an issue, and removes the
   assignee if the claim lapses or the issue goes back to planning, so an assignee always means
   someone is building it (#62).
+
+### Fixed
+- In Explore, after settings were applied, Restart restarted the run more than once a click (#66).
 
 ## [1.6.0] — 2026-11-10
 

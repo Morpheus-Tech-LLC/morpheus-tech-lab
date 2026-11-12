@@ -27,6 +27,12 @@
 // from the rules and the seed alone, so a fix to the engine makes a wrong result fail instead
 // of protecting it. FORMAT_VERSION changes only when these bytes do.
 //
+// A result file may also carry two things a verifier doesn't need, for the lab (#66): `cells`,
+// the live cells at its generation, sorted by z, y, x, so the lab can load the generation and run
+// on from it without replaying; and `seedHash`, the hash of generation 0 (the seed) under the
+// same run, which names the run's starting point. Both are hashed state, so checkResultHashes()
+// confirms them without a replay, and an edited file fails.
+//
 // Result files arrive from strangers, so readResult() treats one as untrusted data: it refuses
 // a file over MAX_RESULT_BYTES unread, and anything that doesn't match the format exactly,
 // unknown fields included. Only the known fields are ever read, and nothing in a file is run.
@@ -44,8 +50,11 @@ export const RESULT_FORMAT = 'morpheus-tech-lab/result';
 export const RESULT_VERSION = 1;
 export const TABLE_FORMAT = 'morpheus-tech-lab/hash-table';
 export const TABLE_VERSION = 1;
-/** The largest result file read at all. */
-export const MAX_RESULT_BYTES = 1024 * 1024;
+/**
+ * The largest result file read at all: room for a seed and a generation of a million cells each
+ * (about 33 bytes a cell as text), as the lab saves them.
+ */
+export const MAX_RESULT_BYTES = 128 * 1024 * 1024;
 
 /** How a result's run can have ended: every end reason but a fault in the engine. */
 export const RESULT_ENDINGS = END_REASONS.filter((reason) => reason !== 'error');
@@ -201,8 +210,13 @@ export function encodeCells(sorted) {
  * @returns {Uint8Array}
  */
 export function canonicalBytes(run, generation, cells) {
+  return canonicalBytesSorted(run, generation, sortCells(cells));
+}
+
+// canonicalBytes() for cells already sorted by sortCells()
+function canonicalBytesSorted(run, generation, sorted) {
   const header = new TextEncoder().encode(`${canonicalJson({ format: FORMAT_VERSION, generation, run })}\n`);
-  const body = encodeCells(sortCells(cells));
+  const body = encodeCells(sorted);
   const bytes = new Uint8Array(header.length + body.length);
   bytes.set(header, 0);
   bytes.set(body, header.length);
@@ -331,32 +345,77 @@ export function worldOptions(run, { chunkSize, slabBytes, memory } = {}) {
  * @param {string} options.ending - how the run ended, one of RESULT_ENDINGS
  * @param {object} [options.details] - the run details, outside the hash: chunkSize,
  *   elapsedMs, stats (run.js's statistics) and browser ({name, version}); each may be left out
+ * @param {boolean} [options.withCells] - include the generation's live cells
  * @returns {Promise<object>}
  */
-export async function resultOf(world, { run, ending, details = {} }) {
-  const definition = normaliseRun(run);
-  if (canonicalJson(world.rules) !== canonicalJson(definition.rules)) {
+export async function resultOf(world, { run, ending, details = {}, withCells = false }) {
+  if (canonicalJson(world.rules) !== canonicalJson(normaliseRun(run).rules)) {
     throw new ResultError("The world's rules are not the run's.");
   }
+  return resultFromCells({
+    run, generation: world.generation, cells: world.cells(), ending,
+    details: { chunkSize: world.n, ...details }, withCells,
+  });
+}
+
+/**
+ * The result of a run from the cells of its generation, where there is no World at hand: the
+ * page has only the cells a Worker sent it.
+ * @param {object} options - as resultOf()'s, with the generation and its cells
+ * @param {number} options.generation
+ * @param {Int32Array} options.cells - the live cells as x, y, z triples, in any order
+ * @returns {Promise<object>}
+ */
+export async function resultFromCells({ run, generation, cells, ending, details = {}, withCells = false }) {
+  const definition = normaliseRun(run);
   if (!RESULT_ENDINGS.includes(ending)) {
     throw new ResultError(`A run that ended with ${JSON.stringify(ending)} can't be a result.`);
   }
+  if (!(Number.isSafeInteger(generation) && generation >= 0)) throw new ResultError('generation must be a whole number.');
+  const sorted = sortCells(cells);
   const result = {
     format: RESULT_FORMAT,
     version: RESULT_VERSION,
     run: definition,
-    generation: world.generation,
+    generation,
     ending,
-    hash: await hashWorld(world, definition),
+    hash: await sha256(canonicalBytesSorted(definition, generation, sorted)),
+    seedHash: await stateHash(definition, 0, Int32Array.from(definition.seed.flat())),
     details: {
-      chunkSize: details.chunkSize ?? world.n,
+      chunkSize: details.chunkSize ?? null,
       elapsedMs: details.elapsedMs ?? null,
       stats: details.stats ?? null,
       browser: details.browser ?? null,
     },
   };
   checkDetails(result.details);
+  if (withCells) {
+    const list = new Array(sorted.length / 3);
+    for (let k = 0; k < list.length; k++) list[k] = [sorted[3 * k], sorted[3 * k + 1], sorted[3 * k + 2]];
+    result.cells = list;
+  }
   return result;
+}
+
+/**
+ * Checks what a result says about its own cells, without a replay: that its seedHash is the
+ * seed's, and that its cells, if it has them, are the ones its hash names.
+ * @param {object} result - from readResult()
+ * @returns {Promise<string | null>} what doesn't match, for a person, or null
+ */
+export async function checkResultHashes(result) {
+  const { run, generation } = result;
+  if (result.seedHash !== undefined) {
+    if (await stateHash(run, 0, Int32Array.from(run.seed.flat())) !== result.seedHash) {
+      return "The file's seedHash isn't the hash of its seed.";
+    }
+  }
+  if (result.cells !== undefined) {
+    if (await sha256(canonicalBytesSorted(run, generation, Int32Array.from(result.cells.flat()))) !== result.hash) {
+      return `The file's cells aren't the ones its hash names for generation ${generation}.`;
+    }
+  }
+  return null;
 }
 
 /**
@@ -384,7 +443,7 @@ export function readResult(text) {
   } catch {
     throw new ResultError("The file isn't JSON.");
   }
-  exactKeys(data, 'The file', ['format', 'version', 'run', 'generation', 'ending', 'hash', 'details']);
+  exactKeys(data, 'The file', ['format', 'version', 'run', 'generation', 'ending', 'hash', 'details'], ['seedHash', 'cells']);
   if (data.format !== RESULT_FORMAT) throw new ResultError(`The file isn't a result file (its format isn't "${RESULT_FORMAT}").`);
   if (data.version !== RESULT_VERSION) {
     throw new ResultError(`The file's version is ${JSON.stringify(data.version)}; this lab reads version ${RESULT_VERSION}.`);
@@ -399,16 +458,36 @@ export function readResult(text) {
   if (typeof data.hash !== 'string' || !HASH.test(data.hash)) {
     throw new ResultError('hash must be "sha256:" and 64 lower-case hex digits.');
   }
+  if (data.seedHash !== undefined && (typeof data.seedHash !== 'string' || !HASH.test(data.seedHash))) {
+    throw new ResultError('seedHash must be "sha256:" and 64 lower-case hex digits.');
+  }
   checkDetails(data.details);
-  return {
+  const result = {
     format: data.format,
     version: data.version,
     run,
     generation: data.generation,
     ending: data.ending,
     hash: data.hash,
-    details: data.details,
   };
+  if (data.seedHash !== undefined) result.seedHash = data.seedHash;
+  result.details = data.details;
+  if (data.cells !== undefined) result.cells = readCells(data.cells);
+  return result;
+}
+
+// A result's cells: [x, y, z] each, sorted by z, y, x, each once. @returns {number[][]}
+function readCells(cells) {
+  if (!Array.isArray(cells)) throw new ResultError('cells must be a list of [x, y, z] cells.');
+  return cells.map((cell, i) => {
+    const [x, y, z] = point(cell, `cells[${i}]`);
+    if (i > 0) {
+      const [px, py, pz] = cells[i - 1];
+      const after = z > pz || (z === pz && (y > py || (y === py && x > px)));
+      if (!after) throw new ResultError(`cells[${i}] is out of order or listed twice: cells are sorted by z, then y, then x.`);
+    }
+    return [x, y, z];
+  });
 }
 
 function checkDetails(details) {
@@ -492,14 +571,14 @@ function isAmount(value) {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0;
 }
 
-/** Throws unless `value` is an object with exactly these keys. */
-function exactKeys(value, path, keys) {
+/** Throws unless `value` is an object with exactly these keys, and perhaps the optional ones. */
+function exactKeys(value, path, keys, optional = []) {
   if (!isPlainObject(value)) throw new ResultError(`${path} must be an object.`);
   for (const key of keys) {
     if (!Object.hasOwn(value, key)) throw new ResultError(`${path} is missing ${JSON.stringify(key)}.`);
   }
   for (const key of Object.keys(value)) {
-    if (!keys.includes(key)) throw new ResultError(`${path} has an unknown field, ${JSON.stringify(key)}.`);
+    if (!keys.includes(key) && !optional.includes(key)) throw new ResultError(`${path} has an unknown field, ${JSON.stringify(key)}.`);
   }
 }
 

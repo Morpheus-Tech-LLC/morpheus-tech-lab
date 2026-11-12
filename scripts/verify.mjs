@@ -7,8 +7,9 @@
 //
 // It replays the file's run from its seed to the stated generation and compares the hash, or,
 // with --table (from scripts/reference-hashes.mjs), looks the hash up without a replay. Result
-// files come from strangers: a file is refused unread if it is over 1 MB, and nothing in it is
-// ever run. src/unbounded/verify.js does the checking.
+// files come from strangers: a file is refused unread if it is over 128 MB (room for a generation
+// saved from Explore, with its cells), and nothing in it is ever run. src/unbounded/verify.js
+// does the checking.
 //
 // Exit status: 0 verified, 1 mismatch, 2 refused (or a mistake on the command line),
 // 3 not checked (this verifier's own limits, or a table that doesn't cover the file).

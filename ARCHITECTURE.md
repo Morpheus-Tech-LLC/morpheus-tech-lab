@@ -84,12 +84,28 @@ ends when every cell has died or a fingerprint matches one of the last 10,000 ge
 the view loops while the count stays put. A fingerprint is a hash, not a proof: scoring a
 contest on a repeat needs #38's canonical state.
 
+**Saving** (`save.js`): Save this generation, in Explore's HUD box, and Save seed, in the Seed
+box, open one popover, which moves beside the box of the button that opened it. **Save this generation**
+asks the Worker for every live cell of the current generation, with the statistics of the same
+moment (a snapshot whose budget is 1,000,000 cells, so a bigger generation comes back as chunks
+and isn't saved), or takes the cycle frame on screen, and makes a result file from it
+(`resultFromCells()`): the run's definition with its first seed, the generation, the ending, both
+hashes, the details and the cells. **Save seed** writes the run's first seed as a seed file.
+Save writes through the browser's save dialog (`showSaveFilePicker()`) where there is one, or as
+a download. Load… reads either (`readSeedOrSave()`); a saved generation is checked against its
+hashes, and its run starts with those cells at that generation (the Worker's `from`), under the
+file's rules and arena, keeping the first seed in its config, so a later save is still a result
+of that seed.
+
 **Results** (`canonical.js`, `verify.js`): a run's state at one generation, as canonical bytes: a
 header (sorted JSON: the format's version, the generation, and the run's whole definition, which is
 its contest id, rules, seed, arena and the limits stated in the pattern's terms) and a body (the
 live cells sorted by z, y, x, as zigzag varints of the difference from the cell before). Its
 SHA-256 hash goes in a result file, beside run details (timings, statistics, browser) that are
-outside the hash. `verifyResult()` replays the run from its seed to the stated generation and
+outside the hash. A result may also carry `cells`, the live cells at its generation, and
+`seedHash`, the hash of generation 0 under the same run; `checkResultHashes()` confirms both
+without a replay, so an edited file fails. Explore's Save this generation writes them, so Load…
+can carry on from the generation. `verifyResult()` replays the run from its seed to the stated generation and
 compares hashes, and checks an ending the pattern decides by taking one more step; with a
 reference table (every generation's hash, made once by `scripts/reference-hashes.mjs`) it looks
 the hash up instead. `scripts/verify.mjs` runs it in Node.

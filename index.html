@@ -394,6 +394,10 @@
       <div class="info-line"><span class="label">Shape</span><span id="shape-name-value" class="value">cube</span></div>
       <div class="info-line"><span class="label">Density</span><span id="shape-density-value" class="value">1</span></div>
       <div class="info-line"><span class="label">Size</span><span id="shape-size-value" class="value">10</span></div>
+      <!-- Explore only: the seed the run started from, as a seed file (the popover is shared, below) -->
+      <div class="explore-save-control explore-save-control--seed">
+        <button type="button" id="explore-save-seed" class="glass-button explore-small-button" aria-haspopup="dialog" aria-expanded="false" aria-controls="explore-save-popover" disabled>Save seed</button>
+      </div>
     </div>
     <div id="glass-info-rules" class="glass-display glass-display--compact">
       <div class="box-title">Rules</div>
@@ -411,6 +415,23 @@
       <div class="info-line"><span class="label">Gen/s</span><span id="explore-rate" class="value">0</span></div>
       <div class="info-line"><span class="label">Extent</span><span id="explore-extent" class="value">–</span></div>
       <div class="info-line"><span class="label">Settled</span><span id="explore-settled" class="value">no</span></div>
+      <!-- Saving: Save this generation here and Save seed in the Seed box open this one popover,
+           which moves beside the box whose button opened it, and says what the file holds and
+           where it goes -->
+      <div class="explore-save-control">
+        <button type="button" id="explore-save-generation" class="glass-button explore-small-button" aria-haspopup="dialog" aria-expanded="false" aria-controls="explore-save-popover" disabled>Save this generation</button>
+        <div id="explore-save-popover" class="explore-save-popover" role="dialog" aria-labelledby="explore-save-title">
+          <div id="explore-save-title" class="explore-save-title"></div>
+          <p id="explore-save-what" class="explore-save-text"></p>
+          <div id="explore-save-hashes" class="explore-save-hashes" hidden></div>
+          <p id="explore-save-where" class="explore-save-text explore-save-where" hidden></p>
+          <p id="explore-save-status" class="explore-save-text explore-save-status" role="status" hidden></p>
+          <div class="explore-save-actions">
+            <button type="button" id="explore-save-confirm" class="glass-button explore-small-button" hidden>Save</button>
+            <button type="button" id="explore-save-cancel" class="glass-button explore-small-button">Cancel</button>
+          </div>
+        </div>
+      </div>
     </div>
     <!-- Explore only: the engine's cell memory, apart from the browser's own -->
     <div id="glass-info-memory" class="glass-display glass-display--compact">
@@ -2599,6 +2620,117 @@
   }
   body.mode-explore #restartButton {
     display: flex;
+  }
+  /* Save this generation, at the foot of Explore's box (which itself lets clicks through), and
+     its popover, drawn like the GPU toggle's (.gpu-compute-popover), beside the box */
+  .explore-save-control {
+    margin-top: 8px;
+  }
+  /* The Seed box shows in every mode; its Save seed only in Explore */
+  .explore-save-control--seed {
+    display: none;
+  }
+  body.mode-explore .explore-save-control--seed {
+    display: block;
+  }
+  #glass-info-explore,
+  #glass-info-shape {
+    position: relative;
+  }
+  #explore-save-generation,
+  #explore-save-seed {
+    width: 100%;
+    pointer-events: auto;
+  }
+  #explore-save-generation.is-active,
+  #explore-save-seed.is-active {
+    border-color: rgba(120, 180, 255, 0.6);
+    background: rgba(45, 60, 80, 0.8);
+  }
+  .explore-save-popover {
+    position: absolute;
+    left: calc(100% + 12px);
+    bottom: 0;
+    width: 340px;
+    max-width: calc(100vw - 32px);
+    box-sizing: border-box;
+    padding: 10px 12px;
+    background: rgba(35, 45, 60, 0.95);
+    border: 1px solid rgba(120, 180, 255, 0.4);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    color: rgba(200, 220, 255, 0.95);
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.4;
+    white-space: normal;
+    user-select: text;
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    z-index: 50;
+  }
+  .explore-save-popover.is-open {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .explore-save-title {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 6px;
+  }
+  .explore-save-text {
+    margin: 0 0 8px;
+  }
+  .explore-save-text[hidden],
+  .explore-save-actions .glass-button[hidden] {
+    display: none;
+  }
+  .explore-save-where {
+    color: rgba(160, 200, 255, 0.95);
+  }
+  /* The hashes, whole, so they can be copied and compared */
+  .explore-save-hashes {
+    margin: 0 0 8px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.25);
+    font-size: 11px;
+    line-height: 1.35;
+  }
+  .explore-save-hashes[hidden] {
+    display: none;
+  }
+  .explore-save-hashes > div + div {
+    margin-top: 4px;
+  }
+  .explore-save-hash-label {
+    display: block;
+    font-weight: 600;
+    color: rgba(160, 200, 255, 0.95);
+  }
+  .explore-save-hashes code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    word-break: break-all;
+  }
+  .explore-save-status {
+    padding: 6px 8px;
+    border-radius: 6px;
+    background: rgba(120, 180, 255, 0.12);
+  }
+  .explore-save-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+  /* On a narrow screen there is no room beside the box: the popover opens under the button */
+  @media (max-width: 640px) {
+    .explore-save-popover {
+      left: 0;
+      bottom: auto;
+      top: calc(100% + 8px);
+    }
   }
   body.mode-explore #glass-info-sim {
     display: none;

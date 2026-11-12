@@ -121,9 +121,27 @@ default rules, a dense mass that keeps swelling outward; or **Spreading noise**,
 B7,13,14/S0,2-6,9,13,19,23,24 that look like chaotic noise yet keep spreading. The Speed contest
 runs Cube10.
 
+Two buttons save the run: Save this generation, in Explore's box, and Save seed, in the Seed
+box. Each opens a popover that says what the file holds and where it goes before anything is
+written. In Chrome and Edge, Save asks where to
+put the file; in other browsers it downloads, to the downloads folder.
+
+- **Save this generation** saves the generation on screen, running or paused, as
+  `explore-generation-N.json`: a result file, the same file a contest entry is. It holds the
+  run's seed, rules and arena, the generation, how the run stands (stopped there, or why it
+  ended), the SHA-256 hash of that generation's cells and of the seed, the run's statistics,
+  chunk size and browser, and the position of every live cell. The popover shows both hashes.
+  `node scripts/verify.mjs` confirms the file by replaying the seed. Loaded under Custom, it
+  carries on from that generation, under its own rules and arena; only the memory limit comes
+  from the settings. Opening the popover takes the generation, so the run can keep going. A
+  saved generation holds at most 1,000,000 live cells, so a bigger one isn't saved, and the
+  popover says why.
+- **Save seed** saves the seed the run started from, with its rules, as `explore-seed.json`, a
+  seed file. Loaded under Custom, it runs from generation 0. For a run carried on from a saved
+  generation, it is the first run's seed.
+
 An Explore seed file is JSON: its format and version, the rules, and the live cells as
-`[x, y, z]` whole numbers, centred near `[0, 0, 0]`. You can write or edit one by hand; exporting
-the seed on screen will come with the seed editor (#52):
+`[x, y, z]` whole numbers. You can also write or edit one by hand:
 
 ```json
 {
@@ -180,7 +198,7 @@ Requires Node.js 20.19 or newer (for Vite 7).
 
 `npm run build` writes the production site to `dist/`, and `npm run preview` serves it. `npm test`
 runs the automated tests. `node scripts/verify.mjs <result.json>` checks a result file from the
-unbounded engine by replaying it (try it on `test/unbounded/fixtures/example-result.json`).
+unbounded engine, or a generation saved from Explore, by replaying it (try it on `test/unbounded/fixtures/example-result.json`).
 Releases are published to GitHub Pages by the maintainers, following [RELEASING.md](RELEASING.md); see [CHANGELOG.md](CHANGELOG.md) for what each version changed.
 
 

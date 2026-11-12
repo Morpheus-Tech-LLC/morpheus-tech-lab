@@ -339,6 +339,29 @@ const OSCILLATOR = {
   seed: [[3, 1, 0], [3, 2, 0], [0, 3, 3], [2, 2, 2], [0, 0, 1], [3, 3, 3], [2, 3, 3], [3, 1, 2]],
 };
 
+test('a run can start from a later generation, and goes on as if it had run straight there', () => {
+  const f = fakeRun();
+  const tenth = straight(10);
+  f.run.receive({ type: 'start', world: WORLD, seed: Int32Array.from(tenth.flat()), from: 10, run: { kind: 'open', paused: true } });
+  f.until();
+  for (let g = 0; g < 5; g++) {
+    f.run.receive({ type: 'step' });
+    f.until();
+  }
+  f.run.receive({ type: 'snapshot', id: 1, stats: true });
+  const [snapshot] = f.of('snapshot');
+  assert.equal(snapshot.generation, 15);
+  assert.equal(snapshot.stats.generation, 15);
+  const cells = [];
+  for (let i = 0; i < snapshot.cells.length; i += 3) cells.push([snapshot.cells[i], snapshot.cells[i + 1], snapshot.cells[i + 2]]);
+  assert.equal(difference(sortCells(cells), straight(15)), null);
+  // A bad generation to start from is refused
+  const g = fakeRun();
+  g.run.receive({ type: 'start', world: WORLD, seed: Int32Array.from(SEED.flat()), from: -1, run: { kind: 'open' } });
+  assert.match(g.of('error')[0]?.message ?? '', /start from/);
+  assert.equal(g.of('state').length, 0, 'and nothing started');
+});
+
 test('a settling run ends when every cell has died', () => {
   const f = fakeRun();
   f.start({ run: { kind: 'open', settle: true }, world: { ...WORLD, rules: { birth: [26], survival: [] } } });

@@ -2,8 +2,10 @@ import { state } from "./state.js";
 import { initSimulation, updatePoints } from "./simulationModel.js";
 import * as THREE from 'three';
 import { initComputeControl, updateComputeControl } from "./gpu/computeControl.js";
-import { isExplore, startExplore, stopExplore, togglePlay, stepOnce, restart, exploreViewChanged } from "./explore/explore.js";
-import { shapeSeed, parseRules, parseSeedFile, arenaBox, MAX_SHAPE_SIZE } from "./explore/seed.js";
+import { isExplore, startExplore, stopExplore, togglePlay, stepOnce, restart, exploreViewChanged, toggleSave, confirmSave, closeSave } from "./explore/explore.js";
+import { shapeSeed, parseRules, arenaBox, MAX_SHAPE_SIZE } from "./explore/seed.js";
+import { readSeedOrSave } from "./explore/save.js";
+import { MAX_RESULT_BYTES } from "./unbounded/canonical.js";
 import { PRESETS, presetById } from "./explore/presets.js";
 import { perlinShape, worleyShape, cubeOfSide, tetrahedronShape, octahedronShape } from "./shapeGenerators.js";
 
@@ -13,7 +15,8 @@ let shapeDropdownOpened = false;
 // A seed file loaded in the dialog for Explore, until Apply: {name, rules, cells}
 let pendingExploreSeed = null;
 // The largest seed file the dialog reads, in bytes
-const MAX_SEED_FILE_BYTES = 64 * 1024 * 1024;
+// Load… takes a seed file or a saved generation, which holds a seed and a generation
+const MAX_SEED_FILE_BYTES = MAX_RESULT_BYTES;
 
 // Helper functions for updating displays (must be outside initControls to be accessible from resetControlsUI)
 function updateDirectionDisplay() {
@@ -307,9 +310,32 @@ export function initControls() {
     }
   });
 
-  // Explore only: start again from the same seed and rules
+  // Explore only: start again from the same seed and rules. initControls() runs again on every
+  // Apply, so these are set as properties, never added: a second listener would run twice
   const restartButton = document.getElementById("restartButton");
-  if (restartButton) restartButton.addEventListener("click", restart);
+  if (restartButton) restartButton.onclick = restart;
+  // Explore only: the save popover, opened by Save this generation or Save seed. Escape or a
+  // click elsewhere closes it
+  const savePopover = document.getElementById("explore-save-popover");
+  const saveGenerationButton = document.getElementById("explore-save-generation");
+  if (saveGenerationButton) saveGenerationButton.onclick = () => toggleSave("generation");
+  const saveSeedButton = document.getElementById("explore-save-seed");
+  if (saveSeedButton) saveSeedButton.onclick = () => toggleSave("seed");
+  const saveConfirm = document.getElementById("explore-save-confirm");
+  if (saveConfirm) saveConfirm.onclick = confirmSave;
+  const saveCancel = document.getElementById("explore-save-cancel");
+  if (saveCancel) saveCancel.onclick = closeSave;
+  if (savePopover && !savePopover.dataset.wired) {
+    savePopover.dataset.wired = "yes";
+    const isOpen = () => savePopover.classList.contains("is-open");
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && isOpen()) closeSave();
+    });
+    document.addEventListener("pointerdown", (e) => {
+      // The buttons toggle the popover themselves
+      if (isOpen() && !savePopover.contains(e.target) && !e.target.closest?.("#explore-save-generation, #explore-save-seed")) closeSave();
+    });
+  }
 
   updateStepButtonVisibility();
 
@@ -675,10 +701,13 @@ function openShapeModal() {
     const presetRadio = document.getElementById('explore-seed-preset');
     customRadio?.setAttribute('aria-pressed', String(!preset));
     presetRadio?.setAttribute('aria-pressed', String(preset));
+    // A saved generation carries on under its own rules, so they can't change either
+    const saved = Boolean(seedSection?.classList.contains('explore-seed') && pendingExploreSeed?.from !== undefined);
     for (const input of [ruleBirth, ruleSurvival]) {
       if (!input) continue;
-      input.readOnly = preset;
-      input.title = preset ? 'A preset brings its own rules. Choose Custom to set your own.' : '';
+      input.readOnly = preset || saved;
+      input.title = preset ? 'A preset brings its own rules. Choose Custom to set your own.'
+        : saved ? 'A saved generation carries on under its own rules. Use the shape, or load a seed file, to set your own.' : '';
     }
     const select = document.getElementById('explore-preset');
     if (select && preset) select.value = pendingExploreSeed.preset;
@@ -1359,8 +1388,12 @@ function openShapeModal() {
       if (!file) return;
       try {
         if (file.size > MAX_SEED_FILE_BYTES) throw new Error(`it is larger than ${MAX_SEED_FILE_BYTES / 2 ** 20} MB.`);
-        const { rules, cells } = parseSeedFile(await file.text());
-        pendingExploreSeed = { name: file.name, rules, cells }; // replaces a preset
+        const loaded = await readSeedOrSave(await file.text());
+        const { rules, cells } = loaded;
+        // Replaces a preset. A saved generation brings its first seed and generation too
+        pendingExploreSeed = loaded.kind === 'generation'
+          ? { name: file.name, rules, cells, seed: loaded.seed, from: loaded.from, arena: loaded.arena }
+          : { name: file.name, rules, cells };
         if (ruleBirth) ruleBirth.value = stringifyRule(rules.birth);
         if (ruleSurvival) ruleSurvival.value = stringifyRule(rules.survival);
         showExploreError(null);
@@ -1382,21 +1415,37 @@ function openShapeModal() {
       const cells = pendingExploreSeed && `${(pendingExploreSeed.cells.length / 3).toLocaleString('en')} cells`;
       exploreSeedStatus.textContent = !pendingExploreSeed ? 'Using the shape.'
         : pendingExploreSeed.preset ? `Using the preset ${pendingExploreSeed.name}: ${cells}.`
-          : `Using ${pendingExploreSeed.name}: ${cells}.`;
+          : pendingExploreSeed.from !== undefined
+            ? `Using ${pendingExploreSeed.name}: generation ${pendingExploreSeed.from.toLocaleString('en')} of a saved run, ${cells}, with its own rules and ${pendingExploreSeed.arena ? `${pendingExploreSeed.arena}³ arena` : 'no arena'}. The run carries on from generation ${pendingExploreSeed.from.toLocaleString('en')}.`
+            : `Using ${pendingExploreSeed.name}: ${cells}.`;
     }
+    // A saved generation carries on under its own arena, which the arena fields show but can't change
+    const saved = pendingExploreSeed?.from !== undefined;
+    if (exploreArenaCheckbox) {
+      exploreArenaCheckbox.disabled = saved;
+      if (saved) {
+        exploreArenaCheckbox.checked = pendingExploreSeed.arena !== null;
+        if (pendingExploreSeed.arena && exploreArenaSize) exploreArenaSize.value = `${pendingExploreSeed.arena}`;
+        exploreArenaCheckbox.onchange?.();
+      }
+    }
+    if (exploreArenaSize) exploreArenaSize.disabled = saved;
     if (exploreClearSeed) exploreClearSeed.hidden = !pendingExploreSeed || Boolean(pendingExploreSeed.preset);
     syncExploreSeedKind();
   }
 
   /** Explore's settings from the dialog. Throws an Error saying what's wrong. */
   function buildExploreConfig() {
-    const rules = parseRules(ruleBirth?.value, ruleSurvival?.value);
+    const saved = pendingExploreSeed?.from !== undefined ? pendingExploreSeed : null;
+    const rules = saved ? saved.rules : parseRules(ruleBirth?.value, ruleSurvival?.value);
     const memoryMB = Number(exploreMemory?.value);
     if (!Number.isInteger(memoryMB) || memoryMB < 64 || memoryMB > 16384) {
       throw new Error('The memory limit must be a whole number of MB, from 64 to 16384.');
     }
     let arena = null;
-    if (exploreArenaCheckbox?.checked) {
+    if (saved) {
+      arena = saved.arena;
+    } else if (exploreArenaCheckbox?.checked) {
       arena = Number(exploreArenaSize?.value);
       if (!Number.isInteger(arena) || arena < 8 || arena > 1024) {
         throw new Error('The arena size must be a whole number of cells, from 8 to 1024.');
@@ -1433,7 +1482,9 @@ function openShapeModal() {
       label = key;
       shape = { key, params: noise ? { size, density, regionSize } : { size, density } };
     }
-    if (!cells.length) throw new Error('The seed has no live cells: raise its density or its size.');
+    if (!cells.length) {
+      throw new Error(saved ? 'This saved generation has no live cells, so there is nothing to carry on.' : 'The seed has no live cells: raise its density or its size.');
+    }
     const box = arenaBox(arena);
     if (box) {
       for (let i = 0; i < cells.length; i++) {
@@ -1443,6 +1494,8 @@ function openShapeModal() {
         }
       }
     }
+    // A saved generation: `cells` is generation `from`, and `seed` the run's first seed
+    if (saved) return { rules, cells, memoryMB, arena, label, shape, seed: saved.seed, from: saved.from };
     return { rules, cells, memoryMB, arena, label, shape };
   }
   
