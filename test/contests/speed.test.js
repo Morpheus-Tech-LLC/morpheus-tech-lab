@@ -104,6 +104,21 @@ test('a Speed run stopped by hand has no score, and no result to enter', async (
   }
 });
 
+test('Stop pressed before the Worker has reported that it is running still stops the run', async () => {
+  let run;
+  const end = await new Promise((resolve) => {
+    run = new SpeedRun(SPEED, { seconds: 5, createWorker: engineWorker, onEnd: resolve });
+    run.start();
+    run.stop(); // at once: the Worker hasn't even loaded yet
+  });
+  try {
+    assert.equal(end.reason, 'stopped');
+    assert.equal(end.score, null);
+  } finally {
+    run.close();
+  }
+});
+
 test("the Worker makes a result only once the run has ended", async () => {
   const { run, ended } = speedRun({ seconds: 5 });
   try {

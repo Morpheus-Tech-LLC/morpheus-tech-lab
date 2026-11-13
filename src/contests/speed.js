@@ -78,9 +78,13 @@ export class SpeedRun {
     });
   }
 
-  /** Ends the run by hand: it keeps its last generation, and has no score. */
+  /**
+   * Ends the run by hand: it keeps its last generation, and has no score. It works from the
+   * moment start() is called: the Worker takes the messages in order, so a stop sent before it
+   * has reported that it is running still reaches the run, just after it starts.
+   */
   stop() {
-    if (this.status === 'running') this.driver.stop();
+    if (this.status !== 'ended' && this.driver.worker) this.driver.stop();
   }
 
   /**
