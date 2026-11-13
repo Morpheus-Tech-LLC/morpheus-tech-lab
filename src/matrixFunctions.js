@@ -1,5 +1,4 @@
 import { Grid3D } from './grid3D.js';
-import { generateClockHistory } from './time.js';
 import { state } from './state.js';
 import { getGpuDevice } from './gpu/device.js';
 import { evolveOnGpu, gpuModeOf, isPlainGrid } from './gpu/engine.js';
@@ -157,13 +156,9 @@ export async function generateSimulation(size, generations, shapeFn, useRule30 =
     }
   }
 
-  const timeHistory = await generateClockHistory(128, generations);
-  console.log("Generated frames:", timeHistory.length);
-
   console.log(history)
-  console.log(timeHistory)
 
-  return [history, timeHistory];
+  return history;
 }
 
 // ---------------------------
