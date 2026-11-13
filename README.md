@@ -100,7 +100,7 @@ The 3D model was determined to be best represented mathematically by a three dim
 | **Rule 30** | Wolfram's elementary automaton, in 1D or 2D |
 | **Sine Wave** | A continuous wave field, a smooth visual reference |
 | **Abelian Sandpile** | One grain of sand dropped at the centre each generation; piles topple and spread into fractal patterns |
-| **Explore** | Game of Life 3D without walls: the pattern grows as far as it likes, for as long as it runs. Pause, step, restart and set its speed; from its boxes in the HUD, choose the rules, a seed shape, a preset seed or a seed file, set a memory limit, and optionally an arena that ends the run at its edge. The 2D view shows one slice, across the pattern's extent; the grid shows the 16³-cell chunks it occupies. A run stops once its pattern dies or settles into a still life or a repeating cycle, which then keeps playing. |
+| **Explore** | Game of Life 3D without walls: the pattern grows as far as it likes, for as long as it runs. Pause, step, restart and set its speed; from its boxes in the HUD, choose the rules, a seed shape, a preset seed or a seed file, or design a seed cell by cell, set a memory limit, and optionally an arena that ends the run at its edge. The 2D view shows one slice, across the pattern's extent; the grid shows the 16³-cell chunks it occupies. A run stops once its pattern dies or settles into a still life or a repeating cycle, which then keeps playing. |
 
 The lab opens in Explore, paused on a 10³ cube. The Simulation panel at the top left holds the
 HUD, in every mode, as sections. The first, Mode, names the simulation that runs; the gear in its
@@ -148,6 +148,44 @@ A preset's rules are locked, so it is always the same run, and a saved generatio
 arena are locked too. The Rules box says what locks them. **Use your own rules**, in the Rules or
 Explore popover, keeps the same cells, as a Custom seed from generation 0, and makes those rules
 (and the arena) yours to change.
+
+### Designing a seed
+
+The **seed editor** places cells one by one in the **seed box**: 10×10×10 cells, from −5 to 4
+on each axis, around the centre, the box the Discovery contests' seeds go in. In the Seed popover,
+**Custom**, **Design**, **Design…** opens it on the seed in use, if every cell of it lies in the
+box (Cube10 and Spreading noise do); otherwise on an empty box, saying why. **Preset**, **Edit a
+copy…** opens a preset's cells instead: using the copy makes it a Custom seed with the preset's
+rules, yours to change, and the preset itself never changes.
+
+The editor takes over the 3D view, with its tools in a panel beside it (at the foot, on a phone).
+The whole box shows at once: live cells as solid cubes, empty places as faint dots. The cursor is
+a white wireframe cube, with guide lines along x (red), y (green) and z (blue). The selection is a
+yellow box, its live cells tinted and its empty places bright, and the panel names it: "Plane
+across z, at z 4: 100 cells, 37 alive." Explore's run, if it is running, keeps going behind it.
+
+| Key | Does |
+|---|---|
+| Arrows | Move the cursor across the screen, along whichever axis looks that way from where you stand |
+| Page Up / Page Down | Move it away from you, or toward you |
+| Click | Move the cursor to a cell; drag to turn the view (Front, Top, Side and Angled buttons too) |
+| 1, 2, 3, 4, 5 | Select the cursor's cell, a line through it, a plane through it, a box, or all of it |
+| X, Y, Z | The axis a line runs along, or a plane lies across |
+| 4, Shift+click | A box runs from a corner to the cursor: 4 sets the corner at the cursor, Shift+click at a cell |
+| Space, Enter | Switch the selection: clear it if every cell in it is alive, fill it if not |
+| R | Fill the selection at random, at the panel's density (0.3 to start) |
+| F | Fade the rest: dim every cell outside the cursor's plane, or outside a box |
+| Ctrl+Z, Ctrl+Shift+Z or Ctrl+Y | Undo and redo, up to 100 changes |
+| ? | List the keys |
+| Esc | Close the list, or the editor, without using the design |
+
+The panel has a button for each, and arrows, Away and Near buttons for a touch screen. **Use**
+makes the design the seed, under Custom, and restarts the run: the Seed box reads "Design: 214
+cells". **Export** saves it as a seed file, `explore-seed.json`, with the rules Use would bring;
+the panel says which. The editor's **Load…** opens a seed file that fits the box, with its rules;
+a saved generation can't open as a design, since it brings its own rules and arena. A seed file
+from Export or Save seed opens back unchanged, there or through the Seed box's Load… and then
+Design….
 
 Two buttons save the run: Save this generation, in the Run box, and Save seed, in the Seed
 box. Each opens a popover that says what the file holds and where it goes before anything is

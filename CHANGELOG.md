@@ -50,6 +50,13 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
 - A result file may carry its generation's cells and its seed's hash, which are checked against
   the file's hashes before anything uses them; result files may be up to 128 MB, up from 1 MB
   (#66).
+- A seed editor for Explore: Design… in the Seed popover, or Edit a copy… of a preset, opens the
+  10³ seed box in 3D, in place of Explore's view, with every live cell and empty place showing.
+  Select a cell, a line, a plane, a box or the whole box, switch it with Space or Enter, fill it
+  at random, and undo or redo up to 100 changes; the arrow keys and Page Up / Page Down move the
+  cursor the way they point from any view, a click moves it to a cell, and a panel has a button
+  for every key, touch included. Use runs the design; Export saves it as a seed file, which opens
+  back in the editor unchanged (#70).
 
 ### Changed
 - The lab opens in Explore, paused on a 10³ cube, instead of Game of Life 3D (#37).

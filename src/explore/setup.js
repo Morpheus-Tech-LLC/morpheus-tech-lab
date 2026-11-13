@@ -18,9 +18,12 @@
 // - {kind: 'file', name, cells, label?}: a seed file's cells. Its rules went into the Rules box.
 // - {kind: 'saved', name, cells, seed, from, rules, arena}: a saved generation (#66), which
 //   carries on from generation `from` under its own rules and arena, both locked.
+// - {kind: 'design', cells}: a seed designed in the seed editor (#70), in the seed box, under the
+//   rules in the Rules box.
 
 import { PRESETS, presetById } from './presets.js';
 import { shapeSeed, parseRules, arenaBox, MAX_SHAPE_SIZE, SeedError } from './seed.js';
+import { designCells } from './editorModel.js';
 import { MAX_NEIGHBOURS } from '../unbounded/rules.js';
 import { perlinShape, worleyShape, cubeOfSide, tetrahedronShape, octahedronShape } from '../shapeGenerators.js';
 
@@ -137,6 +140,73 @@ export function fileSeed(name, loaded) {
   return { kind: 'file', name, cells: loaded.cells, rules: loaded.rules };
 }
 
+/** A seed designed in the seed editor. @param {Int32Array} cells */
+export function designSeed(cells) {
+  return { kind: 'design', cells };
+}
+
+// ---- The seed editor ----
+
+const SAVED_NO_DESIGN = "A saved generation carries on under its own rules and arena, so it can't open as a design.";
+
+/**
+ * What the seed editor opens on from Design…: the seed in use, if it is a seed that fits the seed
+ * box, with the rules in the Rules box; otherwise an empty box, and why.
+ * @returns {{places: Uint8Array | null, rules: {birth: number[], survival: number[]},
+ *   reason: string | null}} places from designCells(), or null with the reason
+ */
+export function designOf(setup) {
+  const rules = rulesOf(setup);
+  if (setup.seed.kind === 'saved') return { places: null, rules, reason: SAVED_NO_DESIGN };
+  try {
+    return { places: designCells(setup.seed.cells), rules, reason: null };
+  } catch (err) {
+    if (!(err instanceof SeedError)) throw err;
+    return { places: null, rules, reason: err.message };
+  }
+}
+
+/**
+ * What Edit a copy… opens: a preset's cells, which come with its rules, to be used unlocked.
+ * @returns {{places: Uint8Array, rules: {birth: number[], survival: number[]}, name: string}}
+ * @throws {SeedError} for an unknown preset
+ */
+export function presetCopy(id) {
+  const preset = presetById(id);
+  if (!preset) throw new SeedError('Pick a preset.');
+  return { places: designCells(preset.cells), rules: preset.rules, name: preset.name };
+}
+
+/**
+ * A file loaded with the editor's own Load…, which takes seed files only.
+ * @param {string} name - the file's name
+ * @param {object} loaded - what readSeedOrSave() read from it
+ * @returns {{places: Uint8Array, rules: {birth: number[], survival: number[]}}}
+ * @throws {SeedError} for a saved generation, or a seed that doesn't fit the seed box
+ */
+export function designFile(name, loaded) {
+  if (loaded.kind === 'generation') {
+    throw new SeedError(`${name} is a saved generation. ${SAVED_NO_DESIGN} Load… in the Seed box carries it on.`);
+  }
+  try {
+    return { places: designCells(loaded.cells), rules: loaded.rules };
+  } catch (err) {
+    if (err instanceof SeedError) throw new SeedError(`${name} can't open here: ${err.message} Load… in the Seed box still runs it.`);
+    throw err;
+  }
+}
+
+/**
+ * The editor's Use: the design becomes the seed, under Custom, with `rules` in the Rules box,
+ * unlocked: the rules it opened with, a copied preset's or a loaded file's.
+ * @param {Int32Array} cells
+ * @param {{birth: number[], survival: number[]}} rules
+ * @throws {SeedError} for an empty design, or one that doesn't fit the arena
+ */
+export function useDesign(setup, cells, rules) {
+  return checked({ ...setup, seed: designSeed(cells), rules });
+}
+
 // ---- What the boxes show ----
 
 /** The rules a run uses: a preset's or a saved generation's, or the visitor's own. */
@@ -186,6 +256,8 @@ export function seedLabel(seed) {
       return seed.label ?? `Seed file: ${seed.name}`;
     case 'saved':
       return `Saved generation ${n(seed.from)}: ${seed.name}`;
+    case 'design':
+      return `Design: ${n(seed.cells.length / 3)} cells`;
     default: {
       const shape = shapeByKey(seed.key);
       if (!seed.params) return shape.name;
@@ -248,9 +320,11 @@ export function configOf(setup) {
   const arena = arenaOf(setup);
   const { cells } = seed;
   if (!cells.length) {
-    throw new SeedError(seed.kind === 'saved'
-      ? 'This saved generation has no live cells, so there is nothing to carry on.'
-      : 'The seed has no live cells: raise its density or its size.');
+    const why = {
+      saved: 'This saved generation has no live cells, so there is nothing to carry on.',
+      design: 'The design has no live cells: switch some on first.',
+    };
+    throw new SeedError(why[seed.kind] ?? 'The seed has no live cells: raise its density or its size.');
   }
   const box = arenaBox(arena);
   if (box) {

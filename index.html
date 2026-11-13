@@ -368,12 +368,15 @@
               <select id="explore-preset" class="glass-select"></select>
               <p id="explore-preset-description" class="explore-popover-text"></p>
               <p id="explore-preset-rules" class="explore-popover-text explore-popover-quiet"></p>
+              <button type="button" id="explore-edit-copy" class="glass-button explore-small-button explore-popover-button">Edit a copy…</button>
+              <p id="explore-edit-copy-note" class="explore-popover-text explore-popover-quiet"></p>
             </div>
             <div id="explore-seed-custom-part" class="explore-popover-part">
               <div class="explore-field-label explore-source-label" aria-hidden="true">Cells from</div>
               <div class="explore-seed-kind explore-seed-kind--source" role="group" aria-label="Where the cells come from">
                 <button type="button" id="explore-source-shape" class="seed-kind-option" aria-pressed="true" title="Cells from one of the shapes">Shape</button>
                 <button type="button" id="explore-source-file" class="seed-kind-option" aria-pressed="false" title="Cells from a seed file or a saved generation">File</button>
+                <button type="button" id="explore-source-design" class="seed-kind-option" aria-pressed="false" title="Cells you place one by one, in the seed editor">Design</button>
               </div>
               <div id="explore-seed-shape-part" class="explore-popover-part">
                 <label class="explore-field" for="explore-shape"><span class="explore-field-label">Shape</span></label>
@@ -403,6 +406,10 @@
                 <button type="button" id="explore-load-seed" class="glass-button explore-small-button">Load…</button>
                 <input type="file" id="explore-seed-file" accept=".json,application/json" hidden />
                 <p id="explore-seed-status" class="explore-popover-text" role="status"></p>
+              </div>
+              <div id="explore-seed-design-part" class="explore-popover-part" hidden>
+                <button type="button" id="explore-design" class="glass-button explore-small-button">Design…</button>
+                <p id="explore-design-status" class="explore-popover-text"></p>
               </div>
             </div>
             <p id="explore-seed-note" class="explore-popover-text explore-popover-quiet"></p>
@@ -519,6 +526,93 @@
       </div>
     </section>
   </div>
+  <!-- The seed editor (src/explore/editor.js, #70): its panel, beside the 3D view it takes over.
+       Every button has a key; ? lists them -->
+  <aside id="seed-editor" class="seed-editor" role="dialog" aria-labelledby="seed-editor-title" hidden>
+    <div class="seed-editor-head">
+      <h2 id="seed-editor-title" class="seed-editor-title">Seed editor</h2>
+      <button type="button" id="seed-editor-help-button" class="glass-button explore-small-button" data-action="help" aria-expanded="false" aria-controls="seed-editor-help" title="Every key (?)">?</button>
+    </div>
+    <p id="seed-editor-note" class="seed-editor-note" hidden></p>
+    <div id="seed-editor-help" class="seed-editor-help" hidden>
+      <dl>
+        <dt>Arrows</dt><dd>Move the cursor across the screen</dd>
+        <dt>Page Up / Down</dt><dd>Move it away from you, or toward you</dd>
+        <dt>Click</dt><dd>Move the cursor to a cell; drag to turn the view</dd>
+        <dt>1 2 3 4 5</dt><dd>Select a cell, a line, a plane, a box or all</dd>
+        <dt>Shift+click</dt><dd>Set a box's corner (4 sets it at the cursor)</dd>
+        <dt>X Y Z</dt><dd>The axis a line runs along, or a plane lies across</dd>
+        <dt>Space, Enter</dt><dd>Switch the selection: clear it if it is all alive, fill it if not</dd>
+        <dt>R</dt><dd>Fill the selection at random, at the density</dd>
+        <dt>F</dt><dd>Fade the rest: dim every cell outside the plane or box</dd>
+        <dt>Ctrl+Z</dt><dd>Undo; Ctrl+Shift+Z or Ctrl+Y redoes</dd>
+        <dt>Esc</dt><dd>Close this list, or the editor, without using the design</dd>
+      </dl>
+    </div>
+    <div class="seed-editor-count">Live cells <span><strong id="seed-editor-count">0</strong> / 1,000</span></div>
+    <div class="seed-editor-line">Cursor <span id="seed-editor-cursor"></span></div>
+
+    <div class="explore-popover-section">Select</div>
+    <div class="explore-seed-kind seed-editor-switch" role="group" aria-label="What the selection covers">
+      <button type="button" class="seed-kind-option" data-kind="cell" aria-pressed="true" title="The cursor's cell (1)">1 Cell</button>
+      <button type="button" class="seed-kind-option" data-kind="line" aria-pressed="false" title="The 10 cells through the cursor along the axis (2)">2 Line</button>
+      <button type="button" class="seed-kind-option" data-kind="plane" aria-pressed="false" title="The 100 cells through the cursor across the axis (3)">3 Plane</button>
+      <button type="button" class="seed-kind-option" data-kind="box" aria-pressed="false" title="Every cell from a corner set here to the cursor (4)">4 Box</button>
+      <button type="button" class="seed-kind-option" data-kind="all" aria-pressed="false" title="The whole box (5)">5 All</button>
+    </div>
+    <div id="seed-editor-axes" class="explore-seed-kind seed-editor-switch seed-editor-axes" role="group" aria-label="The axis a line runs along, or a plane lies across">
+      <button type="button" class="seed-kind-option seed-editor-axis-x" data-axis="0" aria-pressed="true" title="Along or across x (X)">X</button>
+      <button type="button" class="seed-kind-option seed-editor-axis-y" data-axis="1" aria-pressed="false" title="Along or across y (Y)">Y</button>
+      <button type="button" class="seed-kind-option seed-editor-axis-z" data-axis="2" aria-pressed="false" title="Along or across z (Z)">Z</button>
+    </div>
+    <p id="seed-editor-selection" class="seed-editor-selection" aria-live="polite"></p>
+
+    <div class="explore-popover-section">Change</div>
+    <div class="seed-editor-row">
+      <button type="button" class="glass-button explore-small-button" data-action="switch" title="Clear the selection if it is all alive, fill it if not (Space or Enter)">Switch</button>
+      <button type="button" class="glass-button explore-small-button" data-action="random" title="Fill the selection at random, at the density (R)">Random fill</button>
+      <label class="seed-editor-density" for="seed-editor-density">Density <input type="number" id="seed-editor-density" class="glass-input" min="0" max="1" step="0.05" value="0.3" /></label>
+    </div>
+    <div class="seed-editor-row">
+      <button type="button" id="seed-editor-undo" class="glass-button explore-small-button" data-action="undo" title="Undo (Ctrl+Z)">Undo</button>
+      <button type="button" id="seed-editor-redo" class="glass-button explore-small-button" data-action="redo" title="Redo (Ctrl+Shift+Z or Ctrl+Y)">Redo</button>
+      <button type="button" id="seed-editor-fade" class="glass-button explore-small-button seed-editor-toggle" data-action="fade" aria-pressed="false" title="Dim every cell outside the plane or box (F)">Fade the rest</button>
+    </div>
+
+    <div class="explore-popover-section">Move the cursor</div>
+    <div class="seed-editor-pad" role="group" aria-label="Move the cursor">
+      <button type="button" class="glass-button explore-small-button seed-editor-pad-up" data-move="ArrowUp" aria-label="Up (Arrow Up)" title="Up (Arrow Up)">↑</button>
+      <button type="button" class="glass-button explore-small-button seed-editor-pad-left" data-move="ArrowLeft" aria-label="Left (Arrow Left)" title="Left (Arrow Left)">←</button>
+      <button type="button" class="glass-button explore-small-button seed-editor-pad-right" data-move="ArrowRight" aria-label="Right (Arrow Right)" title="Right (Arrow Right)">→</button>
+      <button type="button" class="glass-button explore-small-button seed-editor-pad-down" data-move="ArrowDown" aria-label="Down (Arrow Down)" title="Down (Arrow Down)">↓</button>
+      <button type="button" class="glass-button explore-small-button seed-editor-pad-away" data-move="PageUp" title="Away from you (Page Up)">Away</button>
+      <button type="button" class="glass-button explore-small-button seed-editor-pad-near" data-move="PageDown" title="Toward you (Page Down)">Near</button>
+    </div>
+
+    <div class="explore-popover-section">View</div>
+    <div class="seed-editor-row">
+      <button type="button" class="glass-button explore-small-button" data-view="front">Front</button>
+      <button type="button" class="glass-button explore-small-button" data-view="top">Top</button>
+      <button type="button" class="glass-button explore-small-button" data-view="side">Side</button>
+      <button type="button" class="glass-button explore-small-button" data-view="angled">Angled</button>
+    </div>
+
+    <div class="explore-popover-section">File</div>
+    <div class="seed-editor-row">
+      <button type="button" class="glass-button explore-small-button" data-action="load" title="Open a seed file that fits the 10³ box">Load…</button>
+      <button type="button" class="glass-button explore-small-button" data-action="export" title="Save the design as a seed file">Export</button>
+      <input type="file" id="seed-editor-file" accept=".json,application/json" hidden />
+    </div>
+    <p class="explore-popover-text explore-popover-quiet">Load takes seed files only: a saved generation brings its own rules and arena, so it can't open as a design.</p>
+    <p id="seed-editor-status" class="explore-popover-text seed-editor-status" role="status" hidden></p>
+
+    <p id="seed-editor-rules" class="explore-popover-text explore-popover-quiet"></p>
+    <p id="seed-editor-error" class="explore-error" role="alert" hidden></p>
+    <div class="explore-save-actions seed-editor-actions">
+      <button type="button" class="glass-button explore-small-button" data-action="use" title="Make the design the seed, and run it from generation 0">Use</button>
+      <button type="button" class="glass-button explore-small-button" data-action="cancel" title="Close without using the design (Esc)">Cancel</button>
+    </div>
+  </aside>
   <!-- === FOOTER ICONS === -->
   <div id="footer-icons">
     <!-- Bottom Controls Container -->
@@ -3104,6 +3198,184 @@
   }
   body.mode-explore #glass-info-sim {
     display: none;
+  }
+  .explore-popover-button {
+    margin-top: 8px;
+  }
+  /* ==== The seed editor (src/explore/editor.js) ==== */
+  /* It takes over the view: the HUD, the control bar and the notices step aside */
+  body.seed-editor-open #glass-display-container,
+  body.seed-editor-open #footer-icons,
+  body.seed-editor-open #explore-notice,
+  body.seed-editor-open #company-brand {
+    display: none !important;
+  }
+  /* The view takes the editor's keys: a thin ring when it has them from the keyboard */
+  body.seed-editor-open canvas:focus {
+    outline: none;
+  }
+  body.seed-editor-open canvas:focus-visible {
+    outline: 2px solid rgba(120, 180, 255, 0.45);
+    outline-offset: -2px;
+  }
+  .seed-editor {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    bottom: 12px;
+    width: 330px;
+    box-sizing: border-box;
+    overflow-y: auto;
+    padding: 12px 14px;
+    background: rgba(35, 45, 60, 0.94);
+    border: 1px solid rgba(120, 180, 255, 0.4);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    color: rgba(200, 220, 255, 0.95);
+    font-size: 13px;
+    line-height: 1.4;
+    z-index: 60;
+  }
+  .seed-editor[hidden],
+  .seed-editor [hidden] {
+    display: none !important;
+  }
+  .seed-editor-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+  .seed-editor-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--color-title);
+    letter-spacing: 0.3px;
+  }
+  .seed-editor-note {
+    margin: 8px 0 0;
+    padding: 6px 8px;
+    border-radius: 6px;
+    background: rgba(255, 170, 90, 0.1);
+    border: 1px solid rgba(255, 170, 90, 0.4);
+  }
+  .seed-editor-help {
+    margin-top: 8px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.25);
+    font-size: 12px;
+  }
+  .seed-editor-help dl {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 3px 10px;
+    margin: 0;
+  }
+  .seed-editor-help dt {
+    font-weight: 700;
+    color: rgba(160, 200, 255, 0.95);
+    white-space: nowrap;
+  }
+  .seed-editor-help dd {
+    margin: 0;
+  }
+  .seed-editor-count,
+  .seed-editor-line {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .seed-editor-count strong {
+    font-size: 15px;
+    color: var(--color-text-contrast);
+  }
+  .seed-editor-line {
+    margin-top: 2px;
+    font-variant-numeric: tabular-nums;
+  }
+  .seed-editor-switch .seed-kind-option {
+    padding: 6px 0;
+    font-size: 12px;
+  }
+  .seed-editor-axes {
+    margin-top: 6px;
+  }
+  .seed-editor-axes.is-quiet {
+    opacity: 0.55;
+  }
+  /* The axis buttons in the colours of the cursor's guides: x red, y green, z blue */
+  .seed-editor-axis-x { color: #ff8a8a; }
+  .seed-editor-axis-y { color: #8aff9f; }
+  .seed-editor-axis-z { color: #8ab8ff; }
+  .seed-editor-selection {
+    margin: 6px 0 0;
+    min-height: 2.8em;
+  }
+  .seed-editor-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+  }
+  .seed-editor-row .glass-button[disabled] {
+    opacity: 0.45;
+    cursor: default;
+  }
+  .seed-editor-toggle[aria-pressed="true"] {
+    background: rgba(77, 163, 255, 0.3);
+    box-shadow: inset 0 0 0 1px rgba(77, 163, 255, 0.5);
+  }
+  .seed-editor-density {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .seed-editor-density .glass-input {
+    width: 64px;
+  }
+  /* The cursor's pad: the arrows as a cross, Away and Near beside it */
+  .seed-editor-pad {
+    display: grid;
+    grid-template-columns: repeat(3, 40px) 1fr;
+    grid-template-rows: repeat(3, 32px);
+    gap: 4px;
+    margin-top: 6px;
+  }
+  .seed-editor-pad .glass-button {
+    padding: 0;
+  }
+  .seed-editor-pad-up { grid-column: 2; grid-row: 1; }
+  .seed-editor-pad-left { grid-column: 1; grid-row: 2; }
+  .seed-editor-pad-right { grid-column: 3; grid-row: 2; }
+  .seed-editor-pad-down { grid-column: 2; grid-row: 3; }
+  .seed-editor-pad-away { grid-column: 4; grid-row: 1; justify-self: start; padding: 0 12px !important; }
+  .seed-editor-pad-near { grid-column: 4; grid-row: 3; justify-self: start; padding: 0 12px !important; }
+  .seed-editor-status {
+    padding: 6px 8px;
+    border-radius: 6px;
+    background: rgba(120, 180, 255, 0.12);
+  }
+  .seed-editor-actions {
+    position: sticky;
+    bottom: -12px; /* the panel's own padding, so the bar meets the panel's foot */
+    margin: 10px -14px -12px;
+    padding: 10px 14px 12px;
+    background: rgba(35, 45, 60, 0.98);
+  }
+  /* At phone width the panel sits at the foot, over the lower part of the view, and scrolls */
+  @media (max-width: 640px) {
+    .seed-editor {
+      top: auto;
+      left: 8px;
+      right: 8px;
+      bottom: 8px;
+      width: auto;
+      max-height: 48vh;
+    }
   }
   body.mode-explore #reverseButton {
     opacity: 0.35;

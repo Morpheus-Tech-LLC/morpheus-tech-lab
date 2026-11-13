@@ -35,7 +35,8 @@ test/                    `npm test` (Node's built-in node:test, no dependency): 
                          its run loop on a fake clock and in a worker_threads Worker, the canonical hash and
                          the verifier (fixtures/ holds an example result and a hand-edited copy), and the engine
                          against convolve3D() (dense.test.js); explore/ checks
-                         Explore's seeds, presets, seed files, saves, settings (setup.test.js) and camera framing
+                         Explore's seeds, presets, seed files, saves, settings (setup.test.js), camera framing
+                         and the seed editor's model (editorModel.test.js)
 src/
   main.js                Boot: Explore (startExplore()) by default, or initSimulation(); then animate()
   brand/tokens.css       Brand pin: the Morpheus Tech brand tokens. Not imported yet. Never hand-edit
@@ -75,7 +76,8 @@ src/
                          and Save seed, and reading either back for Load… (tested in Node)
   explore/view.js        ExploreView: the growing point cloud, chunk boxes past RENDER_BUDGET, the arena and chunk grid
   explore/framing.js     The camera distance that fits the pattern, and easing (no Three.js; tested in Node)
-  explore/seed.js        Shapes lifted into the unbounded world, rule text, the seed file format (tested in Node)
+  explore/seed.js        Shapes lifted into the unbounded world, rule text, the seed file format, and SEED_BOX, the
+                         10³ seed box the editor and the Discovery contests use (tested in Node)
   explore/setup.js       Explore's settings as one value, `state.explore` (#69): the seed's source, the rules, the
                          arena and the memory limit; what each HUD box shows, what is locked, each popover's
                          change or the reason it is refused, and the config startExplore() takes (tested in Node)
@@ -86,6 +88,16 @@ src/
                          and focus goes back to its button. The save popover opens through it too
   explore/hud-check.html Not bundled: a dev page (/src/explore/hud-check.html under `npm run dev`) that clicks
                          through Explore's settings in the HUD in a frame holding the lab, marking each check ✔ or ✖
+  explore/editorModel.js The seed editor's model (#70): the 10³ seed box as bytes, the cursor, the selection, switching,
+                         random fill, undo and redo, seeds in and out, and which axis each movement key takes from
+                         the camera's directions (no DOM, no Three.js; tested in Node)
+  explore/editorView.js  The seed editor's 3D view: its own scene, camera and orbit controls, drawn into the lab's
+                         renderer (never a second WebGL context), and only when something changes; picks a cell
+  explore/editor.js      The seed editor: opening over Explore's view and closing, the panel, the keys, the touch
+                         buttons, Load… and Export; Use goes through setup.js's useDesign()
+  explore/editor-check.html Not bundled: a dev page (/src/explore/editor-check.html under `npm run dev`) that clicks
+                         through the seed editor in a frame holding the lab, marking each check ✔ or ✖, and lists
+                         what to check by hand
   explore/presets.js     Preset seeds with their own rules: Cube10 and Spreading noise (#39's candidate
                          12345, its cells written out; a test checks them against scripts/bench/candidates.mjs)
   unbounded/workbench.html Not bundled: a dev page (/src/unbounded/workbench.html under `npm run dev`) that checks
@@ -127,6 +139,11 @@ src/
   live in `state.explore`, a value from `setup.js` that is replaced, never edited, and only
   through `setup.js`'s changes, which check that it still makes a run. They are set from the
   HUD's boxes; the settings dialog shows only the mode choice in Explore.
+- **The seed editor borrows the view.** While it is open (`isEditorOpen()`), `animate()` calls
+  `editorFrame()` and returns before Explore's frame and the main render; the editor draws its
+  own scene into `state.renderer`, only when something changed, and turns `state.controls` off.
+  Closing it disposes of its scene and controls and gives the view back. Never create a renderer
+  or a canvas for it.
 - **GPU first, CPU after.** For Game of Life 3D and Rule 30, `generateSimulation()` runs
   `evolveOnGpu()` when `state.gpuCompute` is on and a device is ready, then its CPU loop computes
   whatever generations remain: all of them if the GPU was off or unavailable, the rest if the

@@ -29,6 +29,8 @@ local storage: whether GPU compute is on.
  │                                                                              │
  │ main.js opens Explore: hud.startFromSetup() ─► startExplore() ── unbounded/  │
  │   driver ◄──► run.worker; explore/hud.js: the boxes' settings (state.explore)│
+ │   └ seed editor open: editor.editorFrame() ──► explore/editorView.js, drawn  │
+ │     into the same renderer, only on change                                   │
  │   (a Web Worker: World + step, one generation at a time; snapshots back)     │
  └──────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -86,6 +88,22 @@ folding of every HUD box, and `popover.js` keeps one popover open at a time, the
 too. The HUD is one panel, Simulation, in every mode, with the boxes as its sections: first
 Mode, which names the simulation that runs (`controls.js`), then the mode's own. Explore's Run
 box only reports. The settings dialog shows only the mode choice in Explore.
+
+**The seed editor** (#70) designs a seed in the seed box, `SEED_BOX` in `seed.js` (cells −5 to 4
+on each axis), where the Discovery contests' seeds go. The Seed popover opens it: Design… on the
+seed in use (`designOf()`), Edit a copy… on a preset (`presetCopy()`). `editorModel.js`, with no
+DOM and no Three.js, holds the box as 1,000 bytes, the cursor, the selection (every kind is an
+axis-aligned box of cells), switching, random fill and 100 steps of undo and redo, and works out
+which axis each movement key takes from the camera's right, up and viewing directions: each
+screen direction takes a different axis, the assignment that matches them best. `editorView.js`
+has its own scene, camera and orbit controls, but draws into the lab's renderer, so there is
+never a second WebGL context: one instanced mesh for the live cubes (another for the faded ones),
+points for the lattice, boxes and lines for the selection and the cursor. It draws only when
+something changes. While the editor is open, `time.animate()` calls `editorFrame()` instead of
+`exploreFrame()` and the main render, and Explore's camera controls are off; the run's Worker
+keeps going. `editor.js` holds the panel, the keys and picking. Use goes through `useDesign()`,
+which makes the seed `{kind: 'design', cells}` with the rules the editor opened with, and
+restarts the run as a popover's Apply does.
 
 `explore.js` runs it through `EngineDriver`, with no history:
 `state.simulationData` stays null. `view.js` draws the latest snapshot in a point buffer that

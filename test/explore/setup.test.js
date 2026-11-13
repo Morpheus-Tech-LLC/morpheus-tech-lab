@@ -9,7 +9,7 @@ import assert from 'node:assert/strict';
 import {
   initialSetup, makeShape, presetSeed, fileSeed, changeSeed, changeRules, changeArena, changeMemory,
   ownRules, configOf, boxesOf, lockOf, rulesOf, arenaOf, startOf, restartNote, seedLabel, SHAPES,
-  DEFAULT_RULES, DEFAULT_MEMORY_MB, DEFAULT_ARENA, deathCounts,
+  DEFAULT_RULES, DEFAULT_MEMORY_MB, DEFAULT_ARENA, deathCounts, designOf, presetCopy, designFile, useDesign,
 } from '../../src/explore/setup.js';
 import { shapeSeed, toSeedFile, SeedError } from '../../src/explore/seed.js';
 import { readSeedOrSave, generationSave } from '../../src/explore/save.js';
@@ -295,4 +295,74 @@ test('a live cell dies below, above and between the survival counts', () => {
   });
   assert.deepEqual(deathCounts([]), { isolation: range(0, 26), overcrowding: [], gaps: [] });
   assert.deepEqual(deathCounts([0, 26]), { isolation: [], overcrowding: [], gaps: range(1, 25) });
+});
+
+// ---- The seed editor (#70) ----
+
+test('Design… opens on the seed in use when it fits the seed box, with the Rules box rules', () => {
+  const opened = designOf(start());
+  assert.equal(opened.reason, null);
+  assert.equal(opened.places.reduce((a, b) => a + b, 0), 1000);
+  assert.deepEqual(opened.rules, DEFAULT_RULES);
+  // A preset in use: its cells, and the rules the Rules box shows, its own
+  const preset = designOf(changeSeed(start(), presetSeed('spreading-noise')));
+  assert.equal(preset.places.reduce((a, b) => a + b, 0), 224);
+  assert.deepEqual(preset.rules, NOISE.rules);
+});
+
+test('Design… opens on an empty box, saying why, for a seed outside the box or a saved generation', async () => {
+  const big = changeSeed(start(), makeShape('cube', { size: 20, density: 1 }));
+  const opened = designOf(big);
+  assert.equal(opened.places, null);
+  assert.equal(opened.reason, '7,000 cells of this seed lie outside the 10³ box.');
+  const saved = designOf(changeSeed(start(), await savedGeneration()));
+  assert.equal(saved.places, null);
+  assert.match(saved.reason, /saved generation .* can't open as a design/);
+});
+
+test('Edit a copy… opens a preset with its rules; the preset is unchanged', () => {
+  const before = Int32Array.from(CUBE10.cells);
+  const copy = presetCopy('cube10');
+  assert.equal(copy.name, 'Cube10');
+  assert.deepEqual(copy.rules, CUBE10.rules);
+  copy.places.fill(0);
+  assert.deepEqual(Int32Array.from(CUBE10.cells), before);
+  assert.throws(() => presetCopy('nope'), SeedError);
+});
+
+test("Use makes the design a Custom seed with the given rules, unlocked; a preset's copy keeps its rules", () => {
+  const cells = Int32Array.from([0, 0, 0, 1, 0, 0, 0, 1, 0]);
+  const fromPreset = changeSeed(start(), presetSeed('cube10'));
+  const next = useDesign(fromPreset, cells, CUBE10.rules);
+  assert.equal(next.seed.kind, 'design');
+  assert.equal(lockOf(next), null);
+  assert.deepEqual(rulesOf(next), CUBE10.rules);
+  assert.equal(seedLabel(next.seed), 'Design: 3 cells');
+  assert.deepEqual(boxesOf(next).cells, 3);
+  assert.deepEqual(configOf(next).cells, cells);
+  assert.equal(fromPreset.seed.kind, 'preset');
+  // The design opens back in the editor as it was
+  assert.deepEqual(designOf(next).places, designOf(useDesign(start(), cells, B5)).places);
+});
+
+test('Use refuses an empty design, and one outside the arena', () => {
+  assert.throws(() => useDesign(start(), new Int32Array(0), B5), { message: 'The design has no live cells: switch some on first.' });
+  const small = changeArena(useDesign(start(), Int32Array.from([0, 0, 0]), B5), true, 8);
+  assert.throws(() => useDesign(small, Int32Array.from([4, 4, 4]), B5), /doesn't fit inside a 8³ arena/);
+});
+
+test("The editor's Load… takes seed files that fit, and refuses saved generations and seeds that don't", async () => {
+  const fits = designFile('mine.json', await readSeedOrSave(toSeedFile({ rules: B5, cells: Int32Array.from([1, 2, 3]) })));
+  assert.deepEqual(fits.rules, B5);
+  assert.equal(fits.places.reduce((a, b) => a + b, 0), 1);
+  const outside = await readSeedOrSave(toSeedFile({ rules: B5, cells: Int32Array.from([9, 0, 0]) }));
+  assert.throws(() => designFile('far.json', outside), { message: /^far\.json can't open here: 1 cell of this seed lies outside the 10³ box\./ });
+  const { text } = await generationSave({
+    config: { rules: B5, cells: Int32Array.from([0, 0, 0]), arena: null, memoryMB: 1024 },
+    generation: 3,
+    cells: Int32Array.from([1, 1, 1]),
+    ending: 'stopped',
+  });
+  const saved = await readSeedOrSave(text);
+  assert.throws(() => designFile('run.json', saved), { message: /^run\.json is a saved generation\./ });
 });
