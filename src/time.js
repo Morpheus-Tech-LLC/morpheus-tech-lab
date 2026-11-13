@@ -3,6 +3,7 @@ import { state } from './state.js';
 import { updatePoints } from './simulationModel.js';
 import { isExplore, exploreFrame, setSpeed } from './explore/explore.js';
 import { isEditorOpen, editorFrame } from './explore/editor.js';
+import { isContests, contestsFrame } from './contests/contests.js';
 
 let lastFrameTime = 0;
 let lastUpdateTime = 0;
@@ -151,6 +152,13 @@ export function animate(currentTime) {
     // Explore's view waits behind it
     if (isEditorOpen()) {
       editorFrame();
+      return;
+    }
+
+    // The Contests mode draws nothing in 3D, so a run has the machine to itself; only its
+    // panel's countdown moves
+    if (isContests()) {
+      contestsFrame(currentTime);
       return;
     }
 

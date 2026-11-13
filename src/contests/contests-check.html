@@ -1,0 +1,358 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!--
+  Not bundled: a dev page (/src/contests/contests-check.html under `npm run dev`) that clicks
+  through the Contests mode (#77) in a frame holding the lab, and marks each check ✔ or ✖: choosing
+  the mode, the list, Speed's page, two real 6-second runs (one to the end, one stopped), Export,
+  Verify a result on the exported file, an edited copy and a file that isn't a result, and
+  leaving the mode. It changes only the lab in its frame; reload to run it again. The list under
+  the results is what to check by eye.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Contests check</title>
+  <style>
+    :root { color-scheme: dark; }
+    body { margin: 0; padding: 16px; background: #14181f; color: #d8e2ee; font: 14px/1.45 system-ui, sans-serif; }
+    h1 { font-size: 18px; margin: 0 0 4px; }
+    h2 { font-size: 15px; margin: 16px 0 4px; }
+    p { margin: 0 0 12px; color: #9fb0c4; }
+    .layout { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+    iframe { border: 1px solid #33404f; border-radius: 6px; background: #000; }
+    ol { margin: 0; padding: 0; min-width: 320px; max-width: 560px; list-style: none; }
+    li { margin: 2px 0; }
+    li.pass { color: #b9e8c6; }
+    li.fail { color: #ffb4ad; font-weight: 600; }
+    li.section { margin: 10px 0 2px; font-weight: 600; color: #9fc6ff; }
+    #summary { font-weight: 600; margin-bottom: 8px; }
+    button { font: inherit; padding: 4px 10px; }
+    ul.by-hand { max-width: 900px; padding-left: 20px; }
+  </style>
+</head>
+<body>
+  <h1>The Contests mode (#77)</h1>
+  <p>Runs on its own when the page opens, in the frame below; takes about 40 seconds, two of them Speed runs. Keep this tab in front. <button id="again" type="button">Run again</button></p>
+  <div id="summary">Running…</div>
+  <div class="layout">
+    <iframe id="lab" title="The lab" width="1280" height="800"></iframe>
+    <ol id="results"></ol>
+  </div>
+  <h2>By hand, in the lab itself</h2>
+  <ul class="by-hand">
+    <li>Settings → Contests → Apply: the panel sits in the middle, clear of the HUD and the control bar, and reads well.</li>
+    <li>Speed's page: Run stands out as the thing to press.</li>
+    <li>During a run, nothing is drawn behind the panel, the clock's arc empties smoothly over the 6 seconds, and the chart climbs and rescales its generations axis as the run passes each step.</li>
+    <li>Hovering the chart shows a crosshair and the time and generations of the nearest point; its labels never overlap or run off the edge, at full width and at phone width.</li>
+    <li>The results card looks good in a screenshot: the score leads, the chart follows, the rest is secondary.</li>
+    <li>Export result: Chrome and Edge ask where to save <code>speed-1-N.json</code>; Firefox and Safari download it. <code>node scripts/verify.mjs speed-1-N.json</code> says verified, with the score.</li>
+    <li>The results card's browser line is right in Chrome, Edge, Firefox and Safari.</li>
+    <li>At phone width (devtools), the panel sits above the control bar and scrolls if it must.</li>
+    <li>The GPU toggle's popover says contests run on the CPU.</li>
+  </ul>
+  <script type="module">
+    const frame = document.getElementById('lab');
+    const list = document.getElementById('results');
+    const summary = document.getElementById('summary');
+    document.getElementById('again').onclick = () => location.reload();
+    let passed = 0;
+    let failed = 0;
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    function section(name) {
+      const li = document.createElement('li');
+      li.className = 'section';
+      li.textContent = name;
+      list.append(li);
+    }
+    function ok(cond, what) {
+      const li = document.createElement('li');
+      li.className = cond ? 'pass' : 'fail';
+      li.textContent = `${cond ? '✔' : '✖'} ${what}`;
+      list.append(li);
+      if (cond) passed++; else failed++;
+    }
+
+    // ---- In the frame ----
+    let win;
+    let doc;
+    const el = (id) => doc.getElementById(id);
+    const text = (id) => el(id)?.textContent.trim() ?? '';
+    const visible = (id) => {
+      const e = el(id);
+      return Boolean(e) && e.getClientRects().length > 0 && win.getComputedStyle(e).visibility !== 'hidden';
+    };
+    const press = (id) => el(id).click();
+    const panelText = () => el('contests-panel').textContent;
+    async function until(fn, ms) {
+      const end = performance.now() + ms;
+      while (performance.now() < end) {
+        if (fn()) return true;
+        await sleep(100);
+      }
+      return Boolean(fn());
+    }
+    async function load(width, height) {
+      frame.width = width;
+      frame.height = height;
+      frame.src = `/?check=${Date.now()}`;
+      await new Promise((r) => frame.addEventListener('load', r, { once: true }));
+      win = frame.contentWindow;
+      doc = frame.contentDocument;
+      await sleep(2500);
+      frame.focus();
+      win.focus();
+    }
+    async function chooseMode(mode) {
+      press('hud-change-mode');
+      await sleep(300);
+      press(`mode-${mode}`);
+      await sleep(100);
+    }
+    /** Contests opens from its banner beside the HUD, in one click. */
+    async function openContests() {
+      press('contests-banner');
+      await sleep(1200);
+    }
+    async function apply() {
+      press('shapeConfirm');
+      await sleep(1200);
+    }
+    /** Hands the panel's hidden file input a file, as choosing one would. */
+    function chooseFile(name, contents) {
+      const input = el('contests-verify-file');
+      const transfer = new win.DataTransfer();
+      transfer.items.add(new win.File([contents], name, { type: 'application/json' }));
+      input.files = transfer.files;
+      input.dispatchEvent(new win.Event('change', { bubbles: true }));
+    }
+
+    async function run() {
+      await load(1280, 800);
+
+      section('Choosing the mode');
+      ok(doc.body.classList.contains('mode-explore'), 'The lab opens in Explore');
+      ok(visible('contests-banner'), 'The landing page has a Contests banner');
+      const banner = el('contests-banner').getBoundingClientRect();
+      const brand = el('company-brand').getBoundingClientRect();
+      ok(banner.right <= brand.left && brand.left - banner.right >= 16 && brand.left - banner.right <= 40, `It sits left of the company logo, with room between (${Math.round(brand.left - banner.right)} px apart)`);
+      ok(Math.abs((banner.top + banner.bottom) / 2 - (brand.top + brand.bottom) / 2) <= 6, 'level with it');
+      ok(banner.height <= 44 && banner.width <= 260, `It is compact (${Math.round(banner.width)} × ${Math.round(banner.height)} px)`);
+      ok(text('contests-banner').replace(/\s+/g, ' ') === 'Contest Closes TBD', `It says only Contest and when entries close ("${text('contests-banner').replace(/\s+/g, ' ')}")`);
+      ok(win.getComputedStyle(el('contests-banner')).boxShadow.includes('rgba(242, 193, 78'), 'It glows gold');
+      ok(el('contests-banner').getAttribute('aria-pressed') === 'false', 'It is not pressed outside Contests');
+      section('The company panel');
+      const logo = el('company-logo-button-top');
+      const escape = () => doc.body.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+      const companyOpen = () => !el('company-modal').classList.contains('hidden');
+      logo.click();
+      await sleep(300);
+      const content = el('company-modal').querySelector('.modal-content').getBoundingClientRect();
+      const logoBox = logo.getBoundingClientRect();
+      ok(companyOpen(), 'The company logo opens the company panel');
+      ok(Math.abs(content.right - logoBox.right) <= 2 && content.top >= logoBox.bottom && content.top - logoBox.bottom <= 24, `It opens at the top right, under the logo, right edges in line (${Math.round(content.right)} and ${Math.round(logoBox.right)} px)`);
+      ok(visible('company-brand') && logo.getAttribute('aria-expanded') === 'true', 'The logo stays on screen');
+      ok(win.getComputedStyle(logo.querySelector('img')).filter.includes('drop-shadow'), 'lit');
+      ok(doc.elementFromPoint((logoBox.left + logoBox.right) / 2, (logoBox.top + logoBox.bottom) / 2)?.closest('#company-logo-button-top'), 'and on top of the panel, so it can be clicked');
+      ok(!visible('contests-banner'), 'The Contests banner hides meanwhile');
+      logo.click();
+      await sleep(300);
+      ok(!companyOpen() && logo.getAttribute('aria-expanded') === 'false', 'Clicking the logo again closes the panel');
+      ok(visible('contests-banner') && visible('glass-info-mode'), 'The banner and the HUD come back');
+      logo.click();
+      await sleep(300);
+      escape();
+      await sleep(300);
+      ok(!companyOpen(), 'Esc closes it too');
+      ok(doc.activeElement !== logo && !logo.matches(':focus-visible'), 'leaving no focus ring round the logo');
+
+      press('hud-change-mode');
+      await sleep(300);
+      ok(!doc.getElementById('mode-contests'), 'The settings dialog has no Contests card: the banner is the way in');
+      press('shapeCancel');
+      await sleep(300);
+      await openContests();
+      ok(doc.body.classList.contains('mode-contests') && !doc.body.classList.contains('mode-explore'), 'Clicking the banner switches to Contests at once, and Explore ends');
+      ok(visible('contests-banner') && el('contests-banner').getAttribute('aria-pressed') === 'true', 'In Contests, the banner stays, pressed');
+      ok(win.getComputedStyle(el('contests-banner')).backgroundImage !== win.getComputedStyle(doc.body).backgroundImage && el('contests-banner').title.includes('Esc'), 'It looks pressed, and says Esc leaves');
+      ok(visible('contests-panel'), 'The panel shows');
+      ok(text('hud-mode-name') === 'Contest', `The HUD's Mode section says Contest ("${text('hud-mode-name')}")`);
+      ok(visible('glass-info-contest') && text('contest-hud-status') === 'Choosing', 'The HUD shows the Contest section, choosing');
+      ok(!visible('glass-info-sim') && !visible('glass-info-shape') && !visible('glass-info-rules') && !visible('glass-info-explore'), "The other modes' sections, and Explore's, are hidden");
+      ok(win.getComputedStyle(el('playPauseButton')).pointerEvents === 'none', 'Play is off: a contest only runs from its panel');
+      el('company-logo-button-top').click();
+      await sleep(300);
+      ok(!visible('contests-panel') && !visible('contests-banner'), 'The company panel hides the Contests panel and banner while it is open');
+      doc.body.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+      await sleep(300);
+      ok(el('company-modal').classList.contains('hidden') && doc.body.classList.contains('mode-contests') && visible('contests-panel'), 'In Contests, Esc closes the company panel first, and stays in Contests');
+
+      section('The list');
+      ok(text('contests-panel-title') === 'The Contest', 'The panel opens on the list of branches, titled The Contest');
+      ok(visible('contests-open-speed-1'), 'Speed has a card to open');
+      const tiles = [...el('contests-panel').querySelectorAll('.contests-tile')];
+      ok(tiles.length === 3 && tiles.every((t) => { const r = t.getBoundingClientRect(); return Math.abs(r.width - r.height) <= 2; }), `Speed, Methuselah and Contained chaos each have a square card (${tiles.map((t) => Math.round(t.getBoundingClientRect().width)).join(', ')} px)`);
+      ok(tiles.every((t) => t.querySelector('svg.contests-tile-logo path, svg.contests-tile-logo circle')), 'Each card has its logo');
+      ok(new Set(tiles.map((t) => t.style.getPropertyValue('--contest-color'))).size === 3, 'Each card has its own colour');
+      ok(text('contests-closes') === 'Closing date to be announced', 'The list gives the closing date');
+      ok(panelText().includes('One contest, in three branches') && !/\b3 contests\b|three contests/i.test(panelText()), 'It speaks of one contest in three branches');
+      ok(el('contests-verify').classList.contains('contests-verify-button') && el('contests-verify').querySelector('svg.contests-verify-glyph path'), 'Verify a result has its own button, with the scales');
+      const verifyBox = el('contests-verify').getBoundingClientRect();
+      const tilesBox = el('contests-panel').querySelector('.contests-tiles').getBoundingClientRect();
+      ok(verifyBox.top > tilesBox.bottom && Math.abs(verifyBox.width - tilesBox.width) <= 2 && verifyBox.height < 80, `It is a bar across the panel, under the cards (${Math.round(verifyBox.width)} × ${Math.round(verifyBox.height)} px)`);
+      ok(el('contests-verify').closest('.contests-judge')?.textContent.includes('For every branch'), 'under its own heading, For every branch');
+      const coming = el('contests-panel').querySelectorAll('.contests-tile--coming');
+      ok(coming.length === 2 && panelText().includes('Methuselah') && panelText().includes('Contained chaos'), 'Methuselah and Contained chaos are listed as coming');
+      ok([...el('contests-panel').querySelectorAll('a')].map((a) => a.textContent).join(' ') === '#41 #42', 'They link #41 and #42');
+
+      section("Speed's page");
+      press('contests-open-speed-1');
+      ok(text('contests-panel-title') === 'Speed', 'Open shows Speed');
+      ok(el('contests-panel').querySelector('.contests-page-logo path'), "Speed's page shows Speed's logo");
+      ok(panelText().includes('A branch of the contest'), 'It says Speed is a branch of the contest');
+      const areas = [...el('contests-panel').querySelectorAll('.contests-section-title')].map((t) => t.textContent);
+      ok(areas.join(' / ') === 'What everyone runs / How it runs / Fair play', `Its details are in titled areas (${areas.join(' / ')})`);
+      ok(el('contests-panel').querySelectorAll('.contests-fact').length === 4, 'Seed, rules, time and ceiling each have a tile');
+      ok(panelText().includes('B9-10/S5-15') && panelText().includes('6 seconds') && panelText().includes('1,000 generations'), 'It gives the rules, the 6 seconds and the 1,000-generation ceiling');
+      ok(panelText().includes('self-reported'), 'It says the timing is self-reported');
+      ok(text('contest-hud-name') === 'Speed' && text('contest-hud-status') === 'Ready', 'The HUD names Speed, ready');
+      ok(doc.activeElement?.id === 'contests-run', 'Run has the focus');
+      const runBox = el('contests-run').getBoundingClientRect();
+      const verifyBox = el('contests-verify').getBoundingClientRect();
+      ok(runBox.height >= 48 && runBox.width > 2 * verifyBox.width && runBox.top < verifyBox.top, `Run is the page's largest button, above the rest (${Math.round(runBox.width)} × ${Math.round(runBox.height)} px)`);
+
+      section('A run');
+      press('contests-run');
+      ok(visible('contests-countdown') && text('contests-countdown') === '6.0', 'The countdown starts at 6.0');
+      const arcOffset = () => Number(win.getComputedStyle(el('contests-clock-arc')).strokeDashoffset.replace('px', '')) || 0;
+      ok(visible('contests-stop'), 'Stop is offered');
+      await sleep(1500);
+      const left = Number(text('contests-countdown'));
+      ok(left < 5.6 && left > 3.5, `It counts down (${left} after 1.5 s)`);
+      const a1 = arcOffset();
+      ok(a1 > 10 && a1 < 45, `The clock's arc has emptied by about a quarter (${a1.toFixed(0)}%)`);
+      ok(text('contest-hud-status') === 'Running', 'The HUD says running');
+      const generation = () => Number(text('contests-stat-0').replace(/,/g, ''));
+      const g1 = generation();
+      await sleep(1000);
+      ok(generation() > g1 && g1 > 0, `The statistics follow the run (generation ${g1}, then ${generation()})`);
+      ok(arcOffset() > a1, `The arc keeps emptying (${arcOffset().toFixed(0)}%)`);
+      const chart = () => el('contests-panel').querySelector('.contests-chart');
+      const points = chart().querySelector('.contests-chart-line')?.getAttribute('points') ?? '';
+      const xy = points.split(' ').map((p) => p.split(',').map(Number));
+      ok(xy.length >= 3, `The chart has points (${xy.length})`);
+      ok(xy.every(([, y], i) => i === 0 || y <= xy[i - 1][1]), 'Its line climbs: generations completed over time');
+      const titles = [...chart().querySelectorAll('.contests-chart-axis-title')].map((t) => t.textContent);
+      ok(titles.includes('Time (seconds)') && titles.includes('Generations'), `Its axes are titled (${titles.join(', ')})`);
+      const xTicks = [...chart().querySelectorAll('.contests-chart-tick')].map((t) => t.textContent);
+      ok(['0', '1', '2', '3', '4', '5', '6'].every((t) => xTicks.includes(t)), 'Time runs from 0 to 6 seconds');
+      const top = Math.max(...xTicks.map((t) => Number(t.replace(/,/g, ''))));
+      ok(top >= generation(), `The generations axis fits the run (up to ${top})`);
+      ok(chart().getBoundingClientRect().height >= 200, `The chart is large (${Math.round(chart().getBoundingClientRect().height)} px tall)`);
+      ok(text('contests-stat-6').includes('×'), `The extent shows (${text('contests-stat-6')})`);
+      ok(await until(() => visible('contests-score'), 8000), 'The results card shows once the 6 seconds are up');
+      ok(/^[\d,]+$/.test(text('contests-score')) && /^generations in (6 seconds|[\d.]+ s, the ceiling)$/.test(text('contests-score-unit')), `It leads with the score ("${text('contests-score')}", "${text('contests-score-unit')}")`);
+      ok(parseFloat(win.getComputedStyle(el('contests-score')).fontSize) >= 56, `in large type (${win.getComputedStyle(el('contests-score')).fontSize})`);
+      ok(chart()?.querySelector('.contests-chart-line') && chart().querySelector('details table'), 'The results card keeps the chart, with its data as a table');
+      const times = [...chart().querySelectorAll('details tbody tr td:first-child')].map((td) => Number(td.textContent));
+      ok(times.length > 2 && times.every((t) => t <= 6), `No point in the table is past 6 seconds (the last at ${times.at(-1)} s)`);
+      ok(panelText().includes('The 6 seconds ran out.') || panelText().includes('reached the ceiling'), 'It says how the run ended');
+      ok(panelText().includes('self-reported'), 'It says the timing is self-reported');
+      ok(await until(() => /^sha256:[0-9a-f]{64}$/.test(text('contests-hash')), 15000), 'The hash comes from the Worker');
+      const hashBox = el('contests-hash').getBoundingClientRect();
+      const copyBox = el('contests-copy-hash').getBoundingClientRect();
+      ok(copyBox.left >= hashBox.right - 1 && copyBox.top < hashBox.bottom && copyBox.bottom > hashBox.top, 'Copy is to the right of the hash');
+      ok(hashBox.height < 24, `The hash fits on one line (${Math.round(hashBox.height)} px tall)`);
+      ok(!text('contests-hero-meta').startsWith('Detecting'), `The browser is named under the score ("${text('contests-hero-meta')}")`);
+      ok(!el('contests-export').disabled, 'Export result is ready');
+      ok(text('contest-hud-status') === 'Finished', 'The HUD says finished');
+      const score = Number(text('contests-score').replace(/,/g, ''));
+
+      section('Export, then Verify a result');
+      let exported = null;
+      // Take the file as Export writes it: through a download, as in Firefox and Safari
+      delete win.showSaveFilePicker;
+      win.showSaveFilePicker = undefined;
+      const createObjectURL = win.URL.createObjectURL;
+      win.URL.createObjectURL = (blob) => { exported = blob; return createObjectURL.call(win.URL, blob); };
+      win.HTMLAnchorElement.prototype.click = function () {}; // no real download from the check
+      press('contests-export');
+      await until(() => exported, 3000);
+      ok(Boolean(exported), 'Export result writes a file');
+      ok(text('contests-panel-status').includes(`speed-1-${score}.json`), `It is named for the contest and the score ("${text('contests-panel-status')}")`);
+      const file = exported ? await exported.text() : '{}';
+      const data = JSON.parse(file);
+      ok(data.run?.contest === 'speed-1' && data.score?.generations === score && data.generation === score, 'The file is a speed-1 result, with its score');
+      ok(data.cells === undefined, "It doesn't carry the cells");
+      ok(data.details?.browser?.name, `It names the browser (${data.details?.browser?.name} ${data.details?.browser?.version})`);
+      chooseFile(`speed-1-${score}.json`, file);
+      ok(await until(() => visible('contests-verdict'), 60000), 'Verify a result answers');
+      ok(text('contests-verdict') === 'Verified', `The exported file verifies ("${text('contests-verdict')}": ${text('contests-verdict-message')})`);
+      ok(panelText().includes('the time is self-reported'), 'The verdict notes the time is self-reported');
+      const edited = file.replace(`"generations": ${score}`, `"generations": ${score + 1}`);
+      chooseFile('edited.json', edited);
+      ok(await until(() => visible('contests-verdict') && text('contests-verdict') !== 'Verified', 30000), 'A hand-edited copy is checked');
+      ok(text('contests-verdict') === "Doesn't match", `A hand-edited copy doesn't match ("${text('contests-verdict-message')}")`);
+      chooseFile('notes.json', '{"hello": "world"}');
+      ok(await until(() => text('contests-verdict') === 'Not a result file', 10000), 'A file that is not a result is refused');
+
+      section('Stopping a run');
+      press('contests-back');
+      ok(text('contests-panel-title') === 'Speed', 'Back goes to Speed');
+      press('contests-run');
+      await sleep(1200);
+      press('contests-stop');
+      ok(await until(() => text('contests-panel-title') === 'Speed: no score', 3000), 'Stop ends the run with no score');
+      ok(panelText().includes('Stopped by hand'), 'It says why');
+      ok(!el('contests-export'), 'There is nothing to export');
+      ok(text('contest-hud-status') === 'Stopped', 'The HUD says stopped');
+
+      section('Leaving the mode');
+      press('contests-again');
+      press('contests-run');
+      await sleep(800);
+      await chooseMode('explore');
+      await apply();
+      ok(doc.body.classList.contains('mode-explore') && !doc.body.classList.contains('mode-contests'), 'Choosing Explore mid-run leaves Contests');
+      ok(!visible('contests-panel') && !visible('glass-info-contest'), 'The panel and the Contest section are gone');
+      const g = Number(text('explore-generation').replace(/,/g, ''));
+      await sleep(1000);
+      ok(Number(text('explore-generation').replace(/,/g, '')) >= g && text('hud-mode-name') === 'Explore', 'Explore runs as before');
+      ok(el('contests-banner').getAttribute('aria-pressed') === 'false', 'Back in Explore, the banner is not pressed');
+      await openContests();
+      press('contests-banner');
+      await sleep(1200);
+      ok(doc.body.classList.contains('mode-explore') && !doc.body.classList.contains('mode-contests'), 'Clicking the pressed banner goes back to Explore');
+      await openContests();
+      doc.body.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      await sleep(1200);
+      ok(doc.body.classList.contains('mode-explore') && !doc.body.classList.contains('mode-contests'), 'So does Esc');
+      await openContests();
+      ok(visible('contests-panel') && text('contests-panel-title') === 'The Contest', 'Back in Contests, the panel is on the list again');
+      press('hud-change-mode');
+      await sleep(300);
+      ok(text('mode-description').includes('Speed times how many generations') && !doc.querySelector('.mode-card.active'), 'Opened from Contests, the dialog describes it, with no other mode chosen');
+      ok(!visible('sim-params-section') && text('explore-settings-note').includes('Each branch of the contest fixes its own'), 'with nothing to set');
+      await apply();
+      ok(doc.body.classList.contains('mode-contests') && visible('contests-panel'), 'Apply with no mode chosen stays in Contests');
+      await chooseMode('gameOfLife');
+      await apply();
+      await sleep(1500);
+      ok(!doc.body.classList.contains('mode-contests') && !visible('contests-panel'), 'Choosing Game of Life leaves Contests too');
+      ok(text('hud-mode-name') === 'Game of Life' && visible('glass-info-sim'), 'Game of Life shows its Grid section as before');
+      await openContests();
+      doc.body.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      await sleep(2500);
+      ok(text('hud-mode-name') === 'Game of Life' && !doc.body.classList.contains('mode-contests') && visible('glass-info-sim'), 'Opened from Game of Life, Esc goes back to Game of Life');
+    }
+
+    run()
+      .catch((err) => ok(false, `The check stopped: ${err.message}`))
+      .finally(() => {
+        summary.textContent = `${passed} passed, ${failed} failed`;
+        summary.style.color = failed ? '#ffb4ad' : '#b9e8c6';
+      });
+  </script>
+</body>
+</html>

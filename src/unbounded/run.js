@@ -25,6 +25,9 @@
 //   {type: 'snapshot', id, budget?, slice?: {axis, index}, stats?: true}
 //     cells, or chunks past `budget` live cells; with a slice, only those in the plane where
 //     coordinate `axis` (0, 1, 2) equals `index`; with stats, the statistics of the same moment
+//   {type: 'result', id, run, score?, details?}        once the run has ended: its result file
+//     (canonical.js's resultOf()), made here so the page never holds a large generation's cells;
+//     the ending is the run's own end reason
 // Messages from the run:
 //   {type: 'state', state: 'running' | 'paused' | 'ended', reason?, cycle?, stats}
 //   {type: 'cycle', id, from, period, frames: Int32Array[] | null}   null past `budget` cells
@@ -32,6 +35,7 @@
 //   {type: 'snapshot', id, generation, live, chunkSize, slice?, stats?, cells?: Int32Array, chunks?: Int32Array}
 //     cells as x, y, z triples, or chunks as x, y, z, live quadruples (World.chunkList()); the
 //     array's buffer is transferred
+//   {type: 'result', id, result}                       the result, as an object for resultText()
 //   {type: 'error', id?, message}
 //
 // Statistics go out on their own at most four times a second, and with every change of state.
@@ -39,8 +43,10 @@
 //
 // Nothing here imports `state` or touches the page.
 
-import { World, STOP_REASONS } from './world.js';
+import { World } from './world.js';
 import { step as stepWorld } from './step.js';
+import { END_REASONS } from './endings.js';
+import { resultOf } from './canonical.js';
 
 export const STATS_INTERVAL_MS = 250;
 /** How long the loop steps before yielding to messages, unless one generation takes longer. */
@@ -48,21 +54,16 @@ export const SLICE_MS = 16;
 /** How many generations back a settling run looks for a repeat: the longest period it spots. */
 export const REPEAT_WINDOW = 10_000;
 
-/** The reasons a run can end: the engine's limits, plus the run's own. */
-export const END_REASONS = [
-  ...STOP_REASONS,
-  'stopped', // stopped by hand
-  'deadline', // a timed run reached its deadline
-  'generation-limit', // the run completed the generations it was given
-  'died', // a settling run: no live cells remain
-  'repeat', // a settling run: the cells repeat, in place, an earlier generation's
-  'error', // a fault in the engine; the message says what
-];
+/** The reasons a run can end (endings.js), here too for the code that already looks here. */
+export { END_REASONS };
 
 /**
  * @typedef {object} Stats
  * @property {number} generation - generations completed
  * @property {number} elapsedMs - time spent running, without pauses
+ * @property {number} generationMs - the running time at which the current generation was
+ *   completed. A timed run ends after its deadline, once the generation it was computing is done
+ *   and discarded, so elapsedMs then passes the deadline; generationMs never does
  * @property {number} rate - generations per second since the last statistics; 0 unless running
  * @property {number} live - live cells, and `livePeak` the most there have been
  * @property {number} livePeak
@@ -116,6 +117,7 @@ export class Run {
       case 'stop': return this.live() && this.end('stopped');
       case 'snapshot': return this.snapshot(message.id, message.budget, message.slice, message.stats);
       case 'cycle': return this.cycle(message.id, message.budget);
+      case 'result': return this.result(message);
       default: throw new RunError(`Unknown message ${JSON.stringify(message?.type)}.`);
     }
   }
@@ -150,6 +152,7 @@ export class Run {
     this.livePeak = world.liveCells;
     this.runningMs = 0;
     this.runningSince = null;
+    this.generationMs = 0;
 
     const now = this.now();
     this.window = { at: now, generation: from, runningMs: 0 };
@@ -198,6 +201,7 @@ export class Run {
       this.end(reason);
       return true;
     }
+    if (this.state === 'running') this.generationMs = this.runningMs + this.now() - this.runningSince;
     const live = this.world.liveCells;
     if (live > this.livePeak) this.livePeak = live;
     if (this.rate) this.dueAt = Math.max(this.dueAt + 1000 / this.rate, this.now());
@@ -271,6 +275,7 @@ export class Run {
     const started = this.now();
     if (!this.advance()) {
       this.runningMs += this.now() - started;
+      this.generationMs = this.runningMs;
       this.sendState();
     }
   }
@@ -308,6 +313,7 @@ export class Run {
   }
 
   end(reason) {
+    this.endReason = reason;
     if (this.world.stopReason === null) this.world.stop(reason);
     this.setState('ended', reason);
   }
@@ -341,6 +347,7 @@ export class Run {
     return {
       generation: world.generation,
       elapsedMs: runningMs,
+      generationMs: this.generationMs,
       rate,
       live: world.liveCells,
       livePeak: this.livePeak,
@@ -378,6 +385,17 @@ export class Run {
       message[live > budget ? 'chunks' : 'cells'] = array;
     }
     this.post(message, [array.buffer]);
+  }
+
+  /**
+   * Makes the ended run's result file: the hash of its last complete generation, under the
+   * run's definition the page gives, with the score and details the page gives.
+   */
+  result({ id, run, score, details = {} }) {
+    if (this.state !== 'ended') throw new RunError('A result is made once the run has ended.');
+    resultOf(this.world, { run, ending: this.endReason, score, details })
+      .then((result) => this.post({ type: 'result', id, result }))
+      .catch((err) => this.fail(err, id));
   }
 
   live() {

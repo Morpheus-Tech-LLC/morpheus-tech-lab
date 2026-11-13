@@ -32,6 +32,8 @@ local storage: whether GPU compute is on.
  │   └ seed editor open: editor.editorFrame() ──► explore/editorView.js, drawn  │
  │     into the same renderer, only on change                                   │
  │   (a Web Worker: World + step, one generation at a time; snapshots back)     │
+ │ Contests mode: contests/contests.js ─► panel.js ─► speed.js (SpeedRun) ──►   │
+ │   run.worker, timed, which makes the result file; verify.worker for Verify   │
  └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -155,6 +157,31 @@ made from the contest itself, with `scripts/reference-hashes.mjs --contest speed
 The browser's name and version in a result's details come from `src/browser.js`, and are never
 checked.
 
+**The Contests mode** (`src/contests/`, #77). The page presents one contest in three branches
+(Speed, Methuselah, Contained chaos); the code calls each branch a contest (`contests.js`'s
+`CONTESTS`, an id such as `speed-1`, and a result file's `run.contest`, which is hashed, so it
+keeps its name). It is a sixth mode, opened from a compact banner left of the
+company logo, which also gives the date entries close (`closes` in `contests.js`, "Closes TBD"
+while null). It has nothing to set, so one click opens it (`enterContests()` in `controls.js`),
+and it has no card in the settings dialog. In Contests the banner stays, pressed; a click on it,
+or Esc, goes back to the mode it was opened from (`leaveContests()`). Like Explore, it never reaches
+`initSimulation()`. `contests.js` starts it in an empty scene and
+shows the panel (`panel.js`) in the middle of the screen; `animate()` then draws nothing, and only
+moves the countdown (`contestsFrame()`). The panel lists the contests as square cards, each kind
+in its own colour and logo (`looks.js`), opens Speed's page, runs it
+(`speed.js`'s `SpeedRun`: a timed run in a Worker, with the contest's chunk size and its ceiling as
+the generation limit) and shows a clock whose arc empties over the 6 seconds, the statistics, and
+a chart of the generations completed over time (each at the moment it was completed, the Worker's
+`generationMs`, so a generation discarded at the deadline never stretches the line past 6
+seconds), with axes rescaled as the run climbs
+(`format.js`'s `chartLayout()`, tested in Node). The results card leads with the score, sized for
+a screenshot, then the same chart, with its data as a table. When the run ends, `SpeedRun` scores it from the run's
+own end reason and statistics, and asks the Worker for the result file (`run.js`'s `result`
+message, `resultOf()` there), so the page never holds the cells. **Verify a result** reads a
+file and checks it in its own Worker (`verify.worker.js`, running `verifyResult()`). The panel sets
+only `textContent`, so nothing from a file is read as HTML. Leaving the mode closes the panel and
+terminates its Workers.
+
 **Benchmarks**: `scripts/bench.mjs` (#39) measures the engine in Node (chunk sizes, seeds, rules,
 a bit-packed step, the dense `convolve3D()` in `denseStep.js`, serialization), times the Speed
 candidates through the real run loop, and projects the Discovery worst case, a result file made by
@@ -207,6 +234,12 @@ empty space exact. Cells live in slabs outside the JavaScript heap, which browse
 GB whatever the machine has, and a slab is the only point where the engine asks for memory, so
 running out is a catchable error. A limit ends a run with the last complete generation whole,
 never clipped, so a run can always be replayed to the same place.
+
+**A contest's run draws nothing (#77).** Speed's score is how many generations the visitor's
+machine completes in 6 seconds, so the page gives it the whole machine: no 3D view while it runs,
+only a countdown and statistics four times a second. Its result file is made in the Worker, from
+the world it already holds, rather than by sending a generation of hundreds of thousands of cells
+to the page.
 
 **The unbounded engine runs in a Worker (#36).** A run can work flat out for as long as it
 lasts, so it runs off the page's thread, and the page only sends commands and draws what it

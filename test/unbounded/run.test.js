@@ -76,6 +76,10 @@ for (const msPerStep of [10, 7, 1000]) {
     assert.equal(end.stats.generation, expected);
     assert.equal(f.run.world.generation, expected);
     sameAs(f.run.world, expected);
+    // The run ran on past the deadline, computing the generation it dropped; the last one it kept
+    // was completed before the deadline, at expected · msPerStep
+    assert.equal(end.stats.generationMs, expected * msPerStep);
+    assert.ok(end.stats.generationMs < 1000 && end.stats.elapsedMs >= 1000);
     // The dropped generation returned the chunks it borrowed
     assert.equal(f.run.world.chunkCount, new Set(cellsOf(f.run.world).map(([x, y, z]) => `${x >> 3},${y >> 3},${z >> 3}`)).size);
   });
@@ -86,6 +90,7 @@ test('a timed run ends at its generation budget, if that comes first', () => {
   f.start({ run: { kind: 'timed', seconds: 6 }, generations: 25 });
   f.until();
   assert.equal(f.ended().reason, 'generation-limit');
+  assert.equal(f.ended().stats.generationMs, 250, 'the 25th generation was completed at 250 ms');
   sameAs(f.run.world, 25);
 });
 
