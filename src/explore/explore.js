@@ -250,23 +250,10 @@ export async function confirmSave() {
   const save = session.save;
   if (!save?.text || save.saved) return;
   try {
-    if (canPickFolder()) {
-      // Asked first: the browser shows its dialog only straight after the click
-      const handle = await window.showSaveFilePicker({
-        suggestedName: save.name,
-        types: [{ description: save.kind === 'seed' ? 'Explore seed file' : 'Explore saved generation', accept: { 'application/json': ['.json'] } }],
-      });
-      const writable = await handle.createWritable();
-      await writable.write(save.text);
-      await writable.close();
-      if (session.save !== save) return;
-      save.saved = true;
-      fillSave({ status: `Saved as ${handle.name}, in the folder you chose.`, ready: false });
-    } else {
-      download(save.name, save.text);
-      save.saved = true;
-      fillSave({ status: `Downloaded as ${save.name}: your browser's downloads list shows where it went.`, ready: false });
-    }
+    const status = await writeJsonFile(save.name, save.text, save.kind === 'seed' ? 'Explore seed file' : 'Explore saved generation');
+    if (session.save !== save) return;
+    save.saved = true;
+    fillSave({ status, ready: false });
   } catch (err) {
     if (err?.name === 'AbortError') return; // the visitor cancelled the save dialog
     if (session.save === save) fillSave({ status: `Not saved: ${err.message}`, ready: true });
@@ -279,7 +266,33 @@ export function closeSave() {
   showSavePopover(null);
 }
 
-function canPickFolder() {
+/**
+ * Writes a JSON file through the browser's save dialog where there is one, so the visitor picks
+ * the folder, or as a download. Call it straight from a click: the browser shows its dialog only
+ * then. The seed editor's Export writes through it too.
+ * @param {string} name - the suggested name
+ * @param {string} text
+ * @param {string} description - the kind of file, for the save dialog
+ * @returns {Promise<string>} what happened, for the visitor
+ * @throws an AbortError if the visitor cancels the save dialog
+ */
+export async function writeJsonFile(name, text, description) {
+  if (canPickFolder()) {
+    const handle = await window.showSaveFilePicker({
+      suggestedName: name,
+      types: [{ description, accept: { 'application/json': ['.json'] } }],
+    });
+    const writable = await handle.createWritable();
+    await writable.write(text);
+    await writable.close();
+    return `Saved as ${handle.name}, in the folder you chose.`;
+  }
+  download(name, text);
+  return `Downloaded as ${name}: your browser's downloads list shows where it went.`;
+}
+
+/** Whether Save asks where to put the file, rather than downloading it. */
+export function canPickFolder() {
   return typeof window !== 'undefined' && typeof window.showSaveFilePicker === 'function';
 }
 

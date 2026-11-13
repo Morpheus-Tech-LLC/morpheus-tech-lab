@@ -1,0 +1,401 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!--
+  Not bundled: a dev page (/src/explore/editor-check.html under `npm run dev`) that clicks
+  through the seed editor (#70) in a frame holding the lab, and marks each check ✔ or ✖. It
+  changes only the lab in its frame; reload to run it again. What it can't check (how the editor
+  looks, clicking a cell, dragging the view, Export's save dialog) is listed below it, to try by
+  hand in the lab itself.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Seed editor check</title>
+  <style>
+    :root { color-scheme: dark; }
+    body { margin: 0; padding: 16px; background: #14181f; color: #d8e2ee; font: 14px/1.45 system-ui, sans-serif; }
+    h1 { font-size: 18px; margin: 0 0 4px; }
+    h2 { font-size: 15px; margin: 18px 0 4px; }
+    p { margin: 0 0 12px; color: #9fb0c4; }
+    .layout { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+    iframe { border: 1px solid #33404f; border-radius: 6px; background: #000; }
+    ol { margin: 0; padding: 0; min-width: 320px; max-width: 560px; list-style: none; }
+    li { margin: 2px 0; }
+    li.pass { color: #b9e8c6; }
+    li.fail { color: #ffb4ad; font-weight: 600; }
+    li.section { margin: 10px 0 2px; font-weight: 600; color: #9fc6ff; }
+    li.total { margin-top: 12px; font-weight: 600; }
+    #summary { font-weight: 600; margin-bottom: 8px; }
+    button { font: inherit; padding: 4px 10px; }
+    ul.by-hand { margin: 0; padding-left: 20px; max-width: 900px; }
+    ul.by-hand li { margin: 3px 0; }
+  </style>
+</head>
+<body>
+  <h1>The seed editor (#70)</h1>
+  <p>Runs on its own when the page opens, in the frame below; takes about 40 seconds. <button id="again" type="button">Run again</button></p>
+  <div id="summary">Running…</div>
+  <div class="layout">
+    <iframe id="lab" title="The lab" width="1280" height="800"></iframe>
+    <ol id="results"></ol>
+  </div>
+  <h2>By hand, in the lab (npm run dev, then http://localhost:5180)</h2>
+  <ul class="by-hand">
+    <li>Seed gear → Custom → Design → Design…: the whole 10³ box shows, live cells as cubes, empty places as faint dots, its outline, and the cursor with red, green and blue guides.</li>
+    <li>Drag to turn the view; Front, Top, Side and Angled put the camera there. From each, the arrow keys move the cursor the way they point, and Page Up moves it away from you.</li>
+    <li>Click a live cube, then an empty dot: the cursor goes there. With 4 Box, Shift+click sets the box's other corner.</li>
+    <li>The selection is a yellow box: its live cells are tinted, its empty places bright. F fades every cell outside the plane or box, and a click then picks only inside it.</li>
+    <li>Export: the browser asks where to save (Chrome, Edge) or downloads explore-seed.json. Load… in the editor, or the Seed box's File → Load… then Apply, then Design…, opens it unchanged.</li>
+    <li>Save seed (Seed box) of a design in use, loaded back the same ways, opens unchanged.</li>
+    <li>Keyboard alone: Tab from the Seed gear through the popover to Design…, Enter opens the editor; Tab reaches every panel button; Space on a focused button presses it, Space on the view switches the selection; Esc closes and focus is back on the gear.</li>
+    <li>At phone width (devtools, 375 px), the panel sits at the foot and scrolls, the box shows above it, and the on-screen arrows, Away and Near move the cursor.</li>
+    <li>While the editor is open, a running run keeps counting (close the editor: the generation has moved on).</li>
+  </ul>
+  <script type="module">
+    import { generationSave } from '/src/explore/save.js';
+    import { toSeedFile } from '/src/explore/seed.js';
+
+    const frame = document.getElementById('lab');
+    const list = document.getElementById('results');
+    const summary = document.getElementById('summary');
+    document.getElementById('again').onclick = () => location.reload();
+    let passed = 0;
+    let failed = 0;
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    function section(name) {
+      const li = document.createElement('li');
+      li.className = 'section';
+      li.textContent = name;
+      list.append(li);
+    }
+    function ok(cond, what) {
+      const li = document.createElement('li');
+      li.className = cond ? 'pass' : 'fail';
+      li.textContent = `${cond ? '✔' : '✖'} ${what}`;
+      list.append(li);
+      if (cond) passed++; else failed++;
+    }
+
+    // ---- In the frame ----
+    let win;
+    let doc;
+    let draws = 0;
+    const el = (id) => doc.getElementById(id);
+    const text = (id) => el(id)?.textContent.trim();
+    const visible = (id) => {
+      const e = el(id);
+      return Boolean(e) && e.getClientRects().length > 0 && win.getComputedStyle(e).visibility !== 'hidden';
+    };
+    const press = (id) => el(id).click();
+    const panelButton = (selector) => doc.querySelector(`#seed-editor ${selector}`).click();
+    const count = () => Number(text('seed-editor-count').replace(/,/g, ''));
+    const open = () => doc.body.classList.contains('seed-editor-open');
+    function key(k, options = {}) {
+      const target = doc.activeElement ?? doc.body;
+      target.dispatchEvent(new win.KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true, ...options }));
+    }
+    function setValue(id, value) {
+      const e = el(id);
+      e.value = String(value);
+      e.dispatchEvent(new win.Event('input', { bubbles: true }));
+      e.dispatchEvent(new win.Event('change', { bubbles: true }));
+    }
+    function loadFile(inputId, name, text) {
+      const files = new win.DataTransfer();
+      files.items.add(new win.File([text], name, { type: 'application/json' }));
+      el(inputId).files = files.files;
+      el(inputId).dispatchEvent(new win.Event('change'));
+    }
+    const submit = (id) => el(id).requestSubmit();
+    function fits(id) {
+      const r = el(id).getBoundingClientRect();
+      return r.left >= 0 && r.top >= 0 && r.right <= win.innerWidth + 0.5 && r.bottom <= win.innerHeight + 0.5;
+    }
+    async function load(width, height) {
+      frame.width = width;
+      frame.height = height;
+      frame.src = `/?check=${Date.now()}`;
+      await new Promise((r) => frame.addEventListener('load', r, { once: true }));
+      win = frame.contentWindow;
+      doc = frame.contentDocument;
+      // Counts the frame's WebGL draw calls, to see when the view draws
+      draws = 0;
+      for (const Context of [win.WebGL2RenderingContext, win.WebGLRenderingContext]) {
+        for (const name of ['drawArrays', 'drawElements', 'drawArraysInstanced', 'drawElementsInstanced']) {
+          const draw = Context?.prototype[name];
+          if (draw) Context.prototype[name] = function (...args) { draws++; return draw.apply(this, args); };
+        }
+      }
+      await sleep(2500);
+      frame.focus();
+      win.focus();
+    }
+    async function drawsDuring(ms) {
+      const before = draws;
+      await sleep(ms);
+      return draws - before;
+    }
+    async function openDesign() {
+      press('explore-change-seed');
+      press('explore-seed-custom');
+      press('explore-source-design');
+      press('explore-design');
+      await sleep(200);
+    }
+
+    async function run() {
+      await load(1280, 800);
+      const canvases = doc.querySelectorAll('canvas').length;
+      // The Rules box's own text, as the lab writes counts ([9, 10] as "9-10")
+      const boxRules = () => `B${text('rules-birth')} / S${text('rules-survival')}`;
+      const startRules = boxRules();
+
+      section('Opening from Design…');
+      press('explore-change-seed');
+      press('explore-seed-custom');
+      press('explore-source-design');
+      ok(visible('explore-design') && text('explore-design-status').includes('seed in use'), `Custom has Design, with Design… and what it opens ("${text('explore-design-status')}")`);
+      press('explore-design');
+      await sleep(200);
+      ok(open() && visible('seed-editor'), 'Design… opens the editor');
+      ok(!el('explore-seed-popover').classList.contains('is-open'), 'The Seed popover closed');
+      ok(!visible('glass-display-container') && !visible('footer-icons'), 'The HUD and the control bar step aside');
+      ok(doc.querySelectorAll('canvas').length === canvases, `It draws on the lab's own canvas (${canvases} canvas, as before)`);
+      ok(count() === 1000, `It opens on the cube in use: Live cells ${text('seed-editor-count')} / 1,000`);
+      ok(!visible('seed-editor-note'), 'With no note, as the cube fits the box');
+      ok(text('seed-editor-cursor') === 'x 0, y 0, z 0', `The cursor starts at the centre (${text('seed-editor-cursor')})`);
+      ok(doc.activeElement === doc.querySelector('canvas'), 'The view has the keys');
+      ok(text('seed-editor-rules').includes(startRules) && text('seed-editor-rules').includes('the Rules box'), `It says which rules Use brings, the Rules box's ${startRules} ("${text('seed-editor-rules')}")`);
+
+      section('Drawing only on change');
+      ok(await drawsDuring(1000) === 0, 'Left alone for a second, it draws nothing');
+      key('ArrowRight');
+      ok(await drawsDuring(200) > 0, 'A key that moves the cursor draws it again');
+      ok(await drawsDuring(800) === 0, 'Then nothing again');
+
+      section('The selection');
+      panelButton('[data-view="front"]');
+      key('ArrowLeft');
+      ok(text('seed-editor-selection') === 'Cell at x 0, y 0, z 0: alive.', `1 Cell: "${text('seed-editor-selection')}"`);
+      key('2');
+      ok(text('seed-editor-selection') === 'Line along x, at y 0, z 0: 10 cells, 10 alive.', `2 Line: "${text('seed-editor-selection')}"`);
+      key('z');
+      key('3');
+      ok(text('seed-editor-selection') === 'Plane across z, at z 0: 100 cells, 100 alive.', `Z, 3 Plane: "${text('seed-editor-selection')}"`);
+      ok(doc.querySelector('#seed-editor [data-kind="plane"]').getAttribute('aria-pressed') === 'true'
+        && doc.querySelector('#seed-editor [data-axis="2"]').getAttribute('aria-pressed') === 'true', 'The panel shows Plane and Z pressed');
+      key('4');
+      key('ArrowRight');
+      key('ArrowUp');
+      key('ArrowUp');
+      ok(text('seed-editor-selection').startsWith('Box 2×3×1, from x 0, y 0, z 0 to x 1, y 2, z 0: 6 cells'), `4 Box, stretched: "${text('seed-editor-selection')}"`);
+      key('5');
+      ok(text('seed-editor-selection') === 'All 1,000 cells: 1,000 alive.', `5 All: "${text('seed-editor-selection')}"`);
+
+      section('Switching, random fill, undo and redo');
+      key('1');
+      key(' ');
+      ok(count() === 999, `Space on a live cell clears it (${count()})`);
+      key('3');
+      key('Enter');
+      ok(count() === 1000, `Enter on a partly alive plane fills it (${count()})`);
+      key('Enter');
+      ok(count() === 900, `Enter on a full plane clears it (${count()})`);
+      key('z', { ctrlKey: true });
+      ok(count() === 1000, `Ctrl+Z undoes (${count()})`);
+      key('z', { ctrlKey: true });
+      ok(count() === 999, `Ctrl+Z again (${count()})`);
+      key('z', { ctrlKey: true, shiftKey: true });
+      key('y', { ctrlKey: true });
+      ok(count() === 900, `Ctrl+Shift+Z and Ctrl+Y redo (${count()})`);
+      key('5');
+      key(' ');
+      ok(count() === 1000, `Space on a partly alive box fills it (${count()})`);
+      key(' ');
+      ok(count() === 0, `Space on everything alive clears it (${count()})`);
+      setValue('seed-editor-density', '0.3');
+      key('r');
+      ok(count() > 220 && count() < 380, `R fills the selection at 0.3 (${count()} of 1,000)`);
+      const designed = count();
+      panelButton('[data-action="undo"]');
+      ok(count() === 0, 'The Undo button undoes');
+      panelButton('[data-action="redo"]');
+      ok(count() === designed, 'The Redo button redoes');
+
+      section('Moving the cursor');
+      // The cursor's coordinates, from the panel's "x 2, y −1, z 4"
+      const at = () => text('seed-editor-cursor').split(', ').map((part) => Number(part.slice(2).replace('\u2212', '-')));
+      const moved = (from, to) => to.map((c, a) => c - from[a]).join(',');
+      key('1');
+      panelButton('[data-view="front"]');
+      let from = at();
+      key('ArrowRight');
+      ok(moved(from, at()) === '1,0,0', `From the front, → moves along +x (${moved(from, at())})`);
+      from = at();
+      key('ArrowUp');
+      ok(moved(from, at()) === '0,1,0', `↑ moves along +y (${moved(from, at())})`);
+      from = at();
+      key('PageUp');
+      ok(moved(from, at()) === '0,0,-1', `Page Up moves away, along \u2212z (${moved(from, at())})`);
+      key('PageDown');
+      panelButton('[data-view="top"]');
+      from = at();
+      key('ArrowUp');
+      ok(moved(from, at()) === '0,0,-1', `From the top, ↑ moves along \u2212z (${moved(from, at())})`);
+      from = at();
+      key('PageUp');
+      ok(moved(from, at()) === '0,-1,0', `and Page Up moves down, along \u2212y (${moved(from, at())})`);
+      panelButton('[data-view="side"]');
+      from = at();
+      key('ArrowRight');
+      ok(moved(from, at()) === '0,0,-1', `From the side, → moves along \u2212z (${moved(from, at())})`);
+      from = at();
+      panelButton('[data-move="ArrowLeft"]');
+      ok(moved(from, at()) === '0,0,1', `The on-screen ← moves it too (${moved(from, at())})`);
+      panelButton('[data-view="front"]');
+      for (let i = 0; i < 12; i++) key('ArrowRight');
+      ok(at()[0] === 4, `It stops at the box's face (x ${at()[0]})`);
+
+      section('Fade the rest, help');
+      key('f');
+      ok(el('seed-editor-fade').getAttribute('aria-pressed') === 'true', 'F turns on Fade the rest');
+      key('f');
+      key('?');
+      ok(visible('seed-editor-help'), '? lists the keys');
+      key('Escape');
+      ok(!visible('seed-editor-help') && open(), 'Esc closes the list first, and the editor stays');
+
+      section('Use');
+      panelButton('[data-action="use"]');
+      await sleep(800);
+      ok(!open() && !visible('seed-editor'), 'Use closes the editor');
+      ok(visible('glass-display-container'), "Explore's view and HUD return");
+      ok(text('explore-seed-label') === `Design: ${designed.toLocaleString('en')} cells`, `The Seed box reads "${text('explore-seed-label')}"`);
+      ok(text('explore-generation') === '0', 'The run restarted from generation 0');
+      ok(boxRules() === startRules && !visible('explore-rules-lock'), `It runs under the Rules box's rules, unlocked (${boxRules()})`);
+      await openDesign();
+      ok(count() === designed, `Design… opens the design in use again (${count()} cells)`);
+      ok(text('explore-design-status').startsWith('The design in use'), `The Seed popover said a design is in use ("${text('explore-design-status')}")`);
+      key('Escape');
+      await sleep(100);
+      ok(!open() && doc.activeElement?.id === 'explore-change-seed', 'Esc closes it, and focus is back on the Seed gear');
+      ok(text('explore-seed-label') === `Design: ${designed.toLocaleString('en')} cells`, 'Cancelling changed nothing');
+
+      section('An empty design');
+      await openDesign();
+      key('5');
+      if (count() !== 1000) key(' ');
+      key(' ');
+      panelButton('[data-action="use"]');
+      await sleep(200);
+      ok(open() && text('seed-editor-error') === 'The design has no live cells: switch some on first.', `Use refuses an empty design ("${text('seed-editor-error')}")`);
+      panelButton('[data-action="export"]');
+      ok(text('seed-editor-error').includes('no live cells to export'), 'So does Export');
+      panelButton('[data-action="cancel"]');
+      await sleep(100);
+
+      section('Edit a copy of a preset');
+      press('explore-change-seed');
+      press('explore-seed-preset');
+      setValue('explore-preset', 'spreading-noise');
+      ok(visible('explore-edit-copy'), 'Preset has Edit a copy…');
+      press('explore-edit-copy');
+      await sleep(200);
+      ok(open() && count() === 224, `It opens Spreading noise's 224 cells (${count()})`);
+      ok(visible('seed-editor-note') && text('seed-editor-note').startsWith('A copy of Spreading noise'), 'The note says it is a copy');
+      ok(text('seed-editor-rules').includes("Spreading noise's rules"), `Use brings the preset's rules ("${text('seed-editor-rules')}")`);
+      key('5');
+      key(' ');
+      panelButton('[data-action="use"]');
+      await sleep(800);
+      ok(text('explore-seed-label') === 'Design: 1,000 cells', `Using it makes a Custom seed ("${text('explore-seed-label')}")`);
+      ok(!visible('explore-rules-lock') && boxRules() === 'B7,13-14 / S0,2-6,9,13,19,23-24', `With the preset's rules, unlocked (${boxRules()})`);
+      press('explore-change-seed');
+      press('explore-seed-preset');
+      setValue('explore-preset', 'spreading-noise');
+      submit('explore-seed-popover');
+      await sleep(800);
+      ok(text('explore-seed-label') === 'Spreading noise' && text('explore-seed-cells') === '224', 'The preset itself is unchanged: 224 cells');
+
+      section("A seed that doesn't fit, and a saved generation");
+      press('explore-change-seed');
+      press('explore-seed-custom');
+      press('explore-source-shape');
+      setValue('explore-shape', 'cube');
+      setValue('explore-shape-size', '20');
+      setValue('explore-shape-density', '1');
+      submit('explore-seed-popover');
+      await sleep(800);
+      ok(text('explore-seed-label') === 'Cube, size 20, density 1', 'A 20-cube runs in Explore');
+      await openDesign();
+      ok(open() && count() === 0 && text('seed-editor-note').startsWith('7,000 cells of this seed lie outside the 10³ box.'), `The editor opens empty and says why ("${text('seed-editor-note')}")`);
+      panelButton('[data-action="cancel"]');
+      await sleep(100);
+      ok(text('explore-seed-label') === 'Cube, size 20, density 1', 'The cube still runs');
+
+      const { text: savedText } = await generationSave({
+        config: { rules: { birth: [5], survival: [4, 5] }, cells: Int32Array.from([0, 0, 0, 1, 0, 0]), arena: null, memoryMB: 1024 },
+        generation: 7,
+        cells: Int32Array.from([0, 0, 0, 0, 1, 0]),
+        ending: 'stopped',
+      });
+      press('explore-change-seed');
+      press('explore-source-file');
+      loadFile('explore-seed-file', 'run-7.json', savedText);
+      await sleep(400);
+      submit('explore-seed-popover');
+      await sleep(800);
+      ok(text('explore-seed-label').startsWith('Saved generation 7'), `A saved generation runs ("${text('explore-seed-label')}")`);
+      await openDesign();
+      ok(open() && count() === 0 && text('seed-editor-note').includes("saved generation carries on under its own rules and arena, so it can't open as a design"), `The editor opens empty and says why ("${text('seed-editor-note')}")`);
+
+      section("The editor's Load…");
+      loadFile('seed-editor-file', 'run-7.json', savedText);
+      await sleep(400);
+      ok(text('seed-editor-error').startsWith('run-7.json is a saved generation.'), `It refuses a saved generation ("${text('seed-editor-error')}")`);
+      loadFile('seed-editor-file', 'far.json', toSeedFile({ rules: { birth: [5], survival: [4] }, cells: Int32Array.from([0, 0, 0, 9, 9, 9]) }));
+      await sleep(400);
+      ok(text('seed-editor-error').startsWith("far.json can't open here: 1 cell of this seed lies outside"), `And a seed that doesn't fit ("${text('seed-editor-error')}")`);
+      const mine = Int32Array.from([-5, -5, -5, 4, 4, 4, 0, 0, 0, 1, 2, 3]);
+      loadFile('seed-editor-file', 'mine.json', toSeedFile({ rules: { birth: [6], survival: [5, 6] }, cells: mine }));
+      await sleep(400);
+      ok(count() === 4 && !visible('seed-editor-error'), `It opens a seed file that fits (${count()} cells)`);
+      ok(text('seed-editor-rules').includes('B6 / S5-6') && text('seed-editor-rules').includes('mine.json'), `With the file's rules ("${text('seed-editor-rules')}")`);
+      key('z', { ctrlKey: true });
+      ok(count() === 0, 'Undo goes back to before the load');
+      key('y', { ctrlKey: true });
+      panelButton('[data-action="use"]');
+      await sleep(800);
+      ok(text('explore-seed-label') === 'Design: 4 cells' && text('rules-birth') === '6', 'Use runs it with its rules');
+      await openDesign();
+      ok(count() === 4, 'The design opens back unchanged: 4 cells');
+      panelButton('[data-action="cancel"]');
+      await sleep(100);
+
+      section('Phone width (375 × 740)');
+      await load(375, 740);
+      await openDesign();
+      const panel = el('seed-editor').getBoundingClientRect();
+      ok(open() && fits('seed-editor'), 'The editor panel fits in the window');
+      ok(panel.top > win.innerHeight / 3, 'It sits at the foot, leaving the view above it');
+      ok(visible('seed-editor-count'), 'The count shows');
+      const before = text('seed-editor-cursor');
+      panelButton('[data-move="ArrowRight"]');
+      ok(text('seed-editor-cursor') !== before, 'The on-screen arrows move the cursor');
+      key('Escape');
+    }
+
+    run()
+      .catch((err) => ok(false, `The check stopped: ${err.message}`))
+      .finally(() => {
+        summary.textContent = `${passed} passed, ${failed} failed.`;
+        const total = document.createElement('li');
+        total.className = 'total';
+        total.textContent = summary.textContent;
+        list.append(total);
+      });
+  </script>
+</body>
+</html>

@@ -6,17 +6,23 @@
 // and restarts the run. Cancel, Esc or a click outside changes nothing: each popover fills its
 // fields from the settings when it opens, and keeps what the visitor does there to itself until
 // Apply.
+//
+// The Seed popover also opens the seed editor (editor.js, #70): Design… under Custom, on the seed
+// in use, and Edit a copy… under Preset. The editor's Use changes the settings and restarts the run
+// as Apply does.
 
 import { state } from '../state.js';
 import { startExplore } from './explore.js';
 import { openPopover, closePopover, isPopoverOpen, placeOpenPopover } from './popover.js';
 import { readSeedOrSave } from './save.js';
+import { openEditor, closeEditor } from './editor.js';
 import { MAX_RESULT_BYTES } from '../unbounded/canonical.js';
 import { PRESETS, presetById } from './presets.js';
 import { MAX_SHAPE_SIZE, parseCounts } from './seed.js';
 import {
   SHAPES, shapeByKey, makeShape, presetSeed, fileSeed, changeSeed, changeRules, changeArena, changeMemory,
   configOf, boxesOf, lockOf, rulesOf, arenaOf, startOf, restartNote, seedLabel, deathCounts,
+  designOf, presetCopy, useDesign,
 } from './setup.js';
 
 /** A loaded file larger than a result file may be is refused before it is read. */
@@ -172,6 +178,9 @@ function wireSeed() {
   presetSelect.onchange = () => { seedDraft.presetId = presetSelect.value; showSeedDraft(); };
   byId('explore-source-shape').onclick = () => { seedDraft.source = 'shape'; showSeedDraft(); };
   byId('explore-source-file').onclick = () => { seedDraft.source = 'file'; showSeedDraft(); };
+  byId('explore-source-design').onclick = () => { seedDraft.source = 'design'; showSeedDraft(); };
+  byId('explore-design').onclick = openDesign;
+  byId('explore-edit-copy').onclick = openCopy;
   shapeSelect.onchange = () => { fillShapeFields(shapeSelect.value); showSeedDraft(); };
 
   const fileInput = byId('explore-seed-file');
@@ -199,6 +208,11 @@ function wireSeed() {
       // The same file as now: its seed as it is in use, without its rules again
       return seedDraft.file === setup.seed ? setup : changeSeed(setup, seedDraft.file);
     }
+    if (seedDraft.source === 'design') {
+      // A design is made in the editor, whose Use applies it; Apply here runs the one in use again
+      if (setup.seed.kind === 'design') return setup;
+      throw new Error('Design a seed first: Design… opens the seed editor, and its Use makes the design the seed.');
+    }
     const key = shapeSelect.value;
     const params = {
       size: byId('explore-shape-size').value,
@@ -217,7 +231,7 @@ function fillSeed() {
   const { seed } = state.explore;
   seedDraft.preset = seed.kind === 'preset';
   if (seed.kind === 'preset') seedDraft.presetId = seed.id;
-  seedDraft.source = seed.kind === 'file' || seed.kind === 'saved' ? 'file' : 'shape';
+  seedDraft.source = seed.kind === 'file' || seed.kind === 'saved' ? 'file' : seed.kind === 'design' ? 'design' : 'shape';
   seedDraft.file = seedDraft.source === 'file' ? seed : null;
   seedDraft.fileError = null;
   document.getElementById('explore-preset').value = seedDraft.presetId;
@@ -248,11 +262,16 @@ function showSeedDraft() {
   byId('explore-seed-custom-part').hidden = preset;
   byId('explore-source-shape').setAttribute('aria-pressed', String(source === 'shape'));
   byId('explore-source-file').setAttribute('aria-pressed', String(source === 'file'));
+  byId('explore-source-design').setAttribute('aria-pressed', String(source === 'design'));
   byId('explore-seed-shape-part').hidden = source !== 'shape';
   byId('explore-seed-file-part').hidden = source !== 'file';
+  byId('explore-seed-design-part').hidden = source !== 'design';
+  setText('explore-design-status', designStatus());
 
   const chosen = presetById(seedDraft.presetId);
   byId('explore-preset-description').textContent = chosen?.description ?? '';
+  setText('explore-edit-copy-note', chosen
+    ? `Edit a copy… opens ${chosen.name}'s cells in the seed editor. Its Use makes them a Custom seed with ${chosen.name}'s rules, which you can then change; ${chosen.name} itself stays as it is.` : '');
   byId('explore-preset-rules').textContent = chosen
     ? `It comes with its own rules, ${ruleText(chosen.rules)}, which can't be changed while it is the seed.` : '';
 
@@ -283,6 +302,62 @@ function showSeedDraft() {
   setText('explore-seed-note', restartNote(from));
   showError(byId('explore-seed-error'), null);
   placeOpenPopover();
+}
+
+// ---- The seed editor ----
+
+// What Design… says it will open
+function designStatus() {
+  const setup = state.explore;
+  const n = (x) => x.toLocaleString('en');
+  if (setup.seed.kind === 'design') {
+    return `The design in use, ${n(setup.seed.cells.length / 3)} cells. Design… opens it in the seed editor, to change it; Apply runs it again.`;
+  }
+  const opened = designOf(setup);
+  if (opened.reason) return `Design… opens the seed editor on an empty 10³ box: ${lowerFirst(opened.reason)} The seed in use still runs.`;
+  return `Design… opens the seed editor on the seed in use (${seedLabel(setup.seed)}, ${n(setup.seed.cells.length / 3)} cells), in the 10³ seed box, to place cells one by one.`;
+}
+
+// Design…: the editor on the seed in use, if it fits the seed box, under the Rules box's rules
+function openDesign() {
+  const opened = designOf(state.explore);
+  const lock = lockOf(state.explore);
+  openFromPopover({
+    places: opened.places,
+    rules: opened.rules,
+    rulesFrom: lock ? `${lock.name}, as the Rules box shows them` : 'the Rules box',
+    note: opened.reason && `${opened.reason} The editor opens on an empty box; the seed in use is unchanged.`,
+  });
+}
+
+// Edit a copy…: the editor on the chosen preset's cells, which bring its rules, unlocked on Use
+function openCopy() {
+  const copy = presetCopy(seedDraft.presetId);
+  openFromPopover({
+    places: copy.places,
+    rules: copy.rules,
+    rulesFrom: `${copy.name}'s rules`,
+    note: `A copy of ${copy.name}. Use makes it a Custom seed with ${copy.name}'s rules, which you can then change; ${copy.name} itself stays as it is.`,
+  });
+}
+
+function lowerFirst(text) {
+  return /^[A-Z][a-z]/.test(text) ? text[0].toLowerCase() + text.slice(1) : text;
+}
+
+function openFromPopover(options) {
+  const gear = document.getElementById('explore-change-seed');
+  closePopover({ restoreFocus: false });
+  openEditor({
+    ...options,
+    returnFocus: gear,
+    onUse: (cells, rules) => {
+      const next = useDesign(state.explore, cells, rules); // throws, and the editor says why
+      closeEditor();
+      state.explore = next;
+      restartRun();
+    },
+  });
 }
 
 // ---- Rules ----

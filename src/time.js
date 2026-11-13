@@ -2,6 +2,7 @@
 import { state } from './state.js';
 import { updatePoints } from './simulationModel.js';
 import { isExplore, exploreFrame, setSpeed } from './explore/explore.js';
+import { isEditorOpen, editorFrame } from './explore/editor.js';
 
 let lastFrameTime = 0;
 let lastUpdateTime = 0;
@@ -144,6 +145,13 @@ export function animate(currentTime) {
       frameCount = 0;
       lastFpsUpdate = now;
       if (fpsDisplay) fpsDisplay.textContent = measuredFps.toFixed(0);
+    }
+
+    // The seed editor takes over the view while it is open, and draws only when something changes;
+    // Explore's view waits behind it
+    if (isEditorOpen()) {
+      editorFrame();
+      return;
     }
 
     // === Simulation Timing ===
