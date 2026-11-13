@@ -1,0 +1,364 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!--
+  Not bundled: a dev page (/src/explore/hud-check.html under `npm run dev`) that clicks through
+  Explore's settings in the HUD (#69) in a frame holding the lab, and marks each check ✔ or ✖.
+  It changes only the lab in its frame; reload to run it again. The look of the popovers is still
+  checked by eye, in the lab itself.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HUD settings check</title>
+  <style>
+    :root { color-scheme: dark; }
+    body { margin: 0; padding: 16px; background: #14181f; color: #d8e2ee; font: 14px/1.45 system-ui, sans-serif; }
+    h1 { font-size: 18px; margin: 0 0 4px; }
+    p { margin: 0 0 12px; color: #9fb0c4; }
+    .layout { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+    iframe { border: 1px solid #33404f; border-radius: 6px; background: #000; }
+    ol { margin: 0; padding: 0; min-width: 320px; max-width: 560px; list-style: none; }
+    li { margin: 2px 0; }
+    li.pass { color: #b9e8c6; }
+    li.fail { color: #ffb4ad; font-weight: 600; }
+    li.section { margin: 10px 0 2px; font-weight: 600; color: #9fc6ff; }
+    li.total { margin-top: 12px; font-weight: 600; }
+    #summary { font-weight: 600; margin-bottom: 8px; }
+    button { font: inherit; padding: 4px 10px; }
+  </style>
+</head>
+<body>
+  <h1>Explore's settings in the HUD (#69)</h1>
+  <p>Runs on its own when the page opens, in the frame below; takes about 30 seconds. <button id="again" type="button">Run again</button></p>
+  <div id="summary">Running…</div>
+  <div class="layout">
+    <iframe id="lab" title="The lab" width="1280" height="800"></iframe>
+    <ol id="results"></ol>
+  </div>
+  <script type="module">
+    const frame = document.getElementById('lab');
+    const list = document.getElementById('results');
+    const summary = document.getElementById('summary');
+    document.getElementById('again').onclick = () => location.reload();
+    let passed = 0;
+    let failed = 0;
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    function section(name) {
+      const li = document.createElement('li');
+      li.className = 'section';
+      li.textContent = name;
+      list.append(li);
+    }
+    function ok(cond, what) {
+      const li = document.createElement('li');
+      li.className = cond ? 'pass' : 'fail';
+      // The mark is text, not a list marker, so copying the list keeps it
+      li.textContent = `${cond ? '✔' : '✖'} ${what}`;
+      list.append(li);
+      if (cond) passed++; else failed++;
+    }
+
+    // ---- In the frame ----
+    let win;
+    let doc;
+    const el = (id) => doc.getElementById(id);
+    const text = (id) => el(id)?.textContent.trim();
+    const isOpen = (id) => el(id).classList.contains('is-open');
+    const visible = (id) => {
+      const e = el(id);
+      return Boolean(e) && e.getClientRects().length > 0 && win.getComputedStyle(e).visibility !== 'hidden';
+    };
+    const focusIn = (id) => el(id).contains(doc.activeElement);
+    const activeId = () => doc.activeElement?.id;
+    const press = (id) => el(id).click();
+    const cancel = (id) => el(id).querySelector('[data-cancel]').click();
+    const applyHidden = (id) => el(id).querySelector('[type="submit"]').hidden;
+    function setValue(id, value) {
+      const e = el(id);
+      e.value = String(value);
+      e.dispatchEvent(new win.Event('input', { bubbles: true }));
+      e.dispatchEvent(new win.Event('change', { bubbles: true }));
+    }
+    function check(id, on) {
+      const e = el(id);
+      e.checked = on;
+      e.dispatchEvent(new win.Event('change', { bubbles: true }));
+    }
+    const submit = (id) => el(id).requestSubmit();
+    const escape = () => doc.activeElement.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    function clickAt(x, y) {
+      const target = doc.elementFromPoint(x, y) ?? doc.body;
+      target.dispatchEvent(new win.PointerEvent('pointerdown', { bubbles: true, clientX: x, clientY: y }));
+    }
+    function fits(id) {
+      const r = el(id).getBoundingClientRect();
+      return r.left >= 0 && r.top >= 0 && r.right <= win.innerWidth + 0.5 && r.bottom <= win.innerHeight + 0.5;
+    }
+    async function load(width, height) {
+      frame.width = width;
+      frame.height = height;
+      frame.src = `/?check=${Date.now()}`;
+      await new Promise((r) => frame.addEventListener('load', r, { once: true }));
+      win = frame.contentWindow;
+      doc = frame.contentDocument;
+      await sleep(2500);
+      // Focus events fire only in a frame that has focus, as the lab has for a visitor
+      frame.focus();
+      win.focus();
+    }
+
+    async function run() {
+      await load(1280, 800);
+
+      section('Opening');
+      ok(doc.body.classList.contains('mode-explore'), 'The lab opens in Explore');
+      ok(text('explore-seed-label') === 'Cube, size 10, density 1', `The Seed box names the cube ("${text('explore-seed-label')}")`);
+      ok(text('explore-seed-cells') === '1,000', 'The Seed box shows 1,000 cells');
+      ok(!visible('shape-density-value'), "The Seed box hides the other modes' Shape, Density and Size lines");
+      ok(text('hud-panel-title') === 'Simulation', 'The HUD is one panel, titled Simulation');
+      ok(el('glass-info-mode').querySelector('.hud-mode-children > .glass-display') === el('glass-info-modename'), 'Its first section is Mode');
+      ok(text('hud-mode-name') === 'Explore' && visible('hud-change-mode'), 'Mode names Explore, with its gear');
+      ok(win.getComputedStyle(el('hud-panel-title')).color !== win.getComputedStyle(el('glass-info-rules').querySelector('.box-title-text')).color, "The panel's title is a different colour from its sections'");
+      ok(!doc.getElementById('simulation-mode-title'), 'There is no title at the top centre');
+      const boxes = ['glass-info-shape', 'glass-info-rules', 'glass-info-limits', 'glass-info-explore'];
+      ok(boxes.every((id) => el('glass-info-mode').contains(el(id)) && visible(id)), 'Seed, Rules, Limits and Run are its sections');
+      ok(boxes.every((id) => win.getComputedStyle(el(id)).borderLeftStyle === 'none' && win.getComputedStyle(el(id)).borderTopStyle === 'solid'), 'The sections have no border of their own, only a line above each');
+      ok(!visible('glass-info-sim') && !doc.getElementById('glass-info-memory'), "Neither the other modes' Simulation box nor an Engine Memory box shows");
+      ok(text('explore-arena') === 'off' && text('explore-memory-limit') === '1,024 MB', 'The Limits box shows Arena off and Memory limit 1,024 MB');
+      ok(['explore-change-seed', 'explore-change-rules', 'explore-change-limits', 'hud-change-mode'].every((id) => visible(id) && el(id).closest('.box-title')), 'Mode, Seed, Rules and Limits each have a gear in their title row');
+      ok(!el('glass-info-rules').querySelector('.explore-box-actions') && !el('glass-info-limits').querySelector('.explore-box-actions'), 'Rules and Limits have no row of buttons below');
+      ok(!el('glass-info-explore').querySelector('[id^="explore-change"]') && visible('explore-memory-used'), 'Run has no Change, and reports the engine\'s memory');
+      const widths = boxes.map((id) => Math.round(el(id).getBoundingClientRect().width));
+      ok(new Set(widths).size === 1, `The four boxes are one width (${widths.join(', ')} px)`);
+      ok(el('glass-info-explore').querySelector('.box-title-text').textContent === 'Run', "The run's box is called Run");
+      const look = (id, part) => win.getComputedStyle(part ? el(id).querySelector(part) : el(id));
+      ok(look('glass-info-explore').backgroundColor !== look('glass-info-rules').backgroundColor
+        && look('glass-info-explore', '.box-title').color !== look('glass-info-rules', '.box-title').color
+        && look('glass-info-explore', '.value').color !== look('glass-info-limits', '.value').color, 'Run looks unlike the settings: its own background, title colour and figures');
+      ok(!visible('rules-isolation') && !visible('rules-overcrowd'), 'The Rules box leaves out Isolation and Overcrowding');
+
+      section('Seed: a preset');
+      press('explore-change-seed');
+      ok(isOpen('explore-seed-popover'), "The Seed box's gear opens its popover");
+      ok(!el('glass-info-shape').classList.contains('is-collapsed'), 'and leaves the box unfolded');
+      ok(focusIn('explore-seed-popover'), `Focus moves into the popover, even with nothing focused before (on #${activeId() || doc.activeElement?.tagName})`);
+      ok(fits('explore-seed-popover'), 'The popover fits in the window');
+      ok(el('explore-seed-popover').scrollWidth <= el('explore-seed-popover').clientWidth, 'It has nothing to scroll sideways');
+      ok(el('glass-info-shape').classList.contains('has-popover') && el('explore-change-seed').classList.contains('is-active'), 'The Seed box and its gear stand out while it is open');
+      ok(text('explore-seed-note') === 'Applying restarts the run from generation 0.', 'It says what Apply does');
+      escape();
+      ok(!isOpen('explore-seed-popover'), 'Esc closes it');
+      ok(!el('glass-info-shape').classList.contains('has-popover'), 'The Seed box stops standing out');
+      ok(activeId() === 'explore-change-seed', 'Focus goes back to the gear');
+      press('explore-change-seed');
+      press('explore-seed-preset');
+      ok(visible('explore-preset'), 'Preset shows the preset list');
+      ok(visible('explore-seed-custom') && visible('explore-seed-preset'), 'The Custom / Preset switch shows');
+      ok(text('explore-preset-rules').includes('B9-10 / S5-15'), `It names the rules that come with Cube10 ("${text('explore-preset-rules')}")`);
+      setValue('explore-preset', 'spreading-noise');
+      ok(text('explore-preset-rules').includes('B7,13-14'), `Choosing Spreading noise names its rules ("${text('explore-preset-rules')}")`);
+      cancel('explore-seed-popover');
+      ok(!isOpen('explore-seed-popover'), 'Cancel closes it');
+      ok(text('explore-seed-label') === 'Cube, size 10, density 1', 'Cancel changes nothing');
+      press('explore-change-seed');
+      press('explore-seed-preset');
+      setValue('explore-preset', 'cube10');
+      submit('explore-seed-popover');
+      await sleep(600);
+      ok(!isOpen('explore-seed-popover'), 'Apply closes the popover');
+      ok(text('explore-seed-label') === 'Cube10', 'The Seed box reads Cube10');
+      ok(visible('explore-rules-lock') && text('explore-rules-lock') === 'with Cube10', 'The Rules box says the rules come with Cube10');
+      ok(text('explore-generation') === '0', 'The run restarted from generation 0');
+
+      section('Rules: locked, then Use your own rules');
+      press('explore-change-rules');
+      ok(isOpen('explore-rules-popover'), "The Rules box's gear opens its popover");
+      ok(el('explore-rule-birth').readOnly && applyHidden('explore-rules-popover'), 'Locked rules are read-only, with no Apply');
+      ok(visible('explore-rules-own'), 'Use your own rules is offered');
+      press('explore-rules-own');
+      ok(!el('explore-rule-birth').readOnly && !applyHidden('explore-rules-popover'), 'Use your own rules unlocks the fields');
+      ok(text('explore-rules-isolation') === '0-4' && text('explore-rules-overcrowding') === '16-26' && !visible('explore-rules-gaps'), `The popover shows what a live cell dies with (isolation ${text('explore-rules-isolation')}, overcrowding ${text('explore-rules-overcrowding')})`);
+      setValue('explore-rule-survival', '0,2-6,9');
+      ok(text('explore-rules-gaps') === '1,7-8' && visible('explore-rules-gaps') && text('explore-rules-overcrowding') === '10-26', `They follow Survival as it is typed, gaps too ("${text('explore-rules-gaps')}")`);
+      setValue('explore-rule-survival', '5-15');
+      ok(el('explore-rule-birth').value === '9-10', `The preset's rules are in them ("${el('explore-rule-birth').value}")`);
+      setValue('explore-rule-birth', '0,9');
+      submit('explore-rules-popover');
+      ok(isOpen('explore-rules-popover') && text('explore-rules-error').includes('B0'), `B0 is refused with its reason ("${text('explore-rules-error')}")`);
+      setValue('explore-rule-birth', '9');
+      submit('explore-rules-popover');
+      await sleep(600);
+      ok(text('explore-seed-label') === "Cube10's cells", `The Seed box reads Cube10's cells ("${text('explore-seed-label')}")`);
+      ok(!visible('explore-rules-lock'), 'The rules are no longer locked');
+      ok(text('rules-birth') === '9', 'The Rules box shows the new birth count');
+
+      section('Limits: the arena and the memory limit');
+      press('explore-change-limits');
+      ok(isOpen('explore-limits-popover'), "The Limits box's gear opens its popover");
+      ok(fits('explore-limits-popover'), 'The popover fits in the window');
+      ok(el('explore-memory-input').value === '1024' && !el('explore-arena-on').checked, 'It holds the arena and the memory limit as they are');
+      check('explore-arena-on', true);
+      setValue('explore-arena-side', '8');
+      submit('explore-limits-popover');
+      ok(text('explore-limits-error').includes("doesn't fit inside a 8³ arena"), 'An arena too small for the seed is refused');
+      setValue('explore-arena-side', '7');
+      submit('explore-limits-popover');
+      ok(text('explore-limits-error') === 'The arena size must be a whole number of cells, from 8 to 1024.', 'A side below 8 is refused');
+      setValue('explore-arena-side', '20');
+      setValue('explore-memory-input', '10');
+      submit('explore-limits-popover');
+      ok(text('explore-limits-error').startsWith('The memory limit must be'), 'A memory limit below 64 MB is refused');
+      setValue('explore-memory-input', '512');
+      submit('explore-limits-popover');
+      await sleep(600);
+      ok(text('explore-arena') === '20³', `The Limits box shows the arena ("${text('explore-arena')}")`);
+      ok(text('explore-memory-limit') === '512 MB', 'and the new memory limit');
+      ok(text('explore-memory-used').endsWith('/ 512 MB'), 'The run uses it');
+
+      section('One popover at a time, and the saves');
+      press('explore-change-rules');
+      press('explore-save-seed');
+      await sleep(200);
+      ok(!isOpen('explore-rules-popover') && isOpen('explore-save-popover'), 'Save seed closes the Rules popover and opens its own');
+      ok(text('explore-save-what').startsWith('A seed file'), 'Save seed says what it saves, as before');
+      escape();
+      ok(!isOpen('explore-save-popover') && activeId() === 'explore-save-seed', 'Esc closes it, and focus goes back to Save seed');
+      press('explore-save-generation');
+      await sleep(1000);
+      ok(isOpen('explore-save-popover') && text('explore-save-title').startsWith('Save generation'), `Save this generation works as before ("${text('explore-save-title')}")`);
+      press('explore-save-generation');
+      ok(!isOpen('explore-save-popover'), 'Its button closes it again');
+      press('explore-change-seed');
+      clickAt(900, 400);
+      ok(!isOpen('explore-seed-popover'), 'A click outside closes a popover');
+
+      section('Folding a box');
+      const fold = el('glass-info-rules').querySelector('.hud-collapse');
+      press('explore-change-rules');
+      fold.click();
+      ok(el('glass-info-rules').classList.contains('is-collapsed') && !visible('rules-birth') && !visible('explore-change-rules'), 'The arrow folds the Rules box to its title');
+      ok(!isOpen('explore-rules-popover'), 'Its open popover closes with it');
+      ok(fold.getAttribute('aria-expanded') === 'false' && fold.getAttribute('aria-label') === 'Expand the Rules box', 'The arrow says it now expands the box');
+      fold.click();
+      ok(!el('glass-info-rules').classList.contains('is-collapsed') && visible('rules-birth'), 'Pressed again, it unfolds the box');
+      el('glass-info-rules').querySelector('.box-title-text').click();
+      ok(el('glass-info-rules').classList.contains('is-collapsed'), 'A click on the title itself folds it too');
+      el('glass-info-rules').querySelector('.box-title').click();
+      ok(!el('glass-info-rules').classList.contains('is-collapsed'), 'And a click anywhere on the title row unfolds it');
+      fold.click();
+      ok(!visible('explore-change-rules'), 'A folded box hides its gear');
+      fold.click();
+
+      section('Keyboard alone');
+      el('explore-change-seed').focus();
+      el('explore-change-seed').click(); // what Enter or Space does on a button
+      ok(activeId() === 'explore-seed-custom', `The Seed popover opens with focus on Custom, at once (on #${activeId() || doc.activeElement?.tagName})`);
+      escape();
+      el('explore-change-rules').focus();
+      el('explore-change-rules').click();
+      ok(activeId() === 'explore-rule-birth', `The Rules popover opens with focus on Birth, past the hidden lock note (on #${activeId()})`);
+      escape();
+      el('explore-change-limits').focus();
+      el('explore-change-limits').click();
+      ok(isOpen('explore-limits-popover') && activeId() === 'explore-arena-on', `The gear opens the Limits popover with focus on its first field (on #${activeId()})`);
+      el('explore-memory-input').focus();
+      el('explore-memory-input').value = '1024';
+      submit('explore-limits-popover'); // what Enter does in the field
+      await sleep(600);
+      ok(text('explore-memory-limit') === '1,024 MB', 'Enter in a field applies it');
+      ok(activeId() === 'explore-change-limits', 'Focus goes back to the gear');
+      el('explore-change-rules').click();
+      el('explore-rule-survival').focus();
+      el('explore-change-limits').focus(); // Tab out of the popover
+      // The browser fires focus events only while its window has focus, which it hasn't while
+      // you're in another window: then the check fires the event Tab would have, itself
+      const real = doc.hasFocus();
+      if (!real) el('explore-change-limits').dispatchEvent(new win.FocusEvent('focusin', { bubbles: true }));
+      ok(!isOpen('explore-rules-popover'), `Moving focus out of a popover closes it (${real ? 'real focus' : 'the window was in the background, so the focus event was fired by the check'})`);
+
+      section('Seed: shapes and a seed file');
+      press('explore-change-seed');
+      press('explore-seed-custom');
+      setValue('explore-shape', 'perlin');
+      ok(text('explore-shape-size-label') === 'Noise detail' && visible('explore-shape-region'), 'Perlin noise shows its own fields, with the region');
+      setValue('explore-shape', 'preset:spreading-noise');
+      ok(!visible('explore-shape-size'), "A preset's cells take no size or density");
+      setValue('explore-shape', 'octahedron');
+      setValue('explore-shape-size', '4');
+      setValue('explore-shape-density', '1');
+      submit('explore-seed-popover');
+      await sleep(600);
+      ok(text('explore-seed-label') === 'Octahedron, size 4, density 1', `The Seed box names the octahedron ("${text('explore-seed-label')}")`);
+      ok(text('rules-birth') === '9', 'The Rules box keeps its rules');
+      press('explore-change-seed');
+      press('explore-source-file');
+      const file = JSON.stringify({ format: 'morpheus-tech-lab/explore-seed', version: 1, rules: { birth: [5], survival: [4, 5] }, cells: [[0, 0, 0], [1, 0, 0], [0, 1, 0]] });
+      const files = new win.DataTransfer();
+      files.items.add(new win.File([file], 'tiny.json', { type: 'application/json' }));
+      el('explore-seed-file').files = files.files;
+      el('explore-seed-file').dispatchEvent(new win.Event('change'));
+      await sleep(400);
+      ok(text('explore-seed-status').startsWith('tiny.json: 3 cells'), `The loaded file is described ("${text('explore-seed-status')}")`);
+      submit('explore-seed-popover');
+      await sleep(600);
+      ok(text('explore-seed-label') === 'Seed file: tiny.json', 'The Seed box reads Seed file: tiny.json');
+      ok(text('rules-birth') === '5' && text('rules-survival') === '4-5', `The file's rules went into the Rules box (B${text('rules-birth')} / S${text('rules-survival')})`);
+      ok(!visible('explore-rules-lock'), 'They are not locked');
+
+      section('The settings dialog');
+      press('seedConfigButton');
+      await sleep(300);
+      ok(visible('explore-settings-note') && text('explore-settings-note').includes('top left'), "The dialog says where Explore's settings are");
+      ok(!visible('seed-section') && !visible('rules-section') && !visible('sim-params-section'), 'It shows only the mode choice');
+      press('shapeConfirm');
+      await sleep(1000);
+      ok(text('explore-seed-label') === 'Seed file: tiny.json' && text('rules-birth') === '5', "Its Apply starts Explore with the boxes' settings");
+      press('seedConfigButton');
+      await sleep(300);
+      press('mode-gameOfLife');
+      ok(!visible('explore-settings-note') && visible('seed-section') && visible('rules-section'), 'Game of Life 3D shows its own settings in the dialog');
+      press('shapeConfirm');
+      await sleep(4000);
+      ok(!doc.body.classList.contains('mode-explore'), 'Game of Life 3D runs');
+      ok(visible('shape-density-value') && !visible('explore-change-seed') && !visible('explore-change-rules') && !visible('explore-save-seed') && !visible('explore-seed-label'), 'Its boxes show the shape lines, and no Change or Save seed buttons');
+      ok(text('hud-mode-name') === 'Game of Life' && el('glass-info-mode').contains(el('glass-info-sim')) && visible('glass-info-sim'), 'Mode names Game of Life, with its own sections below');
+      ok(el('glass-info-sim').querySelector('.box-title-text').textContent === 'Grid', 'Its Generations and Size section is called Grid');
+      ok(!visible('glass-info-limits') && !visible('glass-info-explore'), "Explore's Limits and Run boxes don't show");
+      el('glass-info-sim').querySelector('.box-title').click();
+      ok(el('glass-info-sim').classList.contains('is-collapsed') && !visible('sim-size-value'), 'Its boxes fold too');
+      el('glass-info-sim').querySelector('.box-title').click();
+      el('glass-info-mode').querySelector('.box-title').click();
+      ok(!visible('glass-info-shape') && !visible('hud-change-mode') && visible('hud-panel-title'), 'Folding the Simulation panel folds everything but its title');
+      el('glass-info-mode').querySelector('.box-title').click();
+      press('hud-change-mode');
+      await sleep(300);
+      ok(!el('shapeModal').classList.contains('hidden'), "Mode's gear opens the settings dialog");
+      press('mode-explore');
+      press('shapeConfirm');
+      await sleep(1000);
+      ok(text('explore-seed-label') === 'Seed file: tiny.json', 'Back in Explore, the boxes keep their settings');
+
+      section('Phone width (375 × 740)');
+      await load(375, 740);
+      for (const [button, popover] of [['explore-change-seed', 'explore-seed-popover'], ['explore-change-rules', 'explore-rules-popover'], ['explore-change-limits', 'explore-limits-popover']]) {
+        press(button);
+        await sleep(100);
+        ok(isOpen(popover) && fits(popover), `${popover.replace('explore-', '').replace('-popover', '')}: the popover fits in the window`);
+        escape();
+      }
+    }
+
+    run()
+      .catch((err) => ok(false, `The check stopped: ${err.message}`))
+      .finally(() => {
+        summary.textContent = `${passed} passed, ${failed} failed.`;
+        const total = document.createElement('li');
+        total.className = 'total';
+        total.textContent = summary.textContent;
+        list.append(total);
+      });
+  </script>
+</body>
+</html>

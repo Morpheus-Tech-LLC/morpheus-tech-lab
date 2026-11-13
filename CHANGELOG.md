@@ -53,6 +53,18 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
 
 ### Changed
 - The lab opens in Explore, paused on a 10³ cube, instead of Game of Life 3D (#37).
+- The HUD is one panel at the top left, Simulation, in every mode, with the HUD's boxes as its
+  sections. The first, Mode, names the simulation that runs, in place of the title at the top
+  centre, and the gear in its title opens the settings dialog. The other modes' Simulation box is now Grid.
+  A click on any section's title folds it down to the title (#69).
+- Explore's settings moved from the settings dialog into its boxes in the HUD. The Seed, Rules
+  and Limits (the arena and the memory limit) boxes each have a gear in their title that opens
+  a popover beside the box; Apply restarts the run, and Cancel, Esc or a click elsewhere changes
+  nothing. A preset's rules, and a saved generation's rules and arena, show as locked, and Use
+  your own rules keeps the same cells with those rules to change. The Rules popover shows the
+  counts a live cell dies with, in place of the box's Isolation and Overcrowding lines. The Run
+  box, in place of Explore's box and Engine Memory, reports the run, the engine's memory included,
+  and saves its generation. In Explore, the settings dialog shows only the mode choice (#69).
 - Every issue goes through the same stages, idea, planning, ready and in progress, to completed
   or cancelled, each shown by a label, with its kind as the issue type. An idea needs only what
   it is and why; its Done when is settled when its plan is, and a plan's pieces become

@@ -2,21 +2,12 @@ import { state } from "./state.js";
 import { initSimulation, updatePoints } from "./simulationModel.js";
 import * as THREE from 'three';
 import { initComputeControl, updateComputeControl } from "./gpu/computeControl.js";
-import { isExplore, startExplore, stopExplore, togglePlay, stepOnce, restart, exploreViewChanged, toggleSave, confirmSave, closeSave } from "./explore/explore.js";
-import { shapeSeed, parseRules, arenaBox, MAX_SHAPE_SIZE } from "./explore/seed.js";
-import { readSeedOrSave } from "./explore/save.js";
-import { MAX_RESULT_BYTES } from "./unbounded/canonical.js";
-import { PRESETS, presetById } from "./explore/presets.js";
-import { perlinShape, worleyShape, cubeOfSide, tetrahedronShape, octahedronShape } from "./shapeGenerators.js";
+import { isExplore, stopExplore, togglePlay, stepOnce, restart, exploreViewChanged, toggleSave, confirmSave, closeSave } from "./explore/explore.js";
+import { initHud, startFromSetup, settingsNote } from "./explore/hud.js";
 
 let pendingShapeKey = null;
 let shapeDropdownPrevValue = null;
 let shapeDropdownOpened = false;
-// A seed file loaded in the dialog for Explore, until Apply: {name, rules, cells}
-let pendingExploreSeed = null;
-// The largest seed file the dialog reads, in bytes
-// Load… takes a seed file or a saved generation, which holds a seed and a generation
-const MAX_SEED_FILE_BYTES = MAX_RESULT_BYTES;
 
 // Helper functions for updating displays (must be outside initControls to be accessible from resetControlsUI)
 function updateDirectionDisplay() {
@@ -33,19 +24,21 @@ function updateStateDisplay() {
   }
 }
 
+// The Mode section, first in the HUD's Simulation panel: which simulation runs, and a line about it
+const MODE_NAMES = {
+  gameOfLife: ['Game of Life', 'Game of Life in 3D, in a grid'],
+  rule30: ['Rule 30', "Wolfram's elementary automaton"],
+  sineWave: ['Sine Wave', 'A continuous wave field'],
+  sandpile: ['Sandpile', 'The Abelian sandpile'],
+  explore: ['Explore', 'Game of Life 3D, without walls'],
+};
+
 function updateSimulationModeTitle() {
-  const titleEl = document.getElementById('simulation-mode-title');
-  if (titleEl) {
-    const modeNames = {
-      gameOfLife: 'Game of Life',
-      rule30: 'Rule 30',
-      sineWave: 'Sine Wave',
-      sandpile: 'Sandpile',
-      explore: 'Explore'
-    };
-    let modeName = modeNames[state.simulationMode] || 'Game of Life';
-    titleEl.textContent = modeName;
-  }
+  const [name, about] = MODE_NAMES[state.simulationMode] ?? MODE_NAMES.gameOfLife;
+  const nameEl = document.getElementById('hud-mode-name');
+  if (nameEl) nameEl.textContent = name;
+  const aboutEl = document.getElementById('hud-mode-about');
+  if (aboutEl) aboutEl.textContent = about;
 }
 
 // controls.js
@@ -69,7 +62,7 @@ export function initControls() {
     return;
   }
   
-  // Initialize simulation mode title on first load
+  // The Mode section's name, on first load
   updateSimulationModeTitle();
   // GPU compute toggle and indicator
   initComputeControl();
@@ -121,6 +114,15 @@ export function initControls() {
       pendingShapeKey = state.shapeKey;
       openShapeModal();
     });
+  }
+  // The gear in the Mode section's title opens the same dialog: the mode, and the other modes'
+  // settings
+  const changeModeBtn = document.getElementById('hud-change-mode');
+  if (changeModeBtn) {
+    changeModeBtn.onclick = () => {
+      pendingShapeKey = state.shapeKey;
+      openShapeModal();
+    };
   }
 
   if (shapeSelect) {
@@ -315,8 +317,7 @@ export function initControls() {
   const restartButton = document.getElementById("restartButton");
   if (restartButton) restartButton.onclick = restart;
   // Explore only: the save popover, opened by Save this generation or Save seed. Escape or a
-  // click elsewhere closes it
-  const savePopover = document.getElementById("explore-save-popover");
+  // click elsewhere closes it (src/explore/popover.js)
   const saveGenerationButton = document.getElementById("explore-save-generation");
   if (saveGenerationButton) saveGenerationButton.onclick = () => toggleSave("generation");
   const saveSeedButton = document.getElementById("explore-save-seed");
@@ -325,17 +326,8 @@ export function initControls() {
   if (saveConfirm) saveConfirm.onclick = confirmSave;
   const saveCancel = document.getElementById("explore-save-cancel");
   if (saveCancel) saveCancel.onclick = closeSave;
-  if (savePopover && !savePopover.dataset.wired) {
-    savePopover.dataset.wired = "yes";
-    const isOpen = () => savePopover.classList.contains("is-open");
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape" && isOpen()) closeSave();
-    });
-    document.addEventListener("pointerdown", (e) => {
-      // The buttons toggle the popover themselves
-      if (isOpen() && !savePopover.contains(e.target) && !e.target.closest?.("#explore-save-generation, #explore-save-seed")) closeSave();
-    });
-  }
+  // Explore only: the gears in the HUD boxes' titles and their popovers, whose Apply restarts the run
+  initHud({ restart: restartExplore });
 
   updateStepButtonVisibility();
 
@@ -509,7 +501,6 @@ export function initControls() {
     const glassDisplayContainer = document.getElementById('glass-display-container');
     const bottomControlsDisplay = document.getElementById('bottom-controls-display');
     const additionalControlsDisplay = document.getElementById('additional-controls-display');
-    const simulationModeTitle = document.getElementById('simulation-mode-title');
     const controlsWrapper = document.getElementById('controls-wrapper');
     const footerIcons = document.getElementById('footer-icons');
     const companyBrand = document.getElementById('company-brand');
@@ -519,7 +510,6 @@ export function initControls() {
     if (glassDisplayContainer) glassDisplayContainer.style.display = 'none';
     if (bottomControlsDisplay) bottomControlsDisplay.style.display = 'none';
     if (additionalControlsDisplay) additionalControlsDisplay.style.display = 'none';
-    if (simulationModeTitle) simulationModeTitle.style.display = 'none';
     if (controlsWrapper) controlsWrapper.style.display = 'none';
   }
   
@@ -527,7 +517,6 @@ export function initControls() {
     const glassDisplayContainer = document.getElementById('glass-display-container');
     const bottomControlsDisplay = document.getElementById('bottom-controls-display');
     const additionalControlsDisplay = document.getElementById('additional-controls-display');
-    const simulationModeTitle = document.getElementById('simulation-mode-title');
     const controlsWrapper = document.getElementById('controls-wrapper');
     const footerIcons = document.getElementById('footer-icons');
     const companyBrand = document.getElementById('company-brand');
@@ -537,7 +526,6 @@ export function initControls() {
     if (glassDisplayContainer && state.showHUD) glassDisplayContainer.style.display = 'flex';
     if (bottomControlsDisplay && state.showHUD) bottomControlsDisplay.style.display = 'grid';
     if (additionalControlsDisplay && state.showHUD) additionalControlsDisplay.style.display = 'grid';
-    if (simulationModeTitle && state.showHUD) simulationModeTitle.style.display = 'block';
     if (controlsWrapper) controlsWrapper.style.display = '';
   }
   
@@ -576,7 +564,6 @@ export function initControls() {
   const glassDisplayContainer = document.getElementById('glass-display-container');
   const bottomControlsDisplay = document.getElementById('bottom-controls-display');
   const additionalControlsDisplay = document.getElementById('additional-controls-display');
-  const simulationModeTitle = document.getElementById('simulation-mode-title');
   
   if (hudToggleButton && glassDisplayContainer) {
     hudToggleButton.addEventListener('click', () => {
@@ -591,11 +578,6 @@ export function initControls() {
       }
       if (additionalControlsDisplay) {
         additionalControlsDisplay.style.display = state.showHUD ? 'grid' : 'none';
-      }
-      
-      // Toggle title
-      if (simulationModeTitle) {
-        simulationModeTitle.style.display = state.showHUD ? 'block' : 'none';
       }
       
       // Update icon color - blue when visible, white/gray when hidden
@@ -620,7 +602,7 @@ export function initControls() {
     }
   }
 
-  // Initialize simulation mode title
+  // The Mode section's name
   updateSimulationModeTitle();
 
   state.controlsInitialized = true;
@@ -682,44 +664,10 @@ function openShapeModal() {
 
   if (!modal || !sizeInput || !densityInput || !confirmBtn || !cancelBtn) return;
 
-  /** The rule fields show Explore's own rules (or its loaded seed file's) in Explore. */
-  function fillRuleInputs(mode) {
-    const rules = mode === 'explore' ? (pendingExploreSeed?.rules ?? state.explore.rules) : state.rules;
-    if (ruleBirth) ruleBirth.value = stringifyRule(rules?.birth ?? [9, 10]);
-    if (ruleSurvival) ruleSurvival.value = stringifyRule(rules?.survival ?? []);
-  }
-
-  /**
-   * Shows which seed Explore will run: Custom (a shape, or a seed file) or a Preset, whose rules
-   * the rule fields show but can't change. It looks its elements up itself, because updateModeUI()
-   * calls it before Explore's settings below are set up.
-   */
-  function syncExploreSeedKind() {
-    const preset = Boolean(seedSection?.classList.contains('explore-seed') && pendingExploreSeed?.preset);
-    seedSection?.classList.toggle('preset-active', preset);
-    const customRadio = document.getElementById('explore-seed-custom');
-    const presetRadio = document.getElementById('explore-seed-preset');
-    customRadio?.setAttribute('aria-pressed', String(!preset));
-    presetRadio?.setAttribute('aria-pressed', String(preset));
-    // A saved generation carries on under its own rules, so they can't change either
-    const saved = Boolean(seedSection?.classList.contains('explore-seed') && pendingExploreSeed?.from !== undefined);
-    for (const input of [ruleBirth, ruleSurvival]) {
-      if (!input) continue;
-      input.readOnly = preset || saved;
-      input.title = preset ? 'A preset brings its own rules. Choose Custom to set your own.'
-        : saved ? 'A saved generation carries on under its own rules. Use the shape, or load a seed file, to set your own.' : '';
-    }
-    const select = document.getElementById('explore-preset');
-    if (select && preset) select.value = pendingExploreSeed.preset;
-    const description = document.getElementById('explore-preset-description');
-    if (description) description.textContent = presetById(select?.value)?.description ?? '';
-  }
-
-  function showExploreError(message) {
-    const el = document.getElementById('explore-error');
-    if (!el) return;
-    el.hidden = !message;
-    el.textContent = message ?? '';
+  /** The rule fields show the other modes' rules; Explore's are in its HUD box. */
+  function fillRuleInputs() {
+    if (ruleBirth) ruleBirth.value = stringifyRule(state.rules?.birth ?? [9, 10]);
+    if (ruleSurvival) ruleSurvival.value = stringifyRule(state.rules?.survival ?? []);
   }
 
   // Initialize simulation inputs from state - use mode-specific values if available
@@ -806,8 +754,6 @@ function openShapeModal() {
   }
   
   function updateModeUI(mode) {
-    seedSection?.classList.toggle('explore-seed', mode === 'explore');
-    syncExploreSeedKind();
     // Store current values before switching modes
     if (simSizeInput && simSizeInput.style.display !== 'none') {
       const currentSize = parseInt(simSizeInput.value);
@@ -828,22 +774,21 @@ function openShapeModal() {
       }
     }
 
-    // Explore has its own section instead of the size, generations and boundary settings
-    const exploreSection = document.getElementById('explore-section');
+    // Explore's settings are in its HUD boxes (src/explore/hud.js): the dialog shows only the
+    // mode choice, and a line saying where they are
     const simParamsSection = document.getElementById('sim-params-section');
-    if (exploreSection) exploreSection.style.display = mode === 'explore' ? '' : 'none';
+    const exploreNote = document.getElementById('explore-settings-note');
+    if (exploreNote) {
+      exploreNote.hidden = mode !== 'explore';
+      exploreNote.textContent = mode === 'explore' ? settingsNote() : '';
+    }
     if (simParamsSection) simParamsSection.style.display = mode === 'explore' ? 'none' : '';
     if (mode === 'explore') {
-      if (rulesSection) rulesSection.style.display = '';
-      if (seedSection) seedSection.style.display = '';
+      if (rulesSection) rulesSection.style.display = 'none';
+      if (seedSection) seedSection.style.display = 'none';
       if (boundaryRulesSection) boundaryRulesSection.style.display = 'none';
       if (sandpileSection) sandpileSection.style.display = 'none';
       if (rule302DToggleRow) rule302DToggleRow.style.display = 'none';
-      if (modalShapeSelect) {
-        Array.from(modalShapeSelect.options).forEach(opt => {
-          opt.style.display = '';
-        });
-      }
       return;
     }
     
@@ -1124,7 +1069,7 @@ function openShapeModal() {
     rule30: 'A one-dimensional cellular automaton that generates complex, seemingly random patterns from simple rules. Each cell\'s state depends on its left, center, and right neighbors, producing fractal-like structures.',
     sineWave: 'A continuous mathematical function visualized in discrete 3D space. Represents periodic oscillations and wave patterns, demonstrating how continuous phenomena can be sampled and displayed on a grid.',
     sandpile: 'The Abelian Sandpile Model, a self-organized criticality system. Sand grains accumulate and topple when reaching a threshold, creating cascading avalanches that exhibit power-law distributions and fractal patterns.',
-    explore: 'Game of Life 3D in a world without walls. The pattern grows as far as it likes, for as long as you let it run, with no score and no clock. Pause, step and restart it, try other rules, or load a seed file, and set a memory limit or an arena.'
+    explore: 'Game of Life 3D in a world without walls. The pattern grows as far as it likes, for as long as you let it run, with no score and no clock. Pause, step and restart it, try other rules, a preset or a seed file, and set a memory limit or an arena.'
   };
   
   // Function to update mode description
@@ -1146,9 +1091,7 @@ function openShapeModal() {
       
       // Update description
       updateModeDescription(selectedMode);
-      // Explore keeps its own rules
-      fillRuleInputs(selectedMode);
-      showExploreError(null);
+      fillRuleInputs();
       
       // Update UI based on selected mode
       updateModeUI(selectedMode);
@@ -1315,190 +1258,8 @@ function openShapeModal() {
   }
   updateShapeSizeMax();
   
-  // Initialize rules inputs (a seed file loaded for Explore brings its own rules)
-  pendingExploreSeed = state.explore.seedFile;
-  fillRuleInputs(currentMode);
+  fillRuleInputs();
 
-  // ---- Explore's section ----
-  const exploreMemory = document.getElementById('explore-memory');
-  const exploreArenaCheckbox = document.getElementById('explore-arena-checkbox');
-  const exploreArenaRow = document.getElementById('explore-arena-row');
-  const exploreArenaSize = document.getElementById('explore-arena-size');
-  const exploreLoadSeed = document.getElementById('explore-load-seed');
-  const exploreClearSeed = document.getElementById('explore-clear-seed');
-  const exploreSeedFile = document.getElementById('explore-seed-file');
-  const exploreSeedStatus = document.getElementById('explore-seed-status');
-  const explorePreset = document.getElementById('explore-preset');
-
-  if (exploreMemory) exploreMemory.value = `${state.explore.memoryMB}`;
-  if (exploreArenaCheckbox) {
-    exploreArenaCheckbox.checked = state.explore.arena !== null;
-    exploreArenaCheckbox.onchange = () => {
-      if (exploreArenaRow) exploreArenaRow.style.display = exploreArenaCheckbox.checked ? '' : 'none';
-    };
-    exploreArenaCheckbox.onchange();
-  }
-  if (exploreArenaSize) exploreArenaSize.value = `${state.explore.arena ?? state.explore.arenaSize}`;
-  if (explorePreset) {
-    if (!explorePreset.options.length) {
-      for (const preset of PRESETS) {
-        const option = document.createElement('option');
-        option.value = preset.id;
-        option.textContent = preset.name;
-        explorePreset.append(option);
-      }
-    }
-    explorePreset.onchange = () => choosePreset(explorePreset.value);
-  }
-  const exploreSeedCustom = document.getElementById('explore-seed-custom');
-  const exploreSeedPreset = document.getElementById('explore-seed-preset');
-  if (exploreSeedCustom) {
-    exploreSeedCustom.onclick = () => {
-      if (pendingExploreSeed?.preset) {
-        pendingExploreSeed = null;
-        fillRuleInputs('explore');
-      }
-      showExploreError(null);
-      showExploreSeedStatus();
-    };
-  }
-  if (exploreSeedPreset) {
-    exploreSeedPreset.onclick = () => {
-      if (!pendingExploreSeed?.preset) choosePreset(explorePreset?.value || PRESETS[0].id);
-    };
-  }
-  /** A preset works like a seed file: its cells and rules replace the shape and rules. */
-  function choosePreset(id) {
-    const preset = presetById(id);
-    if (!preset) return;
-    pendingExploreSeed = { name: preset.name, rules: preset.rules, cells: preset.cells, preset: preset.id };
-    if (ruleBirth) ruleBirth.value = stringifyRule(preset.rules.birth);
-    if (ruleSurvival) ruleSurvival.value = stringifyRule(preset.rules.survival);
-    showExploreError(null);
-    showExploreSeedStatus();
-  }
-  showExploreSeedStatus();
-  showExploreError(null);
-
-  if (exploreLoadSeed && exploreSeedFile) {
-    exploreLoadSeed.onclick = () => exploreSeedFile.click();
-    exploreSeedFile.onchange = async () => {
-      const file = exploreSeedFile.files?.[0];
-      exploreSeedFile.value = ''; // so loading the same file again still fires
-      if (!file) return;
-      try {
-        if (file.size > MAX_SEED_FILE_BYTES) throw new Error(`it is larger than ${MAX_SEED_FILE_BYTES / 2 ** 20} MB.`);
-        const loaded = await readSeedOrSave(await file.text());
-        const { rules, cells } = loaded;
-        // Replaces a preset. A saved generation brings its first seed and generation too
-        pendingExploreSeed = loaded.kind === 'generation'
-          ? { name: file.name, rules, cells, seed: loaded.seed, from: loaded.from, arena: loaded.arena }
-          : { name: file.name, rules, cells };
-        if (ruleBirth) ruleBirth.value = stringifyRule(rules.birth);
-        if (ruleSurvival) ruleSurvival.value = stringifyRule(rules.survival);
-        showExploreError(null);
-      } catch (err) {
-        showExploreError(`${file.name} can't be used: ${err.message}`);
-      }
-      showExploreSeedStatus();
-    };
-  }
-  if (exploreClearSeed) {
-    exploreClearSeed.onclick = () => {
-      pendingExploreSeed = null;
-      fillRuleInputs('explore');
-      showExploreSeedStatus();
-    };
-  }
-  function showExploreSeedStatus() {
-    if (exploreSeedStatus) {
-      const cells = pendingExploreSeed && `${(pendingExploreSeed.cells.length / 3).toLocaleString('en')} cells`;
-      exploreSeedStatus.textContent = !pendingExploreSeed ? 'Using the shape.'
-        : pendingExploreSeed.preset ? `Using the preset ${pendingExploreSeed.name}: ${cells}.`
-          : pendingExploreSeed.from !== undefined
-            ? `Using ${pendingExploreSeed.name}: generation ${pendingExploreSeed.from.toLocaleString('en')} of a saved run, ${cells}, with its own rules and ${pendingExploreSeed.arena ? `${pendingExploreSeed.arena}³ arena` : 'no arena'}. The run carries on from generation ${pendingExploreSeed.from.toLocaleString('en')}.`
-            : `Using ${pendingExploreSeed.name}: ${cells}.`;
-    }
-    // A saved generation carries on under its own arena, which the arena fields show but can't change
-    const saved = pendingExploreSeed?.from !== undefined;
-    if (exploreArenaCheckbox) {
-      exploreArenaCheckbox.disabled = saved;
-      if (saved) {
-        exploreArenaCheckbox.checked = pendingExploreSeed.arena !== null;
-        if (pendingExploreSeed.arena && exploreArenaSize) exploreArenaSize.value = `${pendingExploreSeed.arena}`;
-        exploreArenaCheckbox.onchange?.();
-      }
-    }
-    if (exploreArenaSize) exploreArenaSize.disabled = saved;
-    if (exploreClearSeed) exploreClearSeed.hidden = !pendingExploreSeed || Boolean(pendingExploreSeed.preset);
-    syncExploreSeedKind();
-  }
-
-  /** Explore's settings from the dialog. Throws an Error saying what's wrong. */
-  function buildExploreConfig() {
-    const saved = pendingExploreSeed?.from !== undefined ? pendingExploreSeed : null;
-    const rules = saved ? saved.rules : parseRules(ruleBirth?.value, ruleSurvival?.value);
-    const memoryMB = Number(exploreMemory?.value);
-    if (!Number.isInteger(memoryMB) || memoryMB < 64 || memoryMB > 16384) {
-      throw new Error('The memory limit must be a whole number of MB, from 64 to 16384.');
-    }
-    let arena = null;
-    if (saved) {
-      arena = saved.arena;
-    } else if (exploreArenaCheckbox?.checked) {
-      arena = Number(exploreArenaSize?.value);
-      if (!Number.isInteger(arena) || arena < 8 || arena > 1024) {
-        throw new Error('The arena size must be a whole number of cells, from 8 to 1024.');
-      }
-    }
-    let cells;
-    let label;
-    let shape = null; // the shape settings to remember, when the seed is a shape
-    if (pendingExploreSeed) {
-      ({ cells } = pendingExploreSeed);
-      label = pendingExploreSeed.name;
-    } else {
-      const key = modalShapeSelect?.value || state.shapeKey;
-      const size = Number(sizeInput.value);
-      const density = Number(densityInput.value);
-      const noise = key === 'perlin' || key === 'worley';
-      const regionSize = noise ? Number(regionSizeInput?.value) || 0 : 0;
-      if (!Number.isInteger(size) || size < 1 || size > MAX_SHAPE_SIZE) {
-        throw new Error(`In Explore, the seed's size must be a whole number from 1 to ${MAX_SHAPE_SIZE}.`);
-      }
-      if (!(density >= 0 && density <= 1)) throw new Error("The seed's density must be from 0 to 1.");
-      if (!Number.isInteger(regionSize) || regionSize < 0 || regionSize > 2 * MAX_SHAPE_SIZE) {
-        throw new Error(`In Explore, the region size must be a whole number up to ${2 * MAX_SHAPE_SIZE}.`);
-      }
-      const shapes = {
-        perlin: () => perlinShape(size, density, regionSize || null),
-        worley: () => worleyShape(size, density, regionSize || null),
-        cube: () => cubeOfSide(size, density),
-        tetrahedron: () => tetrahedronShape(size, density),
-        octahedron: () => octahedronShape(size, density),
-      };
-      if (!shapes[key]) throw new Error('Pick a shape for the seed.');
-      cells = shapeSeed(shapes[key](), size, regionSize);
-      label = key;
-      shape = { key, params: noise ? { size, density, regionSize } : { size, density } };
-    }
-    if (!cells.length) {
-      throw new Error(saved ? 'This saved generation has no live cells, so there is nothing to carry on.' : 'The seed has no live cells: raise its density or its size.');
-    }
-    const box = arenaBox(arena);
-    if (box) {
-      for (let i = 0; i < cells.length; i++) {
-        const a = i % 3;
-        if (cells[i] < box.min[a] || cells[i] > box.max[a]) {
-          throw new Error(`The seed doesn't fit inside a ${arena}³ arena: make the arena bigger or the seed smaller.`);
-        }
-      }
-    }
-    // A saved generation: `cells` is generation `from`, and `seed` the run's first seed
-    if (saved) return { rules, cells, memoryMB, arena, label, shape, seed: saved.seed, from: saved.from };
-    return { rules, cells, memoryMB, arena, label, shape };
-  }
-  
   // Initialize boundary rules inputs
   const boundaryCornerBirth = document.getElementById('boundary-corner-birth');
   const boundaryCornerSurvival = document.getElementById('boundary-corner-survival');
@@ -1698,38 +1459,18 @@ function openShapeModal() {
     const activeCard = document.querySelector('.mode-card.active');
     const selectedMode = activeCard ? activeCard.dataset.mode : 'gameOfLife';
 
-    // Explore streams from a Worker instead of precomputing (src/explore/)
+    // Explore streams from a Worker instead of precomputing (src/explore/), with the settings
+    // its HUD boxes hold
     if (selectedMode === 'explore') {
-      let config;
-      try {
-        config = buildExploreConfig();
-      } catch (err) {
-        showExploreError(err.message); // the dialog stays open
-        return;
-      }
       state.simulationMode = 'explore';
       state.useRule30 = false;
       state.useRule30_2D = false;
       state.useSineWave = false;
       state.useSandpile = false;
-      state.explore = {
-        rules: config.rules,
-        memoryMB: config.memoryMB,
-        arena: config.arena,
-        arenaSize: Number(exploreArenaSize?.value) || state.explore.arenaSize,
-        seedFile: pendingExploreSeed,
-      };
-      // The seed's shape settings, so the dialog opens with them next time
-      if (config.shape) {
-        state.shapeKey = config.shape.key;
-        state.shapeParams[config.shape.key] = config.shape.params;
-      }
       modal.classList.add('hidden');
       cleanup();
       pendingShapeKey = null;
-      resetControlsUI();
-      initControls(); // the title and the GPU toggle follow the mode
-      startExplore(config);
+      restartExplore();
       return;
     }
 
@@ -1968,6 +1709,16 @@ function openShapeModal() {
 
   confirmBtn.addEventListener('click', onConfirm);
   cancelBtn.addEventListener('click', onCancel);
+}
+
+/**
+ * Starts Explore again with the settings its HUD boxes hold: from the dialog's Apply, and from
+ * the Apply of a box's popover (src/explore/hud.js).
+ */
+function restartExplore() {
+  resetControlsUI();
+  initControls(); // the title and the GPU toggle follow the mode
+  startFromSetup();
 }
 
 /**
