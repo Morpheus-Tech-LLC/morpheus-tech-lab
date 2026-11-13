@@ -7,7 +7,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  generationSave, seedSave, readSeedOrSave, readGenerationSave, runDefinition, savedEnding, browserOf,
+  generationSave, seedSave, readSeedOrSave, readGenerationSave, runDefinition, savedEnding,
   generationFileName, SEED_FILE_NAME,
 } from '../../src/explore/save.js';
 import { parseSeedFile, toSeedFile, SeedError, MAX_FILE_CELLS } from '../../src/explore/seed.js';
@@ -158,20 +158,6 @@ test('a run still going is saved as stopped there; an ended run keeps its reason
   assert.equal(savedEnding('ended', 'repeat'), 'repeat');
   assert.equal(savedEnding('ended', 'arena-edge'), 'arena-edge');
   assert.equal(savedEnding('ended', 'error'), 'stopped');
-});
-
-test('the browser is named from its user agent', () => {
-  const ua = {
-    chrome: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36',
-    edge: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36 Edg/152.0.1.2',
-    firefox: 'Mozilla/5.0 (X11; Linux x86_64; rv:155.0) Gecko/20100101 Firefox/155.0',
-    safari: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15',
-  };
-  assert.deepEqual(browserOf(ua.chrome), { name: 'Chrome', version: '152.0.0.0' });
-  assert.deepEqual(browserOf(ua.edge), { name: 'Edge', version: '152.0.1.2' });
-  assert.deepEqual(browserOf(ua.firefox), { name: 'Firefox', version: '155.0' });
-  assert.deepEqual(browserOf(ua.safari), { name: 'Safari', version: '26.0' });
-  assert.equal(browserOf('curl/8.0'), null);
 });
 
 test('a seed file still loads as a seed', async () => {

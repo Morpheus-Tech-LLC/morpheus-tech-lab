@@ -18,11 +18,16 @@
 // and doesn't need to be: the result stands at its last complete generation either way. 'died'
 // and 'repeat' are scored, and checked, by the Methuselah contest (#41).
 //
+// A contest's result is first checked against its contest (contests.js's checkContest()): its run
+// must be the contest's, and its score must follow from its generation and ending. That needs no
+// replay, so it holds for a table lookup too. A contest this lab doesn't know isn't checked.
+//
 // Nothing here imports `state` or touches the page.
 
 import { World, WorldError } from './world.js';
 import { step as stepWorld } from './step.js';
 import { readResult, hashWorld, canonicalJson, worldOptions, checkResultHashes, ResultError } from './canonical.js';
+import { checkContest } from './contests.js';
 
 export const DEFAULT_MAX_GENERATIONS = 100_000;
 export const DEFAULT_MAX_MEMORY = 2 * 1024 ** 3;
@@ -72,7 +77,11 @@ export async function verifyResult(text, {
   const { run, generation, ending } = result;
   const answer = (verdict, message, extra = {}) => ({ verdict, message, result, ...extra });
 
-  // A saved generation's cells and seed hash must be what they claim, before anything else
+  // A contest's result must be its contest's run, with the score that follows from it
+  const contest = checkContest(result);
+  if (contest) return answer(contest.verdict, contest.message);
+
+  // A saved generation's cells and seed hash must be what they claim
   const wrong = await checkResultHashes(result);
   if (wrong) return answer('mismatch', wrong);
 

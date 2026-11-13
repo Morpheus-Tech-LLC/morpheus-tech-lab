@@ -33,6 +33,11 @@
 // same run, which names the run's starting point. Both are hashed state, so checkResultHashes()
 // confirms them without a replay, and an edited file fails.
 //
+// A contest's result also carries a `score` (#40): a small object of whole numbers, such as
+// Speed's {generations, ms}. It is outside the hash and never trusted: contests.js's
+// checkContest() works out what it must be from the replayed or looked-up state, and the one part
+// that can't be (Speed's time) is self-reported.
+//
 // Result files arrive from strangers, so readResult() treats one as untrusted data: it refuses
 // a file over MAX_RESULT_BYTES unread, and anything that doesn't match the format exactly,
 // unknown fields included. Only the known fields are ever read, and nothing in a file is run.
@@ -62,6 +67,9 @@ export const RESULT_ENDINGS = END_REASONS.filter((reason) => reason !== 'error')
 const CONTEST_ID = /^[a-z0-9][a-z0-9-]{0,63}$/;
 const HASH = /^sha256:[0-9a-f]{64}$/;
 const MAX_TEXT = 100;
+/** A score's field names, and the most fields it may have. */
+const SCORE_KEY = /^[a-z][A-Za-z]{0,31}$/;
+const MAX_SCORE_FIELDS = 8;
 const STATS_NUMBERS = [
   'generation', 'elapsedMs', 'rate', 'live', 'livePeak', 'chunks', 'chunksPeak', 'chunksCreated',
   'memoryBytes', 'usedBytes',
@@ -346,15 +354,16 @@ export function worldOptions(run, { chunkSize, slabBytes, memory } = {}) {
  * @param {object} [options.details] - the run details, outside the hash: chunkSize,
  *   elapsedMs, stats (run.js's statistics) and browser ({name, version}); each may be left out
  * @param {boolean} [options.withCells] - include the generation's live cells
+ * @param {object} [options.score] - the contest's score (contests.js), outside the hash
  * @returns {Promise<object>}
  */
-export async function resultOf(world, { run, ending, details = {}, withCells = false }) {
+export async function resultOf(world, { run, ending, details = {}, withCells = false, score }) {
   if (canonicalJson(world.rules) !== canonicalJson(normaliseRun(run).rules)) {
     throw new ResultError("The world's rules are not the run's.");
   }
   return resultFromCells({
     run, generation: world.generation, cells: world.cells(), ending,
-    details: { chunkSize: world.n, ...details }, withCells,
+    details: { chunkSize: world.n, ...details }, withCells, score,
   });
 }
 
@@ -366,7 +375,7 @@ export async function resultOf(world, { run, ending, details = {}, withCells = f
  * @param {Int32Array} options.cells - the live cells as x, y, z triples, in any order
  * @returns {Promise<object>}
  */
-export async function resultFromCells({ run, generation, cells, ending, details = {}, withCells = false }) {
+export async function resultFromCells({ run, generation, cells, ending, details = {}, withCells = false, score }) {
   const definition = normaliseRun(run);
   if (!RESULT_ENDINGS.includes(ending)) {
     throw new ResultError(`A run that ended with ${JSON.stringify(ending)} can't be a result.`);
@@ -379,6 +388,9 @@ export async function resultFromCells({ run, generation, cells, ending, details 
     run: definition,
     generation,
     ending,
+  };
+  if (score !== undefined) result.score = checkScore(score);
+  Object.assign(result, {
     hash: await sha256(canonicalBytesSorted(definition, generation, sorted)),
     seedHash: await stateHash(definition, 0, Int32Array.from(definition.seed.flat())),
     details: {
@@ -387,7 +399,7 @@ export async function resultFromCells({ run, generation, cells, ending, details 
       stats: details.stats ?? null,
       browser: details.browser ?? null,
     },
-  };
+  });
   checkDetails(result.details);
   if (withCells) {
     const list = new Array(sorted.length / 3);
@@ -443,7 +455,7 @@ export function readResult(text) {
   } catch {
     throw new ResultError("The file isn't JSON.");
   }
-  exactKeys(data, 'The file', ['format', 'version', 'run', 'generation', 'ending', 'hash', 'details'], ['seedHash', 'cells']);
+  exactKeys(data, 'The file', ['format', 'version', 'run', 'generation', 'ending', 'hash', 'details'], ['score', 'seedHash', 'cells']);
   if (data.format !== RESULT_FORMAT) throw new ResultError(`The file isn't a result file (its format isn't "${RESULT_FORMAT}").`);
   if (data.version !== RESULT_VERSION) {
     throw new ResultError(`The file's version is ${JSON.stringify(data.version)}; this lab reads version ${RESULT_VERSION}.`);
@@ -468,8 +480,9 @@ export function readResult(text) {
     run,
     generation: data.generation,
     ending: data.ending,
-    hash: data.hash,
   };
+  if (data.score !== undefined) result.score = checkScore(data.score);
+  result.hash = data.hash;
   if (data.seedHash !== undefined) result.seedHash = data.seedHash;
   result.details = data.details;
   if (data.cells !== undefined) result.cells = readCells(data.cells);
@@ -488,6 +501,27 @@ function readCells(cells) {
     }
     return [x, y, z];
   });
+}
+
+/**
+ * Checks a score's shape: an object of at most MAX_SCORE_FIELDS fields, each a whole number or
+ * null. What the fields must be is its contest's to say (contests.js).
+ * @returns {object} a copy, its fields in the order given
+ */
+function checkScore(score) {
+  if (!isPlainObject(score)) throw new ResultError('score must be an object.');
+  const keys = Object.keys(score);
+  if (keys.length > MAX_SCORE_FIELDS) throw new ResultError(`score has more than ${MAX_SCORE_FIELDS} fields.`);
+  const copy = {};
+  for (const key of keys) {
+    if (!SCORE_KEY.test(key)) throw new ResultError(`score has a field with a name that isn't a word, ${JSON.stringify(key.slice(0, MAX_TEXT))}.`);
+    const value = score[key];
+    if (value !== null && !(Number.isSafeInteger(value) && value >= 0)) {
+      throw new ResultError(`score.${key} must be null or a whole number.`);
+    }
+    copy[key] = value;
+  }
+  return copy;
 }
 
 function checkDetails(details) {

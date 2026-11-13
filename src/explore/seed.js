@@ -7,17 +7,14 @@
 import { Grid3D } from '../grid3D.js';
 import { validateRules, MAX_NEIGHBOURS } from '../unbounded/rules.js';
 import { COORDINATE_LIMIT } from '../unbounded/world.js';
+import { SEED_BOX } from '../unbounded/contests.js';
 
 /** The largest shape size Explore takes: its scratch grid is (2·size + 3)³ bytes. */
 export const MAX_SHAPE_SIZE = 100;
 /** The most cells a seed file may hold. */
 export const MAX_FILE_CELLS = 1_000_000;
-/**
- * The seed box (#44's shared decisions): cells -5 to 4 on each axis, a fixed place in the world,
- * centred on the origin as arenaBox() is. The seed editor designs in it, and the Discovery
- * contests' seeds must lie in it, so a design moves into a contest unchanged.
- */
-export const SEED_BOX = Object.freeze({ min: Object.freeze([-5, -5, -5]), max: Object.freeze([4, 4, 4]) });
+/** The seed box, cells -5 to 4 on each axis, where designs and contest seeds go (contests.js). */
+export { SEED_BOX };
 export const SEED_FILE_FORMAT = 'morpheus-tech-lab/explore-seed';
 export const SEED_FILE_VERSION = 1;
 

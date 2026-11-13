@@ -265,6 +265,10 @@ Requires Node.js 20.19 or newer (for Vite 7).
 `npm run build` writes the production site to `dist/`, and `npm run preview` serves it. `npm test`
 runs the automated tests. `node scripts/verify.mjs <result.json>` checks a result file from the
 unbounded engine, or a generation saved from Explore, by replaying it (try it on `test/unbounded/fixtures/example-result.json`).
+A contest's result is checked against its contest as well, and its score printed. Speed's results
+can also be checked by lookup: `node scripts/reference-hashes.mjs --contest speed-1 --to 1000 --out speed-1.table`
+makes the table once, and `node scripts/verify.mjs <result.json> --table speed-1.table` looks a
+result up in it.
 Releases are published to GitHub Pages by the maintainers, following [RELEASING.md](RELEASING.md); see [CHANGELOG.md](CHANGELOG.md) for what each version changed.
 
 

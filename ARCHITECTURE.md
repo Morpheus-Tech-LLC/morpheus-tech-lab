@@ -89,7 +89,7 @@ too. The HUD is one panel, Simulation, in every mode, with the boxes as its sect
 Mode, which names the simulation that runs (`controls.js`), then the mode's own. Explore's Run
 box only reports. The settings dialog shows only the mode choice in Explore.
 
-**The seed editor** (#70) designs a seed in the seed box, `SEED_BOX` in `seed.js` (cells −5 to 4
+**The seed editor** (#70) designs a seed in the seed box, `SEED_BOX` in `contests.js`, which `seed.js` re-exports (cells −5 to 4
 on each axis), where the Discovery contests' seeds go. The Seed popover opens it: Design… on the
 seed in use (`designOf()`), Edit a copy… on a preset (`presetCopy()`). `editorModel.js`, with no
 DOM and no Three.js, holds the box as 1,000 bytes, the cursor, the selection (every kind is an
@@ -141,6 +141,19 @@ can carry on from the generation. `verifyResult()` replays the run from its seed
 compares hashes, and checks an ending the pattern decides by taking one more step; with a
 reference table (every generation's hash, made once by `scripts/reference-hashes.mjs`) it looks
 the hash up instead. `scripts/verify.mjs` runs it in Node.
+
+**Contests** (`contests.js`, #40): each contest is data, with a versioned id (`speed-1`), its
+kind, what it fixes (rules, seed or seed box, arena, limits), its chunk size and, for Speed, its
+seconds. `runFor(contest, entry)` makes a run's definition from the contest's fixed parts and the
+entry's rules and seed, so a contest's result states its whole run like any other. A contest's
+result adds a `score`, outside the hash: Speed's is `{generations, ms}`, where `ms` is the time to
+reach the 1,000-generation ceiling, and null for a run the 6 seconds ended. `verifyResult()`
+first runs `checkContest()`: the run must be `runFor()` of its contest, with its own rules and
+seed, and the score must follow from the generation and ending; then the replay, or the table,
+confirms the generation. A contest the lab doesn't know isn't checked. The table for Speed is
+made from the contest itself, with `scripts/reference-hashes.mjs --contest speed-1 --to 1000`.
+The browser's name and version in a result's details come from `src/browser.js`, and are never
+checked.
 
 **Benchmarks**: `scripts/bench.mjs` (#39) measures the engine in Node (chunk sizes, seeds, rules,
 a bit-packed step, the dense `convolve3D()` in `denseStep.js`, serialization), times the Speed
