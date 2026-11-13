@@ -57,6 +57,12 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
   cursor the way they point from any view, a click moves it to a cell, and a panel has a button
   for every key, touch included. Use runs the design; Export saves it as a seed file, which opens
   back in the editor unchanged (#70).
+- The contests are defined as data, starting with Speed (`speed-1`): the Cube10 seed under the
+  lab's default rules, 6 seconds, and a ceiling of 1,000 generations. A contest's result file
+  carries its score, and `scripts/verify.mjs` checks that the file's run is its contest's and
+  that the score follows from it; `scripts/reference-hashes.mjs --contest speed-1` makes the
+  table Speed's results are looked up in. Results name the browser more exactly, telling Edge,
+  Opera, Brave and Chrome apart (#76).
 
 ### Changed
 - The lab opens in Explore, paused on a 10³ cube, instead of Game of Life 3D (#37).

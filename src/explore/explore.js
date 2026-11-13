@@ -12,7 +12,8 @@ import { initSpace } from '../space.js';
 import { EngineDriver } from '../unbounded/driver.js';
 import { ExploreView, RENDER_BUDGET } from './view.js';
 import { arenaBox, MAX_FILE_CELLS } from './seed.js';
-import { generationSave, seedSave, savedEnding, browserOf, generationFileName, SEED_FILE_NAME } from './save.js';
+import { generationSave, seedSave, savedEnding, generationFileName, SEED_FILE_NAME } from './save.js';
+import { detectBrowser } from '../browser.js';
 import { openPopover, closePopover, placeOpenPopover } from './popover.js';
 /** How long after the visitor lets go of the view the camera starts following again. */
 const FOLLOW_AFTER_MS = 3000;
@@ -224,7 +225,7 @@ export async function toggleSave(kind) {
   const ending = savedEnding(session.status, session.endReason);
   let built;
   try {
-    const browser = typeof navigator === 'undefined' ? null : browserOf(navigator.userAgent);
+    const browser = await detectBrowser();
     built = await generationSave({ config, generation, cells, ending, stats, chunkSize, browser });
   } catch (err) {
     if (session.save === save) fillSave({ what: `The file couldn't be made: ${err.message}` });

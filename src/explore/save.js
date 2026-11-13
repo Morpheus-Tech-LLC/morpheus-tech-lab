@@ -16,8 +16,6 @@ import { arenaBox, toSeedFile, parseSeedFile, MAX_FILE_CELLS, SeedError } from '
 
 /** The file Save seed writes. */
 export const SEED_FILE_NAME = 'explore-seed.json';
-/** Browser names and versions are text of at most this many characters in a result. */
-const MAX_TEXT = 100;
 
 /** The file Save this generation writes. */
 export function generationFileName(generation) {
@@ -140,23 +138,4 @@ export async function readSeedOrSave(text) {
   const format = /"format"\s*:\s*"([^"]*)"/.exec(text.slice(0, 4096))?.[1];
   if (format === RESULT_FORMAT) return { kind: 'generation', ...await readGenerationSave(text) };
   return { kind: 'seed', ...parseSeedFile(text) };
-}
-
-/**
- * The browser's name and version from its user agent, for a result's details, or null.
- * Order matters: Edge and Opera also say Chrome, and Chrome also says Safari.
- */
-export function browserOf(userAgent) {
-  const patterns = [
-    ['Edge', /Edg(?:e|A|iOS)?\/([\d.]+)/],
-    ['Opera', /OPR\/([\d.]+)/],
-    ['Firefox', /(?:Firefox|FxiOS)\/([\d.]+)/],
-    ['Chrome', /(?:Chrome|CriOS)\/([\d.]+)/],
-    ['Safari', /Version\/([\d.]+).*Safari\//],
-  ];
-  for (const [name, pattern] of patterns) {
-    const match = pattern.exec(String(userAgent ?? ''));
-    if (match) return { name, version: match[1].slice(0, MAX_TEXT) };
-  }
-  return null;
 }

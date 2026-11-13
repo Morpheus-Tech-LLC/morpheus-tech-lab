@@ -118,7 +118,7 @@ test('changing a seed cell, a rule, the arena, a limit, the generation or the ha
     'the generation limit': (r) => { r.run.limits.generations = 60; },
     'the generation': (r) => { r.generation = 39; },
     'a generation past the limit': (r) => { r.generation = 51; },
-    'the contest': (r) => { r.run.contest = 'speed'; },
+    'the contest': (r) => { r.run.contest = 'speed-1'; },
     'the hash': (r) => { r.hash = `sha256:${'0'.repeat(64)}`; },
     'the ending': (r) => { r.ending = 'generation-limit'; },
   };

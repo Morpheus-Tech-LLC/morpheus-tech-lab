@@ -9,7 +9,8 @@
 // with --table (from scripts/reference-hashes.mjs), looks the hash up without a replay. Result
 // files come from strangers: a file is refused unread if it is over 128 MB (room for a generation
 // saved from Explore, with its cells), and nothing in it is ever run. src/unbounded/verify.js
-// does the checking.
+// does the checking. A contest's result is also checked against its contest
+// (src/unbounded/contests.js), table lookup or not, and its score is printed.
 //
 // Exit status: 0 verified, 1 mismatch, 2 refused (or a mistake on the command line),
 // 3 not checked (this verifier's own limits, or a table that doesn't cover the file).
@@ -17,6 +18,7 @@
 import { stat, readFile } from 'node:fs/promises';
 import { verifyResult, DEFAULT_MAX_GENERATIONS, DEFAULT_MAX_MEMORY } from '../src/unbounded/verify.js';
 import { readTable, MAX_RESULT_BYTES, ResultError } from '../src/unbounded/canonical.js';
+import { contestById } from '../src/unbounded/contests.js';
 
 const EXIT = { verified: 0, mismatch: 1, refused: 2, 'not-checked': 3 };
 const USAGE = 'Usage: node scripts/verify.mjs <result.json> [--table <table>] [--max-generations N] [--max-memory-mb N]';
@@ -85,6 +87,10 @@ async function main() {
     const { run } = result;
     const rules = `B${run.rules.birth.join(',')}/S${run.rules.survival.join(',')}`;
     console.log(`  contest ${run.contest ?? 'none'}, rules ${rules}, seed of ${run.seed.length} cells, generation ${result.generation}, ended with ${result.ending}`);
+    if (result.score) {
+      const score = Object.entries(result.score).map(([key, value]) => `${key} ${value ?? 'none'}`).join(', ');
+      console.log(`  score: ${score}${contestById(run.contest)?.kind === 'speed' ? ' (the time is self-reported)' : ''}`);
+    }
   }
   process.exit(EXIT[verdict]);
 }

@@ -23,8 +23,10 @@ ROADMAP.md               The public roadmap: the engine, new demos, the brand re
 RELEASING.md             Branches, versions, changelog format and the release steps
 CHANGELOG.md             What each version changed (Keep a Changelog)
 scripts/brand.mjs        `sync --org <brand repo>` re-pins the brand at a tag (maintainers); `check` verifies the lock
-scripts/verify.mjs       Checks a result file from the unbounded engine in Node: by replay, or by lookup with --table
-scripts/reference-hashes.mjs Computes a run's reference table: the hash of every generation, for checking Speed by lookup
+scripts/verify.mjs       Checks a result file from the unbounded engine in Node: by replay, or by lookup with --table;
+                         a contest's result is checked against its contest too, and its score printed
+scripts/reference-hashes.mjs Computes a run's reference table: the hash of every generation, for checking Speed by lookup;
+                         --contest speed-1 takes the run from contests.js
 scripts/bench.mjs        Benchmarks for the unbounded engine (#39): chunk sizes, seeds and rules, bytes against bit-packed
                          cells, the dense convolve3D(), serialization, the Speed candidates and the Discovery worst case
 scripts/bench/           The bench's parts: lib.mjs (timing, seeds, rules, tables; no Node APIs), bitpacked.mjs (a
@@ -33,12 +35,15 @@ scripts/bench/           The bench's parts: lib.mjs (timing, seeds, rules, table
 vite.config.js           base '/', because the site is served from the domain root
 test/                    `npm test` (Node's built-in node:test, no dependency): unbounded/ checks the unbounded engine,
                          its run loop on a fake clock and in a worker_threads Worker, the canonical hash and
-                         the verifier (fixtures/ holds an example result and a hand-edited copy), and the engine
-                         against convolve3D() (dense.test.js); explore/ checks
+                         the verifier (fixtures/ holds an example result and a hand-edited copy), the contests and
+                         their scores (contests.test.js), and the engine against convolve3D() (dense.test.js);
+                         browser.test.js checks telling the browser; explore/ checks
                          Explore's seeds, presets, seed files, saves, settings (setup.test.js), camera framing
                          and the seed editor's model (editorModel.test.js)
 src/
   main.js                Boot: Explore (startExplore()) by default, or initSimulation(); then animate()
+  browser.js             detectBrowser(): the browser's name and version, from navigator.userAgentData or the
+                         user-agent string, for a result's details (no DOM; tested in Node)
   brand/tokens.css       Brand pin: the Morpheus Tech brand tokens. Not imported yet. Never hand-edit
   state.js               The one shared, mutable `state` object: settings, rules, scene handles, history
   simulationModel.js     Builds the Three.js Points geometry from the history; updatePoints() per frame
@@ -68,6 +73,8 @@ src/
                          hash, the result file (readResult() reads one as untrusted data) and the reference table
   unbounded/verify.js    verifyResult(): replays a result, or looks it up in a table; verified, mismatch, refused
                          or not checked
+  unbounded/contests.js  The contests as data (#40): CONTESTS (speed-1), runFor(contest, entry), each kind's score,
+                         and checkContest(), which checks a result's run and score against its contest; SEED_BOX
   unbounded/driver.js    EngineDriver: the page's side of a run; starts a fresh Worker per run and relays its messages
   explore/               The Explore mode: the unbounded engine on the page (#37)
   explore/explore.js     Starts and drives the run, the control bar's commands in Explore, the HUD box and notices,
@@ -76,8 +83,9 @@ src/
                          and Save seed, and reading either back for Load… (tested in Node)
   explore/view.js        ExploreView: the growing point cloud, chunk boxes past RENDER_BUDGET, the arena and chunk grid
   explore/framing.js     The camera distance that fits the pattern, and easing (no Three.js; tested in Node)
-  explore/seed.js        Shapes lifted into the unbounded world, rule text, the seed file format, and SEED_BOX, the
-                         10³ seed box the editor and the Discovery contests use (tested in Node)
+  explore/seed.js        Shapes lifted into the unbounded world, rule text, the seed file format, and SEED_BOX
+                         (re-exported from contests.js), the 10³ seed box the editor and the Discovery contests
+                         use (tested in Node)
   explore/setup.js       Explore's settings as one value, `state.explore` (#69): the seed's source, the rules, the
                          arena and the memory limit; what each HUD box shows, what is locked, each popover's
                          change or the reason it is refused, and the config startExplore() takes (tested in Node)
@@ -196,7 +204,13 @@ src/
   known-answer test in `test/unbounded/canonical.test.js` must fail first. Result files come from
   strangers: read them only through `readResult()`, which refuses anything over 128 MB or not
   exactly the format, and never run anything from one. A result's optional `cells` and `seedHash`
-  are claims too: `checkResultHashes()` confirms them before they are used.
+  are claims too: `checkResultHashes()` confirms them before they are used. So is its `score`:
+  `checkContest()` works it out again from the generation and ending, and only Speed's time is
+  self-reported.
+- **A contest's id names everything that decides its results** (`contests.js`): rules, seed or
+  seed box, arena, limits and, for Speed, the seconds. Changing any of them means a new id
+  (`speed-2`), never an edit to a contest that has opened, so a result is never checked against
+  the wrong definition.
 - The unbounded engine asks for cell memory only by adding a slab (`World.addSlab()`), so a refusal
   is one catchable `RangeError` in one place. Keep it that way.
 - `state.reset()` keeps the scene, renderer and camera, so a rebuild reuses one WebGL context.

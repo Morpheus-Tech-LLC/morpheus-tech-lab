@@ -4,9 +4,11 @@
 // Computes the reference table for a run: the hash of every generation, from 0 to --to.
 //
 //   node scripts/reference-hashes.mjs <run.json> --to <generation> --out <table> [--max-memory-mb N]
+//   node scripts/reference-hashes.mjs --contest <id> --to <generation> --out <table> [--max-memory-mb N]
 //
 // <run.json> is a run's definition (src/unbounded/canonical.js), or a result file, whose run is
-// used. Every honest run of a fixed seed and rules passes through the same states, so checking
+// used. --contest takes the run from a contest that fixes everything (src/unbounded/contests.js),
+// such as Speed's: --contest speed-1 --to 1000 makes the table Speed's results are checked by. Every honest run of a fixed seed and rules passes through the same states, so checking
 // such a result (Speed's) is then a lookup in the table, with scripts/verify.mjs --table, and
 // never needs a machine as fast as the entrant's. It runs at whatever pace this machine allows,
 // once.
@@ -16,12 +18,13 @@
 
 import { readFile, writeFile } from 'node:fs/promises';
 import { World } from '../src/unbounded/world.js';
+import { contestById, runFor, CONTESTS } from '../src/unbounded/contests.js';
 import { step } from '../src/unbounded/step.js';
 import {
   normaliseRun, readResult, hashWorld, tableText, worldOptions, RESULT_FORMAT, ResultError,
 } from '../src/unbounded/canonical.js';
 
-const USAGE = 'Usage: node scripts/reference-hashes.mjs <run.json> --to <generation> --out <table> [--max-memory-mb N]';
+const USAGE = 'Usage: node scripts/reference-hashes.mjs <run.json> | --contest <id> --to <generation> --out <table> [--max-memory-mb N]';
 
 function usage(message) {
   console.error(`${message}\n${USAGE}`);
@@ -30,6 +33,7 @@ function usage(message) {
 
 function parseArgs(args) {
   let file = null;
+  let contest = null;
   let to = null;
   let out = null;
   let memory;
@@ -45,6 +49,7 @@ function parseArgs(args) {
       return n;
     };
     if (arg === '--to') to = count(0);
+    else if (arg === '--contest') contest = value();
     else if (arg === '--out') out = value();
     else if (arg === '--max-memory-mb') memory = count(1) * 1024 * 1024;
     else if (arg === '--help' || arg === '-h') {
@@ -54,8 +59,9 @@ function parseArgs(args) {
     else if (file) usage('Give one run file.');
     else file = arg;
   }
-  if (!file || to === null || !out) usage('Give a run file, --to and --out.');
-  return { file, to, out, memory };
+  if (file && contest) usage('Give a run file or --contest, not both.');
+  if ((!file && !contest) || to === null || !out) usage('Give a run file or --contest, --to and --out.');
+  return { file, contest, to, out, memory };
 }
 
 async function readRun(file) {
@@ -70,9 +76,18 @@ async function readRun(file) {
   }
 }
 
+function contestRun(id) {
+  const contest = contestById(id);
+  if (!contest) usage(`There is no contest ${id}. The contests are: ${CONTESTS.map((c) => c.id).join(', ')}.`);
+  if (!contest.fixes.rules || !contest.fixes.seed) {
+    usage(`${id} leaves the rules and the seed to each entry, so it has no one table: give an entry's result file instead.`);
+  }
+  return runFor(contest);
+}
+
 async function main() {
-  const { file, to, out, memory } = parseArgs(process.argv.slice(2));
-  const run = await readRun(file);
+  const { file, contest, to, out, memory } = parseArgs(process.argv.slice(2));
+  const run = contest ? contestRun(contest) : await readRun(file);
   const limit = run.limits.generations;
   if (limit !== null && to > limit) usage(`--to ${to} is past the run's generation limit, ${limit}.`);
 
