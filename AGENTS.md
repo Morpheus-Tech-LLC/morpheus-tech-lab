@@ -35,7 +35,7 @@ test/                    `npm test` (Node's built-in node:test, no dependency): 
                          its run loop on a fake clock and in a worker_threads Worker, the canonical hash and
                          the verifier (fixtures/ holds an example result and a hand-edited copy), and the engine
                          against convolve3D() (dense.test.js); explore/ checks
-                         Explore's seeds, presets, seed files, saves and camera framing
+                         Explore's seeds, presets, seed files, saves, settings (setup.test.js) and camera framing
 src/
   main.js                Boot: Explore (startExplore()) by default, or initSimulation(); then animate()
   brand/tokens.css       Brand pin: the Morpheus Tech brand tokens. Not imported yet. Never hand-edit
@@ -76,6 +76,16 @@ src/
   explore/view.js        ExploreView: the growing point cloud, chunk boxes past RENDER_BUDGET, the arena and chunk grid
   explore/framing.js     The camera distance that fits the pattern, and easing (no Three.js; tested in Node)
   explore/seed.js        Shapes lifted into the unbounded world, rule text, the seed file format (tested in Node)
+  explore/setup.js       Explore's settings as one value, `state.explore` (#69): the seed's source, the rules, the
+                         arena and the memory limit; what each HUD box shows, what is locked, each popover's
+                         change or the reason it is refused, and the config startExplore() takes (tested in Node)
+  explore/hud.js         The gears in the Seed, Rules and Limits boxes' titles and their popovers, whose Apply changes
+                         `state.explore` and restarts the run; startFromSetup(); and folding every HUD box to its
+                         title, in every mode
+  explore/popover.js     One HUD popover open at a time, beside its box: Esc, a click or focus outside closes it,
+                         and focus goes back to its button. The save popover opens through it too
+  explore/hud-check.html Not bundled: a dev page (/src/explore/hud-check.html under `npm run dev`) that clicks
+                         through Explore's settings in the HUD in a frame holding the lab, marking each check ✔ or ✖
   explore/presets.js     Preset seeds with their own rules: Cube10 and Spreading noise (#39's candidate
                          12345, its cells written out; a test checks them against scripts/bench/candidates.mjs)
   unbounded/workbench.html Not bundled: a dev page (/src/unbounded/workbench.html under `npm run dev`) that checks
@@ -108,11 +118,15 @@ src/
   `useRule30_2D`, `useSineWave` and `useSandpile` steer `generateSimulation()`. Size and
   generations are remembered per mode in `state.modeValues`.
 - **Explore streams instead.** `simulationMode === 'explore'` never reaches `initSimulation()`
-  or `generateSimulation()`: on Apply, `controls.js` calls `startExplore()`, and leaving the mode
-  calls `stopExplore()`. `animate()` calls `exploreFrame()` instead of advancing `currentGen`, and
-  the play, step and reverse handlers check `isExplore()` first. Explore clears all four flags,
-  which `gpuModeOf()` would read as Game of Life 3D, so code that looks at the flags must check
-  for Explore first, as `computeControl.js` does. Its settings live in `state.explore`.
+  or `generateSimulation()`: on the dialog's Apply, or a HUD popover's, `controls.js` calls
+  `startFromSetup()` (`hud.js`), which calls `startExplore()` with Explore's settings, and
+  leaving the mode calls `stopExplore()`. `animate()` calls `exploreFrame()` instead of
+  advancing `currentGen`, and the play, step and reverse handlers check `isExplore()` first.
+  Explore clears all four flags, which `gpuModeOf()` would read as Game of Life 3D, so code that
+  looks at the flags must check for Explore first, as `computeControl.js` does. Its settings
+  live in `state.explore`, a value from `setup.js` that is replaced, never edited, and only
+  through `setup.js`'s changes, which check that it still makes a run. They are set from the
+  HUD's boxes; the settings dialog shows only the mode choice in Explore.
 - **GPU first, CPU after.** For Game of Life 3D and Rule 30, `generateSimulation()` runs
   `evolveOnGpu()` when `state.gpuCompute` is on and a device is ready, then its CPU loop computes
   whatever generations remain: all of them if the GPU was off or unavailable, the rest if the

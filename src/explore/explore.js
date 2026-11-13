@@ -11,16 +11,9 @@ import { state } from '../state.js';
 import { initSpace } from '../space.js';
 import { EngineDriver } from '../unbounded/driver.js';
 import { ExploreView, RENDER_BUDGET } from './view.js';
-import { arenaBox, shapeSeed, MAX_FILE_CELLS } from './seed.js';
+import { arenaBox, MAX_FILE_CELLS } from './seed.js';
 import { generationSave, seedSave, savedEnding, browserOf, generationFileName, SEED_FILE_NAME } from './save.js';
-import { cubeOfSide } from '../shapeGenerators.js';
-
-/**
- * Defaults pinned by #39's measurements: one tab in Chrome on a 16 GB machine could take 6 GB of
- * slabs, so 1 GB stays well under any laptop browser's cap. The arena is the Discovery contests'.
- */
-export const DEFAULT_MEMORY_MB = 1024;
-export const DEFAULT_ARENA = 64;
+import { openPopover, closePopover, placeOpenPopover } from './popover.js';
 /** How long after the visitor lets go of the view the camera starts following again. */
 const FOLLOW_AFTER_MS = 3000;
 /** The speed slider's top position runs as fast as possible. */
@@ -34,7 +27,7 @@ const ENDINGS = {
   'repeat': (config, stats, cycle) => (cycle.period === 1
     ? `Settled at generation ${cycle.from.toLocaleString('en')}: a still life, which stays as it is from then on.`
     : `Settled at generation ${cycle.from.toLocaleString('en')}: from then on, the pattern repeats every ${cycle.period.toLocaleString('en')} generations. Its cycle keeps playing.`),
-  'memory-limit': (config) => `Stopped at the memory limit (${config.memoryMB.toLocaleString('en')} MB): the next block of memory would pass it. A higher limit in the settings lets it go further.`,
+  'memory-limit': (config) => `Stopped at the memory limit (${config.memoryMB.toLocaleString('en')} MB): the next block of memory would pass it. A higher limit, from the gear in the Limits box, lets it go further.`,
   'out-of-memory': () => 'Stopped: the browser refused more memory.',
   'arena-edge': () => 'Stopped: the pattern reached the edge of the arena.',
   'coordinate-limit': () => 'Stopped: the pattern reached the edge of the space the engine can hold, half a million cells from the centre.',
@@ -67,7 +60,7 @@ export function isExplore() {
 
 /**
  * Starts Explore with a seed and rules, in a fresh scene. The caller has already reset the
- * controls (controls.js, on Apply).
+ * controls (controls.js, on Apply), and takes the config from Explore's settings (hud.js).
  * @param {object} config
  * @param {{birth: number[], survival: number[]}} config.rules - already validated
  * @param {Int32Array} config.cells - the seed, as x, y, z triples
@@ -102,21 +95,6 @@ export function startExplore(config) {
   document.getElementById('loading-overlay')?.classList.add('hidden');
 }
 
-/**
- * The run the lab opens with: the default cube and Explore's default rules, paused on the seed,
- * so nothing runs until the visitor presses play.
- */
-export function landingConfig() {
-  const { size, density } = state.shapeParams.cube;
-  return {
-    rules: state.explore.rules,
-    cells: shapeSeed(cubeOfSide(size, density), size),
-    memoryMB: state.explore.memoryMB,
-    arena: state.explore.arena,
-    label: 'cube',
-  };
-}
-
 /** Ends Explore, its Worker and its view: for leaving the mode. */
 export function stopExplore() {
   const wasOn = Boolean(session.view);
@@ -147,11 +125,6 @@ function restoreControls() {
   setText('rules-survival', stringify(state.rules.survival));
   setText('rules-isolation', stringify(state.rules.isolation));
   setText('rules-overcrowd', stringify(state.rules.overcrowding));
-  const params = state.shapeParams?.[state.shapeKey];
-  if (params) {
-    setText('shape-size-value', `${params.size}`);
-    setText('shape-density-value', Number(params.density).toFixed(2));
-  }
 }
 
 /**
@@ -167,7 +140,7 @@ export function exploreViewChanged() {
 
 // ---- Saving ----
 //
-// Save this generation, at the foot of Explore's box, and Save seed, at the foot of the Seed box,
+// Save this generation, at the foot of Explore's Run box, and Save seed, at the foot of the Seed box,
 // open one popover beside their box, which says what the file holds and where it goes before
 // anything is written:
 // - Save this generation: a result file, as a contest entry is one (save.js), with the
@@ -205,7 +178,7 @@ export async function toggleSave(kind) {
     const first = config.from ? `, generation 0 of the run generation ${n(config.from)} was saved from` : '';
     fillSave({
       title: 'Save seed',
-      what: `A seed file: the ${n(seedCells)} cells this run started from${first}, and its rules, ${rules}. Load it under Custom, with Load…, to run it from generation 0.`,
+      what: `A seed file: the ${n(seedCells)} cells this run started from${first}, and its rules, ${rules}. Load it from the Seed box, under Custom, with Load…, to run it from generation 0.`,
       hashes: [],
       where: where(save.name),
       ready: true,
@@ -265,7 +238,7 @@ export async function toggleSave(kind) {
   const running = session.status === 'running' ? ' The run keeps going; the file holds the generation as it was when you opened this.' : '';
   fillSave({
     title,
-    what: `A result file, as a contest entry is one: the run's seed (${n(seedCells)} cells), its rules (${rules})${arena}, generation ${n(generation)} with the position of each of its ${n(live)} live cells, how the run stands (${stands}), and its statistics, chunk size and browser. Load it under Custom, with Load…, to carry on from generation ${n(generation)}.${running}`,
+    what: `A result file, as a contest entry is one: the run's seed (${n(seedCells)} cells), its rules (${rules})${arena}, generation ${n(generation)} with the position of each of its ${n(live)} live cells, how the run stands (${stands}), and its statistics, chunk size and browser. Load it from the Seed box, under Custom, with Load…, to carry on from generation ${n(generation)}.${running}`,
     hashes: [[`Generation ${n(generation)}`, built.result.hash], ['Seed', built.result.seedHash]],
     where: where(save.name),
     ready: true,
@@ -494,10 +467,8 @@ function showSpeed(rate) {
   if (el) el.textContent = rate === null ? 'max' : `${Math.round(rate)}`;
 }
 
+// The Rules box's counts; hud.js fills the rest of Explore's boxes from its settings
 function showHud(config) {
-  setText('shape-name-value', config.label);
-  setText('shape-density-value', '–');
-  setText('shape-size-value', `${(config.cells.length / 3).toLocaleString('en')} cells`);
   setText('rules-birth', stringify(config.rules.birth));
   setText('rules-survival', stringify(config.rules.survival));
   setText('rules-isolation', '–');
@@ -564,18 +535,24 @@ function showSaveButton() {
   }
 }
 
-// Opens the popover for one kind of save, beside the box its button is in, or closes it (null)
+// Opens the popover for one kind of save, beside the box its button is in (popover.js), or closes
+// it (null). However it closes, the file it held goes.
 function showSavePopover(kind) {
   const popover = document.getElementById('explore-save-popover');
-  const box = kind && document.getElementById(SAVE_BUTTONS[kind])?.closest('.glass-display');
-  if (popover && box && popover.parentElement !== box) box.append(popover);
-  popover?.classList.toggle('is-open', Boolean(kind));
-  for (const [key, id] of Object.entries(SAVE_BUTTONS)) {
-    const button = document.getElementById(id);
-    button?.setAttribute('aria-expanded', `${key === kind}`);
-    button?.classList.toggle('is-active', key === kind);
+  if (!popover) return;
+  if (!kind) {
+    closePopover({ popover });
+    return;
   }
-  if (!kind) fillSave({ title: '', what: '', hashes: [], where: '', status: '', ready: false });
+  const button = document.getElementById(SAVE_BUTTONS[kind]);
+  if (!button) return;
+  openPopover(button, popover, {
+    onClose: () => {
+      session.save = null;
+      fillSave({ title: '', what: '', hashes: [], where: '', status: '', ready: false });
+    },
+    focus: popover,
+  });
 }
 
 // Fills the popover's parts; a part left out stays as it is, except that new text in `what`
@@ -604,6 +581,7 @@ function fillSave({ title, what, hashes, where, status, ready }) {
   const confirm = document.getElementById('explore-save-confirm');
   if (confirm && (ready !== undefined || what !== undefined)) confirm.hidden = !ready;
   setText('explore-save-cancel', session.save?.saved ? 'Close' : 'Cancel');
+  placeOpenPopover();
 }
 
 function download(name, text) {

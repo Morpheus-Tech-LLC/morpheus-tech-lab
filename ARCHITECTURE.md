@@ -27,7 +27,8 @@ local storage: whether GPU compute is on.
  │                                     space.js: scene, camera, OrbitControls   │
  │   └ in Explore: explore.exploreFrame() ──► explore/view.js (points, boxes)   │
  │                                                                              │
- │ main.js opens Explore: startExplore() ── unbounded/driver ◄──► run.worker    │
+ │ main.js opens Explore: hud.startFromSetup() ─► startExplore() ── unbounded/  │
+ │   driver ◄──► run.worker; explore/hud.js: the boxes' settings (state.explore)│
  │   (a Web Worker: World + step, one generation at a time; snapshots back)     │
  └──────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -73,7 +74,20 @@ of cells, of the chunks that hold them.
 **Explore** (`src/explore/`): the mode that shows the unbounded world. Its seed is one of the
 shapes, lifted into world coordinates around the origin (`seed.js`), a preset with its own rules
 (`presets.js`), or a seed file, JSON with the rules and the cells. A preset or a seed file
-replaces the shape and the rules. `explore.js` runs it through `EngineDriver`, with no history:
+replaces the shape and the rules.
+
+Explore's settings (#69) are one value, `state.explore`: the seed's source and its cells, the
+visitor's rules, the arena and the memory limit (`setup.js`, with no DOM). From it come what each
+HUD box shows, what is locked (a preset's rules; a saved generation's rules and arena) and the
+config `startExplore()` takes. A change never edits it in place: each popover's Apply gives a new
+value, or the reason it is refused, checked by building that config, and restarts the run.
+`hud.js` wires the gears in the Seed, Rules and Limits boxes' titles to their popovers, and the
+folding of every HUD box, and `popover.js` keeps one popover open at a time, the save popover
+too. The HUD is one panel, Simulation, in every mode, with the boxes as its sections: first
+Mode, which names the simulation that runs (`controls.js`), then the mode's own. Explore's Run
+box only reports. The settings dialog shows only the mode choice in Explore.
+
+`explore.js` runs it through `EngineDriver`, with no history:
 `state.simulationData` stays null. `view.js` draws the latest snapshot in a point buffer that
 grows with the pattern, or the occupied chunks as boxes past 300,000 cells, and moves the camera
 to keep the pattern in view (`framing.js`). In the 2D view it asks the Worker for one plane of
@@ -84,7 +98,7 @@ ends when every cell has died or a fingerprint matches one of the last 10,000 ge
 the view loops while the count stays put. A fingerprint is a hash, not a proof: scoring a
 contest on a repeat needs #38's canonical state.
 
-**Saving** (`save.js`): Save this generation, in Explore's HUD box, and Save seed, in the Seed
+**Saving** (`save.js`): Save this generation, in Explore's Run box, and Save seed, in the Seed
 box, open one popover, which moves beside the box of the button that opened it. **Save this generation**
 asks the Worker for every live cell of the current generation, with the statistics of the same
 moment (a snapshot whose budget is 1,000,000 cells, so a bigger generation comes back as chunks

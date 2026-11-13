@@ -1,5 +1,6 @@
 // state.js
 import { perlinShape, cubeShape, tetrahedronShape, octahedronShape, worleyShape, rule30Shape } from './shapeGenerators.js';
+import { initialSetup } from './explore/setup.js';
 
 /**
  * Calculate isolation and overcrowding rules from survival values
@@ -85,15 +86,10 @@ export const state = {
   // Compute Game of Life 3D and Rule 30 on the GPU when it's available (src/gpu/). The
   // control bar's toggle sets this, and remembers it per browser.
   gpuCompute: true,
-  // Explore (src/explore/): the last run's settings, and its seed file, if one was loaded. The
-  // memory limit (MB) and arena side (cells) defaults were pinned by #39's measurements.
-  explore: {
-    rules: { birth: [9, 10], survival: initialSurvival },
-    memoryMB: 1024,
-    arena: null, // the arena's side in cells, or null for none
-    arenaSize: 64, // what the arena field shows when the arena is off
-    seedFile: null, // {name, rules, cells}
-  },
+  // Explore (src/explore/): its settings, as one value (src/explore/setup.js): the seed, the
+  // rules, the arena and the memory limit, which the HUD's boxes show and change. Set below,
+  // from the cube's shape settings.
+  explore: null,
   sandpileParams: {
     initialSand: 0, // Optional initial sand at center (0 = start empty, 1 grain added per generation)
     threshold: 4, // Threshold for toppling (fixed at 4, not user-adjustable)
@@ -179,3 +175,6 @@ export const state = {
     // Don't reset useRule30 - it persists until explicitly changed
   }
 };
+
+// Explore opens on the cube in the shape settings above, under the default rules
+state.explore = initialSetup(state.shapeParams.cube);

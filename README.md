@@ -100,9 +100,14 @@ The 3D model was determined to be best represented mathematically by a three dim
 | **Rule 30** | Wolfram's elementary automaton, in 1D or 2D |
 | **Sine Wave** | A continuous wave field, a smooth visual reference |
 | **Abelian Sandpile** | One grain of sand dropped at the centre each generation; piles topple and spread into fractal patterns |
-| **Explore** | Game of Life 3D without walls: the pattern grows as far as it likes, for as long as it runs. Pause, step, restart and set its speed; choose the rules, a seed shape, a preset seed or a seed file; set a memory limit, and optionally an arena that ends the run at its edge. The 2D view shows one slice, across the pattern's extent; the grid shows the 16³-cell chunks it occupies. A run stops once its pattern dies or settles into a still life or a repeating cycle, which then keeps playing. |
+| **Explore** | Game of Life 3D without walls: the pattern grows as far as it likes, for as long as it runs. Pause, step, restart and set its speed; from its boxes in the HUD, choose the rules, a seed shape, a preset seed or a seed file, set a memory limit, and optionally an arena that ends the run at its edge. The 2D view shows one slice, across the pattern's extent; the grid shows the 16³-cell chunks it occupies. A run stops once its pattern dies or settles into a still life or a repeating cycle, which then keeps playing. |
 
-The lab opens in Explore, paused on a 10³ cube; the settings button switches mode.
+The lab opens in Explore, paused on a 10³ cube. The Simulation panel at the top left holds the
+HUD, in every mode, as sections. The first, Mode, names the simulation that runs; the gear in its
+title, or the settings button, switches mode. The other sections (the boxes, below) belong to that
+simulation; Explore's own settings are in them, [below](#explores-settings). A click on a
+section's title folds it down to the title, to make room for the others on a short screen; a
+click on the panel's title folds the whole panel.
 
 Seeds: cube, tetrahedron, octahedron, Perlin noise and Worley noise. Game of Life 3D's default is a 50×50×50
 grid over 100 generations. The whole run is computed before it plays, so you can scrub and play
@@ -115,13 +120,36 @@ memory limit starts at 1,024 MB: the browser caps each tab's memory, and a page 
 cap, so the limit stops a run cleanly before the browser or the system does. On a 16 GB machine,
 one Chrome tab could take about 6 GB; 512 MB is the cautious choice for phones and small machines.
 
-Explore's Initial Seed is **Custom**, a shape or a seed file with the rules you set, or a
-**Preset**, which brings its own rules: **Cube10**, the 10³ cube Explore opens on under the
-default rules, a dense mass that keeps swelling outward; or **Spreading noise**, 224 cells under
-B7,13,14/S0,2-6,9,13,19,23,24 that look like chaotic noise yet keep spreading. The Speed contest
+### Explore's settings
+
+Explore's settings are changed from its boxes in the HUD's Simulation panel, at the top left,
+rather than in the settings dialog, which in Explore shows only the mode choice. Each box you can
+change has a gear in its title that opens a popover beside it (under it on a phone): **Seed**, **Rules** and
+**Limits**, for the arena (on or off, and its side, 8 to 1,024 cells) and the memory limit (64 to
+16,384 MB). The **Run** box only reports, and is drawn darker, with a green title, to tell it apart: the
+generation, generations per second, live cells and their peak, the pattern's extent, its chunks,
+whether it has settled, and the engine's memory.
+**Apply** restarts the run from generation 0 (a saved generation from its own generation), so
+every run can be repeated from its seed and rules; **Cancel**, Esc or a click elsewhere changes
+nothing. One popover is open at a time, and each works from the keyboard alone. The Rules
+popover also shows the counts a live cell dies with: isolation (below Survival),
+overcrowding (above it), and any counts in between that Survival leaves out.
+
+The seed is **Custom** or a **Preset**. Custom cells come from a shape (cube, tetrahedron,
+octahedron, Perlin or Worley noise, or a preset's cells under your rules) or from a file, with
+**Load…**: a seed file brings its cells and puts its rules in the Rules box, and a saved
+generation carries on from its generation. A **Preset** brings its own rules: **Cube10**, the
+10³ cube Explore opens on under the default rules, a dense mass that keeps swelling outward; or
+**Spreading noise**, 224 cells under B7,13,14/S0,2-6,9,13,19,23,24 that look like chaotic noise
+yet keep spreading. The Speed contest
 runs Cube10.
 
-Two buttons save the run: Save this generation, in Explore's box, and Save seed, in the Seed
+A preset's rules are locked, so it is always the same run, and a saved generation's rules and
+arena are locked too. The Rules box says what locks them. **Use your own rules**, in the Rules or
+Explore popover, keeps the same cells, as a Custom seed from generation 0, and makes those rules
+(and the arena) yours to change.
+
+Two buttons save the run: Save this generation, in the Run box, and Save seed, in the Seed
 box. Each opens a popover that says what the file holds and where it goes before anything is
 written. In Chrome and Edge, Save asks where to
 put the file; in other browsers it downloads, to the downloads folder.
@@ -131,13 +159,13 @@ put the file; in other browsers it downloads, to the downloads folder.
   run's seed, rules and arena, the generation, how the run stands (stopped there, or why it
   ended), the SHA-256 hash of that generation's cells and of the seed, the run's statistics,
   chunk size and browser, and the position of every live cell. The popover shows both hashes.
-  `node scripts/verify.mjs` confirms the file by replaying the seed. Loaded under Custom, it
-  carries on from that generation, under its own rules and arena; only the memory limit comes
-  from the settings. Opening the popover takes the generation, so the run can keep going. A
+  `node scripts/verify.mjs` confirms the file by replaying the seed. Loaded from the Seed box, under
+  Custom, it carries on from that generation, under its own rules and arena; only the memory
+  limit comes from the Limits box. Opening the popover takes the generation, so the run can keep going. A
   saved generation holds at most 1,000,000 live cells, so a bigger one isn't saved, and the
   popover says why.
 - **Save seed** saves the seed the run started from, with its rules, as `explore-seed.json`, a
-  seed file. Loaded under Custom, it runs from generation 0. For a run carried on from a saved
+  seed file. Loaded from the Seed box, under Custom, it runs from generation 0. For a run carried on from a saved
   generation, it is the first run's seed.
 
 An Explore seed file is JSON: its format and version, the rules, and the live cells as

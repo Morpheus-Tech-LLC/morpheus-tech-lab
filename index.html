@@ -10,7 +10,6 @@
   <link rel="stylesheet" href="src/color.css">
 </head>
 <body>
-  <div id="simulation-mode-title" class="simulation-mode-title"></div>
   <!-- Explore's notices (src/explore/explore.js): what the view draws, and why a run stopped -->
   <div id="explore-notice" class="explore-notice" role="status" aria-live="polite">
     <div id="explore-view-note" class="explore-note" hidden></div>
@@ -75,6 +74,8 @@
           <div id="mode-description" class="mode-description">
             <p>A classic cellular automaton extended to three dimensions. Cells evolve based on the number of living neighbors, creating complex patterns of growth, stability, and decay in 3D space.</p>
           </div>
+          <!-- Explore's settings are in the HUD's boxes (src/explore/hud.js) -->
+          <p id="explore-settings-note" class="explore-settings-note" hidden></p>
         </div>
         <div id="sim-params-section" class="sim-col" style="grid-column: 1;">
           <div class="rules-title">
@@ -116,53 +117,9 @@
           </div>
         </div>
 
-        <!-- Explore (src/explore/): what limits a run, and the seed file -->
-        <div id="explore-section" class="explore-col" style="display: none;">
-        <div class="rules-title">
-          <span data-tooltip="Explore runs Game of Life 3D in a world without walls: the pattern can grow as far as memory allows.">Explore</span>
-        </div>
-        <div class="modal-field-row">
-          <div class="label-row">
-            <label class="modal-label" for="explore-memory">
-              <span data-tooltip="How much memory the engine may use for cells, in MB. Your browser caps each tab's memory, whatever your computer has, and a page can't find out that cap in advance. If the browser refuses memory, the run stops cleanly and keeps its last generation; if the system closes the tab first, which is likelier with little memory, the run is lost. This limit stops the run before that. Try about 1024 on a typical laptop and 2048 to 4096 on a strong desktop; 512 is cautious, for phones and small machines.">Memory limit (MB)</span>
-            </label>
-            <span class="input-range-hint">64 - 16384</span>
-          </div>
-          <input type="number" id="explore-memory" class="glass-input" min="64" max="16384" step="64" value="1024" />
-        </div>
-        <div class="modal-field-row">
-          <label class="modal-label" for="explore-arena-checkbox" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-            <input type="checkbox" id="explore-arena-checkbox" style="width: auto; cursor: pointer;" />
-            <span data-tooltip="A box around the centre. A step that would bring a cell to life outside it ends the run, as in the Discovery contests.">Arena</span>
-          </label>
-        </div>
-        <div class="modal-field-row" id="explore-arena-row" style="display: none;">
-          <div class="label-row">
-            <label class="modal-label" for="explore-arena-size">
-              <span data-tooltip="The arena's side, in cells. It is centred on the seed's centre.">Arena size</span>
-            </label>
-            <span class="input-range-hint">8 - 1024</span>
-          </div>
-          <input type="number" id="explore-arena-size" class="glass-input" min="8" max="1024" step="1" value="64" />
-        </div>
-        <div id="explore-error" class="explore-error" role="alert" hidden></div>
-      </div>
         <div id="seed-section" class="seed-col">
           <div class="rules-title">
             <span data-tooltip="Configuration for the initial state of the simulation. Choose a shape pattern and set its size and density to determine starting conditions.">Initial Seed</span>
-          </div>
-          <div class="modal-field-row explore-only">
-            <div class="explore-seed-kind" role="group" aria-label="Initial seed">
-              <button type="button" id="explore-seed-custom" class="seed-kind-option" aria-pressed="true" title="A shape, or a seed file, with the rules you set">Custom</button>
-              <button type="button" id="explore-seed-preset" class="seed-kind-option" aria-pressed="false" title="A ready-made seed that brings its own rules">Preset</button>
-            </div>
-          </div>
-          <div class="modal-field-row explore-only preset-only">
-            <label class="modal-label" for="explore-preset">
-              <span data-tooltip="A ready-made seed with its own rules, which the rule fields show and can't change.">Preset</span>
-            </label>
-            <select id="explore-preset" class="glass-select"></select>
-            <div id="explore-preset-description" class="explore-seed-status"></div>
           </div>
           <div class="modal-field-row seed-shape-row">
             <label class="modal-label" for="modal-shape-select">
@@ -203,17 +160,6 @@
               <span class="input-range-hint" id="shape-region-size-range">min: 1</span>
             </div>
             <input type="number" id="shape-region-size" class="glass-input" min="1" step="1" />
-          </div>
-          <div class="modal-field-row explore-only">
-            <div class="label-row">
-              <span class="modal-label"><span data-tooltip="Load an Explore seed file: its cells and rules replace the shape and rules.">Seed file</span></span>
-            </div>
-            <div class="explore-file-row">
-              <button type="button" id="explore-load-seed" class="glass-button explore-small-button custom-only">Load…</button>
-              <button type="button" id="explore-clear-seed" class="glass-button explore-small-button custom-only" hidden>Use the shape</button>
-              <input type="file" id="explore-seed-file" accept=".json,application/json" hidden />
-            </div>
-            <div id="explore-seed-status" class="explore-seed-status">Using the shape.</div>
           </div>
         </div>
 
@@ -384,61 +330,194 @@
     </div>
   </div>
   <div class="glass-display-container" id="glass-display-container">
-    <div id="glass-info-sim" class="glass-display glass-display--compact">
-      <div class="box-title">Simulation</div>
-      <div class="info-line"><span class="label">Generations</span><span id="sim-generations-value" class="value">0</span></div>
-      <div class="info-line"><span class="label">Size</span><span id="sim-size-value" class="value">0</span></div>
-    </div>
-    <div id="glass-info-shape" class="glass-display glass-display--compact">
-      <div class="box-title">Seed</div>
-      <div class="info-line"><span class="label">Shape</span><span id="shape-name-value" class="value">cube</span></div>
-      <div class="info-line"><span class="label">Density</span><span id="shape-density-value" class="value">1</span></div>
-      <div class="info-line"><span class="label">Size</span><span id="shape-size-value" class="value">10</span></div>
-      <!-- Explore only: the seed the run started from, as a seed file (the popover is shared, below) -->
-      <div class="explore-save-control explore-save-control--seed">
-        <button type="button" id="explore-save-seed" class="glass-button explore-small-button" aria-haspopup="dialog" aria-expanded="false" aria-controls="explore-save-popover" disabled>Save seed</button>
-      </div>
-    </div>
-    <div id="glass-info-rules" class="glass-display glass-display--compact">
-      <div class="box-title">Rules</div>
-      <div class="info-line"><span class="label">Birth</span><span id="rules-birth" class="value">9,10</span></div>
-      <div class="info-line"><span class="label">Survival</span><span id="rules-survival" class="value">5-15</span></div>
-      <div class="info-line"><span class="label">Isolation</span><span id="rules-isolation" class="value">0-4</span></div>
-      <div class="info-line"><span class="label">Overcrowding</span><span id="rules-overcrowd" class="value">16-26</span></div>
-    </div>
-    <div id="glass-info-explore" class="glass-display glass-display--compact">
-      <div class="box-title">Explore</div>
-      <div class="info-line"><span class="label">Generation</span><span id="explore-generation" class="value">0</span></div>
-      <div class="info-line"><span class="label">Live cells</span><span id="explore-live" class="value">0</span></div>
-      <div class="info-line"><span class="label">Peak</span><span id="explore-live-peak" class="value">0</span></div>
-      <div class="info-line"><span class="label">Chunks</span><span id="explore-chunks" class="value">0</span></div>
-      <div class="info-line"><span class="label">Gen/s</span><span id="explore-rate" class="value">0</span></div>
-      <div class="info-line"><span class="label">Extent</span><span id="explore-extent" class="value">–</span></div>
-      <div class="info-line"><span class="label">Settled</span><span id="explore-settled" class="value">no</span></div>
-      <!-- Saving: Save this generation here and Save seed in the Seed box open this one popover,
-           which moves beside the box whose button opened it, and says what the file holds and
-           where it goes -->
-      <div class="explore-save-control">
-        <button type="button" id="explore-save-generation" class="glass-button explore-small-button" aria-haspopup="dialog" aria-expanded="false" aria-controls="explore-save-popover" disabled>Save this generation</button>
-        <div id="explore-save-popover" class="explore-save-popover" role="dialog" aria-labelledby="explore-save-title">
-          <div id="explore-save-title" class="explore-save-title"></div>
-          <p id="explore-save-what" class="explore-save-text"></p>
-          <div id="explore-save-hashes" class="explore-save-hashes" hidden></div>
-          <p id="explore-save-where" class="explore-save-text explore-save-where" hidden></p>
-          <p id="explore-save-status" class="explore-save-text explore-save-status" role="status" hidden></p>
-          <div class="explore-save-actions">
-            <button type="button" id="explore-save-confirm" class="glass-button explore-small-button" hidden>Save</button>
-            <button type="button" id="explore-save-cancel" class="glass-button explore-small-button">Cancel</button>
+    <!-- The mode box: which simulation runs, in every mode, with Change for the settings dialog.
+         The other boxes belong to it, so they sit inside it; each box folds down to its title -->
+    <section id="glass-info-mode" class="glass-display glass-display--compact" aria-labelledby="hud-panel-title">
+      <div class="box-title"><span class="box-title-text" id="hud-panel-title">Simulation</span><button type="button" class="hud-collapse" aria-expanded="true" aria-label="Collapse the Simulation box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></div>
+      <div class="hud-mode-children">
+        <!-- The mode: which simulation runs; its gear opens the settings dialog -->
+        <div id="glass-info-modename" class="glass-display glass-display--compact">
+          <div class="box-title"><span class="box-title-text">Mode</span><span class="box-title-tools"><button type="button" id="hud-change-mode" class="hud-gear" aria-label="Change the mode" title="Change the mode" aria-haspopup="dialog"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.14,12.94a7.43,7.43,0,0,0,.05-.94,7.43,7.43,0,0,0-.05-.94l2.11-1.65a.5.5,0,0,0,.12-.64l-2-3.46a.5.5,0,0,0-.6-.22l-2.49,1a7.28,7.28,0,0,0-1.63-.94l-.38-2.65A.5.5,0,0,0,13.64,2H10.36a.5.5,0,0,0-.5.42L9.48,5.07a7.28,7.28,0,0,0-1.63.94l-2.49-1a.5.5,0,0,0-.6.22l-2,3.46a.5.5,0,0,0,.12.64L4.91,11.06a7.43,7.43,0,0,0-.05.94,7.43,7.43,0,0,0,.05.94L2.8,14.59a.5.5,0,0,0-.12.64l2,3.46a.5.5,0,0,0,.6.22l2.49-1a7.28,7.28,0,0,0,1.63.94l.38,2.65a.5.5,0,0,0,.5.42h3.28a.5.5,0,0,0,.5-.42l.38-2.65a7.28,7.28,0,0,0,1.63-.94l2.49,1a.5.5,0,0,0,.6-.22l2-3.46a.5.5,0,0,0-.12-.64ZM12,15.5A3.5,3.5,0,1,1,15.5,12,3.5,3.5,0,0,1,12,15.5Z"/></svg></button><button type="button" class="hud-collapse" aria-expanded="true" aria-label="Collapse the Mode box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></span></div>
+          <div id="hud-mode-name" class="hud-mode-name">Explore</div>
+          <div id="hud-mode-about" class="hud-mode-about">Game of Life 3D, without walls</div>
+        </div>
+        <div id="glass-info-sim" class="glass-display glass-display--compact">
+          <div class="box-title"><span class="box-title-text">Grid</span><button type="button" class="hud-collapse" aria-expanded="true" aria-label="Collapse the Grid box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></div>
+          <div class="info-line"><span class="label">Generations</span><span id="sim-generations-value" class="value">0</span></div>
+          <div class="info-line"><span class="label">Size</span><span id="sim-size-value" class="value">0</span></div>
+        </div>
+        <div id="glass-info-shape" class="glass-display glass-display--compact">
+          <div class="box-title"><span class="box-title-text">Seed</span><span class="box-title-tools"><button type="button" id="explore-change-seed" class="hud-gear hud-gear--explore" aria-label="Change the seed" title="Change the seed" aria-haspopup="dialog" aria-expanded="false" aria-controls="explore-seed-popover"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.14,12.94a7.43,7.43,0,0,0,.05-.94,7.43,7.43,0,0,0-.05-.94l2.11-1.65a.5.5,0,0,0,.12-.64l-2-3.46a.5.5,0,0,0-.6-.22l-2.49,1a7.28,7.28,0,0,0-1.63-.94l-.38-2.65A.5.5,0,0,0,13.64,2H10.36a.5.5,0,0,0-.5.42L9.48,5.07a7.28,7.28,0,0,0-1.63.94l-2.49-1a.5.5,0,0,0-.6.22l-2,3.46a.5.5,0,0,0,.12.64L4.91,11.06a7.43,7.43,0,0,0-.05.94,7.43,7.43,0,0,0,.05.94L2.8,14.59a.5.5,0,0,0-.12.64l2,3.46a.5.5,0,0,0,.6.22l2.49-1a7.28,7.28,0,0,0,1.63.94l.38,2.65a.5.5,0,0,0,.5.42h3.28a.5.5,0,0,0,.5-.42l.38-2.65a7.28,7.28,0,0,0,1.63-.94l2.49,1a.5.5,0,0,0,.6-.22l2-3.46a.5.5,0,0,0-.12-.64ZM12,15.5A3.5,3.5,0,1,1,15.5,12,3.5,3.5,0,0,1,12,15.5Z"/></svg></button><button type="button" class="hud-collapse" aria-expanded="true" aria-label="Collapse the Seed box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></span></div>
+          <div class="info-line hud-shape-line"><span class="label">Shape</span><span id="shape-name-value" class="value">cube</span></div>
+          <div class="info-line hud-shape-line"><span class="label">Density</span><span id="shape-density-value" class="value">1</span></div>
+          <div class="info-line hud-shape-line"><span class="label">Size</span><span id="shape-size-value" class="value">10</span></div>
+          <!-- Explore only (src/explore/hud.js): what the run started from, and Save seed (the save
+               popover is shared, below); the gear in the title changes the seed -->
+          <div id="explore-seed-label" class="explore-hud-name">Cube, size 10, density 1</div>
+          <div class="info-line explore-hud-line"><span class="label">Cells</span><span id="explore-seed-cells" class="value">1,000</span></div>
+          <div class="explore-box-actions explore-box-actions--shared">
+            <button type="button" id="explore-save-seed" class="glass-button explore-small-button" aria-haspopup="dialog" aria-expanded="false" aria-controls="explore-save-popover" disabled>Save seed</button>
+          </div>
+          <form id="explore-seed-popover" class="explore-popover" tabindex="-1" role="dialog" aria-label="Change the seed" novalidate>
+            <div class="explore-seed-kind" role="group" aria-label="Kind of seed">
+              <button type="button" id="explore-seed-custom" class="seed-kind-option" aria-pressed="true" title="A shape, or a file, with the rules in the Rules box">Custom</button>
+              <button type="button" id="explore-seed-preset" class="seed-kind-option" aria-pressed="false" title="A ready-made seed that brings its own rules">Preset</button>
+            </div>
+            <div id="explore-seed-preset-part" class="explore-popover-part" hidden>
+              <label class="explore-field" for="explore-preset"><span class="explore-field-label">Preset</span></label>
+              <select id="explore-preset" class="glass-select"></select>
+              <p id="explore-preset-description" class="explore-popover-text"></p>
+              <p id="explore-preset-rules" class="explore-popover-text explore-popover-quiet"></p>
+            </div>
+            <div id="explore-seed-custom-part" class="explore-popover-part">
+              <div class="explore-field-label explore-source-label" aria-hidden="true">Cells from</div>
+              <div class="explore-seed-kind explore-seed-kind--source" role="group" aria-label="Where the cells come from">
+                <button type="button" id="explore-source-shape" class="seed-kind-option" aria-pressed="true" title="Cells from one of the shapes">Shape</button>
+                <button type="button" id="explore-source-file" class="seed-kind-option" aria-pressed="false" title="Cells from a seed file or a saved generation">File</button>
+              </div>
+              <div id="explore-seed-shape-part" class="explore-popover-part">
+                <label class="explore-field" for="explore-shape"><span class="explore-field-label">Shape</span></label>
+                <select id="explore-shape" class="glass-select"></select>
+                <div id="explore-shape-params">
+                  <div class="explore-field">
+                    <label class="explore-field-label" for="explore-shape-size" id="explore-shape-size-label">Size</label>
+                    <span class="explore-field-hint" id="explore-shape-size-hint">1 - 100</span>
+                  </div>
+                  <input type="number" id="explore-shape-size" class="glass-input" min="1" max="100" step="1" />
+                  <div class="explore-field">
+                    <label class="explore-field-label" for="explore-shape-density" id="explore-shape-density-label">Density</label>
+                    <span class="explore-field-hint">0 - 1</span>
+                  </div>
+                  <input type="number" id="explore-shape-density" class="glass-input" min="0" max="1" step="0.01" />
+                  <div id="explore-shape-region-row">
+                    <div class="explore-field">
+                      <label class="explore-field-label" for="explore-shape-region">Region size</label>
+                      <span class="explore-field-hint">0 - 200</span>
+                    </div>
+                    <input type="number" id="explore-shape-region" class="glass-input" min="0" max="200" step="1" />
+                  </div>
+                  <p id="explore-shape-about" class="explore-popover-text explore-popover-quiet"></p>
+                </div>
+              </div>
+              <div id="explore-seed-file-part" class="explore-popover-part" hidden>
+                <button type="button" id="explore-load-seed" class="glass-button explore-small-button">Load…</button>
+                <input type="file" id="explore-seed-file" accept=".json,application/json" hidden />
+                <p id="explore-seed-status" class="explore-popover-text" role="status"></p>
+              </div>
+            </div>
+            <p id="explore-seed-note" class="explore-popover-text explore-popover-quiet"></p>
+            <p id="explore-seed-error" class="explore-error" role="alert" hidden></p>
+            <div class="explore-save-actions">
+              <button type="submit" class="glass-button explore-small-button">Apply</button>
+              <button type="button" class="glass-button explore-small-button" data-cancel>Cancel</button>
+            </div>
+          </form>
+        </div>
+        <div id="glass-info-rules" class="glass-display glass-display--compact">
+          <div class="box-title"><span class="box-title-text">Rules</span><span class="box-title-tools"><button type="button" id="explore-change-rules" class="hud-gear hud-gear--explore" aria-label="Change the rules" title="Change the rules" aria-haspopup="dialog" aria-expanded="false" aria-controls="explore-rules-popover"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.14,12.94a7.43,7.43,0,0,0,.05-.94,7.43,7.43,0,0,0-.05-.94l2.11-1.65a.5.5,0,0,0,.12-.64l-2-3.46a.5.5,0,0,0-.6-.22l-2.49,1a7.28,7.28,0,0,0-1.63-.94l-.38-2.65A.5.5,0,0,0,13.64,2H10.36a.5.5,0,0,0-.5.42L9.48,5.07a7.28,7.28,0,0,0-1.63.94l-2.49-1a.5.5,0,0,0-.6.22l-2,3.46a.5.5,0,0,0,.12.64L4.91,11.06a7.43,7.43,0,0,0-.05.94,7.43,7.43,0,0,0,.05.94L2.8,14.59a.5.5,0,0,0-.12.64l2,3.46a.5.5,0,0,0,.6.22l2.49-1a7.28,7.28,0,0,0,1.63.94l.38,2.65a.5.5,0,0,0,.5.42h3.28a.5.5,0,0,0,.5-.42l.38-2.65a7.28,7.28,0,0,0,1.63-.94l2.49,1a.5.5,0,0,0,.6-.22l2-3.46a.5.5,0,0,0-.12-.64ZM12,15.5A3.5,3.5,0,1,1,15.5,12,3.5,3.5,0,0,1,12,15.5Z"/></svg></button><button type="button" class="hud-collapse" aria-expanded="true" aria-label="Collapse the Rules box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></span></div>
+          <div class="info-line"><span class="label">Birth</span><span id="rules-birth" class="value">9,10</span></div>
+          <div class="info-line"><span class="label">Survival</span><span id="rules-survival" class="value">5-15</span></div>
+          <div class="info-line hud-derived-line"><span class="label">Isolation</span><span id="rules-isolation" class="value">0-4</span></div>
+          <div class="info-line hud-derived-line"><span class="label">Overcrowding</span><span id="rules-overcrowd" class="value">16-26</span></div>
+          <!-- Explore only (src/explore/hud.js): what locks the rules, if anything; the gear in the
+               title changes them -->
+          <div id="explore-rules-lock" class="explore-hud-name explore-hud-lock" hidden></div>
+          <form id="explore-rules-popover" class="explore-popover" tabindex="-1" role="dialog" aria-label="Change the rules" novalidate>
+            <div id="explore-rules-locked" class="explore-popover-locked" hidden>
+              <p id="explore-rules-locked-text" class="explore-popover-text"></p>
+              <button type="button" id="explore-rules-own" class="glass-button explore-small-button">Use your own rules</button>
+            </div>
+            <div class="explore-field">
+              <label class="explore-field-label" for="explore-rule-birth">Birth</label>
+              <span class="explore-field-hint">1 - 26</span>
+            </div>
+            <input type="text" id="explore-rule-birth" class="glass-input" autocomplete="off" spellcheck="false" aria-describedby="explore-rule-birth-hint" />
+            <p id="explore-rule-birth-hint" class="explore-popover-text explore-popover-quiet">The neighbour counts that bring a dead cell to life, as a list or ranges, such as 9,10 or 5-15. A count of 0 isn't allowed: it would fill all of space at once.</p>
+            <div class="explore-field">
+              <label class="explore-field-label" for="explore-rule-survival">Survival</label>
+              <span class="explore-field-hint">0 - 26</span>
+            </div>
+            <input type="text" id="explore-rule-survival" class="glass-input" autocomplete="off" spellcheck="false" aria-describedby="explore-rule-survival-hint" />
+            <p id="explore-rule-survival-hint" class="explore-popover-text explore-popover-quiet">The neighbour counts that keep a live cell alive. A live cell dies with any other count:</p>
+            <div id="explore-rules-derived" class="explore-rules-derived" aria-live="polite">
+              <div class="explore-derived-line"><span>Isolation</span><span id="explore-rules-isolation">–</span></div>
+              <div class="explore-derived-line"><span>Overcrowding</span><span id="explore-rules-overcrowding">–</span></div>
+              <div class="explore-derived-line" id="explore-rules-gaps-line" hidden><span>Also dies at</span><span id="explore-rules-gaps">–</span></div>
+            </div>
+            <p id="explore-rules-note" class="explore-popover-text explore-popover-quiet"></p>
+            <p id="explore-rules-error" class="explore-error" role="alert" hidden></p>
+            <div class="explore-save-actions">
+              <button type="submit" class="glass-button explore-small-button">Apply</button>
+              <button type="button" class="glass-button explore-small-button" data-cancel>Cancel</button>
+            </div>
+          </form>
+        </div>
+        <!-- Explore only (src/explore/hud.js): what limits a run, the arena and the memory limit -->
+        <div id="glass-info-limits" class="glass-display glass-display--compact">
+          <div class="box-title"><span class="box-title-text">Limits</span><span class="box-title-tools"><button type="button" id="explore-change-limits" class="hud-gear" aria-label="Change the limits" title="Change the limits" aria-haspopup="dialog" aria-expanded="false" aria-controls="explore-limits-popover"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.14,12.94a7.43,7.43,0,0,0,.05-.94,7.43,7.43,0,0,0-.05-.94l2.11-1.65a.5.5,0,0,0,.12-.64l-2-3.46a.5.5,0,0,0-.6-.22l-2.49,1a7.28,7.28,0,0,0-1.63-.94l-.38-2.65A.5.5,0,0,0,13.64,2H10.36a.5.5,0,0,0-.5.42L9.48,5.07a7.28,7.28,0,0,0-1.63.94l-2.49-1a.5.5,0,0,0-.6.22l-2,3.46a.5.5,0,0,0,.12.64L4.91,11.06a7.43,7.43,0,0,0-.05.94,7.43,7.43,0,0,0,.05.94L2.8,14.59a.5.5,0,0,0-.12.64l2,3.46a.5.5,0,0,0,.6.22l2.49-1a7.28,7.28,0,0,0,1.63.94l.38,2.65a.5.5,0,0,0,.5.42h3.28a.5.5,0,0,0,.5-.42l.38-2.65a7.28,7.28,0,0,0,1.63-.94l2.49,1a.5.5,0,0,0,.6-.22l2-3.46a.5.5,0,0,0-.12-.64ZM12,15.5A3.5,3.5,0,1,1,15.5,12,3.5,3.5,0,0,1,12,15.5Z"/></svg></button><button type="button" class="hud-collapse" aria-expanded="true" aria-label="Collapse the Limits box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></span></div>
+          <div class="info-line"><span class="label">Arena</span><span id="explore-arena" class="value">off</span></div>
+          <div class="info-line"><span class="label">Memory limit</span><span id="explore-memory-limit" class="value">1,024 MB</span></div>
+          <form id="explore-limits-popover" class="explore-popover" tabindex="-1" role="dialog" aria-label="Change the limits" novalidate>
+            <div id="explore-arena-locked" class="explore-popover-locked" hidden>
+              <p class="explore-popover-text">The saved generation carries on in its own arena, under its own rules. Use your own rules starts its cells again from generation 0, with this arena and its rules yours to change.</p>
+              <button type="button" id="explore-arena-own" class="glass-button explore-small-button">Use your own rules</button>
+            </div>
+            <div class="explore-popover-section">Arena</div>
+            <label class="explore-check" for="explore-arena-on"><input type="checkbox" id="explore-arena-on" /> An arena</label>
+            <p class="explore-popover-text explore-popover-quiet">A box around the centre. A step that would bring a cell to life outside it ends the run, as in the Discovery contests.</p>
+            <div class="explore-field">
+              <label class="explore-field-label" for="explore-arena-side">Side, in cells</label>
+              <span class="explore-field-hint">8 - 1024</span>
+            </div>
+            <input type="number" id="explore-arena-side" class="glass-input" min="8" max="1024" step="1" />
+            <div class="explore-popover-section">Memory limit</div>
+            <div class="explore-field">
+              <label class="explore-field-label" for="explore-memory-input">Limit, in MB</label>
+              <span class="explore-field-hint">64 - 16384</span>
+            </div>
+            <input type="number" id="explore-memory-input" class="glass-input" min="64" max="16384" step="64" />
+            <p class="explore-popover-text explore-popover-quiet">How much memory the engine may use for cells. Your browser caps each tab's memory, whatever your computer has, and a page can't find out that cap in advance. If the browser refuses memory, the run stops cleanly and keeps its last generation; if the system closes the tab first, which is likelier with little memory, the run is lost. This limit stops the run before that. Try about 1024 on a typical laptop and 2048 to 4096 on a strong desktop; 512 is cautious, for phones and small machines.</p>
+            <p id="explore-limits-note" class="explore-popover-text explore-popover-quiet"></p>
+            <p id="explore-limits-error" class="explore-error" role="alert" hidden></p>
+            <div class="explore-save-actions">
+              <button type="submit" class="glass-button explore-small-button">Apply</button>
+              <button type="button" class="glass-button explore-small-button" data-cancel>Cancel</button>
+            </div>
+          </form>
+        </div>
+        <div id="glass-info-explore" class="glass-display glass-display--compact">
+          <div class="box-title"><span class="box-title-text">Run</span><button type="button" class="hud-collapse" aria-expanded="true" aria-label="Collapse the Run box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></div>
+          <div class="info-line"><span class="label">Generation</span><span id="explore-generation" class="value">0</span></div>
+          <div class="info-line"><span class="label">Gen/s</span><span id="explore-rate" class="value">0</span></div>
+          <div class="info-line"><span class="label">Live cells</span><span id="explore-live" class="value">0</span></div>
+          <div class="info-line"><span class="label">Peak</span><span id="explore-live-peak" class="value">0</span></div>
+          <div class="info-line"><span class="label">Extent</span><span id="explore-extent" class="value">–</span></div>
+          <div class="info-line"><span class="label">Chunks</span><span id="explore-chunks" class="value">0</span></div>
+          <div class="info-line"><span class="label">Settled</span><span id="explore-settled" class="value">no</span></div>
+          <!-- The engine's cell memory, apart from the browser's own: what its chunks use, and what it
+               has reserved, of the limit in the Limits box -->
+          <div class="info-line"><span class="label">Memory in use</span><span id="explore-memory-live" class="value">0 KB</span></div>
+          <div class="info-line"><span class="label">Reserved</span><span id="explore-memory-used" class="value">0 MB</span></div>
+          <!-- Save this generation opens the save popover, which Save seed in the Seed box shares: it
+               moves beside the box whose button opened it, and says what the file holds and where it
+               goes -->
+          <div class="explore-box-actions">
+            <button type="button" id="explore-save-generation" class="glass-button explore-small-button" aria-haspopup="dialog" aria-expanded="false" aria-controls="explore-save-popover" disabled>Save this generation</button>
+          </div>
+          <div id="explore-save-popover" class="explore-popover explore-save-popover" role="dialog" aria-labelledby="explore-save-title" tabindex="-1">
+            <div id="explore-save-title" class="explore-popover-title"></div>
+            <p id="explore-save-what" class="explore-save-text"></p>
+            <div id="explore-save-hashes" class="explore-save-hashes" hidden></div>
+            <p id="explore-save-where" class="explore-save-text explore-save-where" hidden></p>
+            <p id="explore-save-status" class="explore-save-text explore-save-status" role="status" hidden></p>
+            <div class="explore-save-actions">
+              <button type="button" id="explore-save-confirm" class="glass-button explore-small-button" hidden>Save</button>
+              <button type="button" id="explore-save-cancel" class="glass-button explore-small-button">Cancel</button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-    <!-- Explore only: the engine's cell memory, apart from the browser's own -->
-    <div id="glass-info-memory" class="glass-display glass-display--compact">
-      <div class="box-title">Engine Memory</div>
-      <div class="info-line"><span class="label">In use</span><span id="explore-memory-live" class="value">0 KB</span></div>
-      <div class="info-line"><span class="label">Reserved</span><span id="explore-memory-used" class="value">0 MB</span></div>
-    </div>
+    </section>
   </div>
   <!-- === FOOTER ICONS === -->
   <div id="footer-icons">
@@ -616,27 +695,6 @@
     overflow: hidden;
     background-color: var(--color-background);
     font-family: sans-serif;
-  }
-
-  #simulation-mode-title {
-    position: fixed;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 100;
-    background: transparent;
-    border: none;
-    border-radius: 0;
-    padding: 0;
-    pointer-events: none;
-    color: rgba(200, 220, 255, 0.9);
-    font-size: 24px;
-    font-weight: 500;
-    letter-spacing: 1px;
-    text-align: center;
-    white-space: nowrap;
-    box-shadow: none;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   }
 
   .arrow {
@@ -919,7 +977,9 @@
   #glass-info-rules.glass-display--compact,
   #glass-info-sim.glass-display--compact,
   #glass-info-explore.glass-display--compact,
-  #glass-info-memory.glass-display--compact {
+  #glass-info-limits.glass-display--compact,
+  #glass-info-modename.glass-display--compact,
+  #glass-info-mode.glass-display--compact {
     padding: 10px 12px;
     border-radius: 12px;
     margin: 5px;
@@ -934,7 +994,7 @@
   #glass-info-rules .info-line,
   #glass-info-sim .info-line,
   #glass-info-explore .info-line,
-  #glass-info-memory .info-line {
+  #glass-info-limits .info-line {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
@@ -947,7 +1007,7 @@
   #glass-info-rules .label,
   #glass-info-sim .label,
   #glass-info-explore .label,
-  #glass-info-memory .label {
+  #glass-info-limits .label {
     color: var(--color-info-display-text);
     font-weight: 600;
     font-size: 12px;
@@ -957,7 +1017,7 @@
   #glass-info-rules .value,
   #glass-info-sim .value,
   #glass-info-explore .value,
-  #glass-info-memory .value {
+  #glass-info-limits .value {
     font-size: 16px;
     color: var(--color-control-font); /* blue-ish theme accent */
     font-weight: 600;
@@ -2478,20 +2538,6 @@
     border-left: 3px solid rgba(255, 130, 160, 0.9);
     background: rgba(100, 45, 60, 0.7);
   }
-  .modal-grid .explore-col {
-    grid-column: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-    width: 100%;
-    box-sizing: border-box;
-  }
-  .explore-file-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
   .explore-small-button {
     padding: 5px 10px;
   }
@@ -2502,17 +2548,25 @@
   .explore-small-button[hidden] {
     display: none;
   }
-  /* Explore's seed choice (Initial Seed): Custom shows the shape rows, Preset the preset list */
-  .seed-col:not(.explore-seed) .explore-only,
-  .seed-col:not(.preset-active) .preset-only,
-  .seed-col.explore-seed.preset-active .seed-shape-row,
-  .seed-col.preset-active .custom-only {
-    display: none !important;
+  /* In Explore, the dialog holds only the mode choice, and says where Explore's settings are */
+  .explore-settings-note {
+    margin: 8px 0 0;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(120, 180, 255, 0.35);
+    background: rgba(120, 180, 255, 0.1);
+    color: rgba(200, 220, 255, 0.95);
+    font-size: 13px;
+    line-height: 1.4;
+  }
+  .explore-settings-note[hidden] {
+    display: none;
   }
   /* Custom / Preset: drawn like the control bar's 3D / 2D switch */
   .explore-seed-kind {
     display: flex;
     width: 100%;
+    box-sizing: border-box;
     border: 1px solid rgba(100, 150, 200, 0.3);
     border-radius: 6px;
     background: rgba(35, 45, 60, 0.7);
@@ -2547,16 +2601,6 @@
     outline: 2px solid rgba(120, 180, 255, 0.8);
     outline-offset: -2px;
   }
-  .modal-field-row .glass-input[readonly] {
-    opacity: 0.6;
-    cursor: default;
-  }
-  .explore-seed-status {
-    margin-top: 4px;
-    font-size: 12px;
-    color: var(--color-info-display-text);
-    opacity: 0.85;
-  }
   .explore-error {
     margin-top: 8px;
     padding: 8px 10px;
@@ -2573,7 +2617,7 @@
   /* What the view draws, and why a run stopped: under the mode title */
   .explore-notice {
     position: fixed;
-    top: 60px;
+    top: 20px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 100;
@@ -2601,10 +2645,10 @@
   .explore-note[hidden] {
     display: none;
   }
-  /* Explore's HUD box and Restart button show only in Explore, which has no fixed size and
-     no reverse (a stream only runs forward) */
+  /* Explore's Limits and Run boxes and Restart button show only in Explore, which has no fixed
+     size and no reverse (a stream only runs forward) */
   #glass-info-explore,
-  #glass-info-memory,
+  #glass-info-limits,
   #restartButton {
     display: none;
   }
@@ -2615,47 +2659,264 @@
     border-radius: 6px;
   }
   body.mode-explore #glass-info-explore,
-  body.mode-explore #glass-info-memory {
-    display: inline-block;
+  body.mode-explore #glass-info-limits {
+    display: block;
   }
   body.mode-explore #restartButton {
     display: flex;
   }
-  /* Save this generation, at the foot of Explore's box (which itself lets clicks through), and
-     its popover, drawn like the GPU toggle's (.gpu-compute-popover), beside the box */
-  .explore-save-control {
-    margin-top: 8px;
-  }
-  /* The Seed box shows in every mode; its Save seed only in Explore */
-  .explore-save-control--seed {
+  /* Explore's settings in the HUD (src/explore/hud.js): what the seed is and what locks the
+     rules, a Change button at the foot of each box, which itself lets clicks through, and Save
+     this generation and Save seed beside them */
+  .explore-hud-name,
+  .explore-hud-line,
+  body.mode-explore #glass-info-shape .hud-shape-line {
     display: none;
   }
-  body.mode-explore .explore-save-control--seed {
+  body.mode-explore .explore-hud-name {
     display: block;
+    max-width: 220px;
+    margin: 4px 0;
+    color: var(--color-control-font);
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
   }
-  #glass-info-explore,
-  #glass-info-shape {
+  body.mode-explore .explore-hud-name[hidden] {
+    display: none;
+  }
+  body.mode-explore .explore-hud-lock {
+    color: var(--color-info-display-text);
+    font-size: 12px;
+  }
+  body.mode-explore #glass-info-shape .explore-hud-line {
+    display: flex;
+  }
+  /* The Simulation panel (every mode): the HUD's boxes as its sections, Mode first */
+  #glass-info-mode {
     position: relative;
   }
-  #explore-save-generation,
-  #explore-save-seed {
-    width: 100%;
+  #glass-info-mode.glass-display--compact {
+    width: 250px;
+    box-sizing: border-box;
+  }
+  /* The panel's own title, Simulation, is the parent of its sections: a blue band across the top,
+     where the sections' titles are orange */
+  #glass-info-mode > .box-title {
+    margin: -10px -12px 0;
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(120, 180, 255, 0.35);
+    border-radius: 12px 12px 0 0;
+    background: rgba(77, 163, 255, 0.16);
+    color: var(--color-state-value);
+    font-size: 15px;
+    letter-spacing: 1.2px;
+  }
+  #glass-info-mode > .box-title .hud-collapse {
+    color: var(--color-state-value);
+  }
+  #glass-info-mode.is-collapsed > .box-title {
+    margin-bottom: -10px;
+    padding-bottom: 8px;
+    border-radius: 12px;
+  }
+  .hud-mode-name {
+    margin: 2px 0;
+    color: var(--color-control-font);
+    font-size: 16px;
+    font-weight: 700;
+  }
+  .hud-mode-about {
+    color: var(--color-info-display-text);
+    font-size: 12px;
+  }
+  /* One panel: the boxes that belong to the mode are its sections, each under one dividing line
+     that runs the panel's width, with no border of their own */
+  .hud-mode-children {
+    display: flex;
+    flex-direction: column;
+    margin: 0 -12px -10px;
+  }
+  #glass-info-mode .hud-mode-children > .glass-display {
+    width: auto;
+    margin: 0;
+    padding: 8px 12px 10px;
+    border: none;
+    border-top: 1px solid var(--color-info-display-border);
+    border-radius: 0;
+  }
+  #glass-info-mode .hud-mode-children > .glass-display:first-child {
+    border-top: none;
+  }
+  #glass-info-mode .hud-mode-children > .glass-display:last-child {
+    border-radius: 0 0 12px 12px;
+  }
+  #glass-info-mode .hud-mode-children .box-title {
+    margin-bottom: 4px;
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+  /* Run reports the run and sets nothing, so it reads as a readout, not a setting: a darker
+     inset, a green title where the settings' titles are orange, and its figures in white, with
+     digits that line up as they change */
+  #glass-info-mode .hud-mode-children > #glass-info-explore {
+    background: rgba(0, 0, 0, 0.3);
+    box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.35);
+  }
+  #glass-info-explore > .box-title,
+  #glass-info-explore > .box-title .hud-collapse {
+    color: rgba(130, 215, 160, 0.9);
+  }
+  #glass-info-explore .info-line .value {
+    color: #e8edf3;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+  #glass-info-explore .info-line .label {
+    opacity: 0.8;
+  }
+  /* Isolation and Overcrowding follow from Survival; in Explore the Rules popover shows them */
+  body.mode-explore #glass-info-rules .hud-derived-line {
+    display: none;
+  }
+  /* Each box folds down to its title: a click anywhere on the title row, or its arrow */
+  .box-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .hud-collapse {
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--color-title);
+    cursor: pointer;
     pointer-events: auto;
   }
-  #explore-save-generation.is-active,
-  #explore-save-seed.is-active {
-    border-color: rgba(120, 180, 255, 0.6);
-    background: rgba(45, 60, 80, 0.8);
+  .hud-collapse {
+    display: inline-flex;
   }
-  .explore-save-popover {
+  .glass-display > .box-title:has(.hud-collapse) {
+    cursor: pointer;
+    pointer-events: auto;
+  }
+  .hud-collapse:hover {
+    border-color: rgba(120, 180, 255, 0.4);
+  }
+  /* A gear in a title row changes that section's settings; the rest of the row folds it. Seed's
+     and Rules' gears show only in Explore, and a folded section hides its gear */
+  .box-title-tools {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+  }
+  .hud-gear {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--color-control-font);
+    cursor: pointer;
+    pointer-events: auto;
+  }
+  .hud-gear:hover {
+    border-color: rgba(120, 180, 255, 0.5);
+    background: rgba(77, 163, 255, 0.15);
+  }
+  .hud-gear:focus-visible {
+    outline: 2px solid rgba(120, 180, 255, 0.8);
+    outline-offset: 1px;
+  }
+  .hud-gear.is-active {
+    border-color: rgba(120, 180, 255, 0.95);
+    background: rgba(77, 163, 255, 0.35);
+    color: #fff;
+  }
+  body:not(.mode-explore) .hud-gear--explore,
+  .glass-display.is-collapsed > .box-title .hud-gear {
+    display: none;
+  }
+  .hud-collapse:focus-visible {
+    outline: 2px solid rgba(120, 180, 255, 0.8);
+    outline-offset: 1px;
+  }
+  .hud-collapse svg {
+    transition: transform 0.15s ease;
+  }
+  .glass-display.is-collapsed > :not(.box-title) {
+    display: none !important;
+  }
+  .glass-display.is-collapsed > .box-title {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+  .glass-display.is-collapsed > .box-title .hud-collapse svg {
+    transform: rotate(-90deg);
+  }
+  /* The section whose popover is open, and its button, stand out: a tint across the panel and a
+     bar at its left edge */
+  #glass-info-mode .hud-mode-children > .glass-display.has-popover {
+    background: rgba(77, 163, 255, 0.12);
+    box-shadow: inset 3px 0 0 rgba(120, 180, 255, 0.9);
+  }
+  .explore-box-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  /* The Seed and Rules boxes show in every mode; their Change and Save seed only in Explore */
+  body:not(.mode-explore) .explore-box-actions--shared {
+    display: none;
+  }
+  .explore-box-actions .glass-button {
+    flex: 1 1 auto;
+    pointer-events: auto;
+  }
+  .explore-box-actions .glass-button.is-active {
+    border-color: rgba(120, 180, 255, 0.95);
+    background: rgba(77, 163, 255, 0.35);
+    color: #fff;
+  }
+  .explore-box-actions .glass-button:focus-visible {
+    outline: 2px solid rgba(120, 180, 255, 0.8);
+    outline-offset: 2px;
+  }
+  #glass-info-explore,
+  #glass-info-shape,
+  #glass-info-rules,
+  #glass-info-limits {
+    position: relative;
+  }
+  /* One popover at a time (src/explore/popover.js), drawn like the GPU toggle's
+     (.gpu-compute-popover), beside its section of the panel; popover.js moves it up if it would
+     run off the window's foot */
+  .explore-popover {
     position: absolute;
     left: calc(100% + 12px);
-    bottom: 0;
+    top: 0;
     width: 340px;
     max-width: calc(100vw - 32px);
+    max-height: calc(100vh - 16px);
+    overflow-x: hidden;
+    overflow-y: auto;
     box-sizing: border-box;
+    margin: 0;
     padding: 10px 12px;
-    background: rgba(35, 45, 60, 0.95);
+    background: rgba(35, 45, 60, 0.97);
     border: 1px solid rgba(120, 180, 255, 0.4);
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
@@ -2663,22 +2924,130 @@
     font-size: 13px;
     font-weight: 400;
     line-height: 1.4;
+    text-align: left;
     white-space: normal;
     user-select: text;
-    visibility: hidden;
-    opacity: 0;
-    transition: opacity 0.15s ease;
     z-index: 50;
+    /* Hidden with display, not visibility: a control with `transition: all` (the Custom / Preset
+       switch) would otherwise fade its own visibility in, and refuse focus until it had */
+    display: none;
   }
-  .explore-save-popover.is-open {
-    visibility: visible;
-    opacity: 1;
+  .explore-popover.is-open {
+    display: block;
     pointer-events: auto;
   }
-  .explore-save-title {
+  .explore-popover:focus {
+    outline: none;
+  }
+  .explore-popover [hidden] {
+    display: none !important;
+  }
+  .explore-popover-title {
     font-weight: 600;
     font-size: 14px;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
+  }
+  .explore-popover-part {
+    margin-top: 8px;
+  }
+  .explore-popover-section {
+    margin: 12px 0 2px;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: var(--color-title);
+  }
+  .explore-popover-section:first-child {
+    margin-top: 0;
+  }
+  .explore-source-label {
+    margin-bottom: 4px;
+  }
+  .explore-popover-text {
+    margin: 6px 0 0;
+  }
+  .explore-popover-quiet {
+    color: var(--color-info-display-text);
+    font-size: 12px;
+  }
+  .explore-popover-quiet:empty {
+    display: none;
+  }
+  .explore-popover-locked {
+    margin-bottom: 8px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    background: rgba(255, 170, 90, 0.1);
+    border: 1px solid rgba(255, 170, 90, 0.4);
+  }
+  .explore-popover-locked .glass-button {
+    margin-top: 6px;
+  }
+  .explore-field {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+    margin: 10px 0 4px;
+  }
+  .explore-field-label {
+    font-weight: 600;
+    font-size: 13px;
+  }
+  .explore-field-hint {
+    font-size: 12px;
+    color: rgb(0, 180, 200);
+    font-weight: 700;
+  }
+  .explore-popover .glass-input,
+  .explore-popover .glass-select {
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .explore-popover .glass-input[readonly] {
+    opacity: 0.6;
+    cursor: default;
+  }
+  .explore-check {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    cursor: pointer;
+  }
+  .explore-check input {
+    width: auto;
+    margin: 0;
+    cursor: pointer;
+  }
+  /* The Rules popover's derived counts */
+  .explore-rules-derived {
+    margin-top: 4px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.2);
+    font-size: 12px;
+  }
+  .explore-derived-line {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 2px 0;
+  }
+  .explore-derived-line > span:first-child {
+    color: var(--color-info-display-text);
+  }
+  .explore-derived-line > span:last-child {
+    font-weight: 600;
+    text-align: right;
+    overflow-wrap: anywhere;
+  }
+  .explore-popover .explore-error {
+    margin-top: 8px;
+  }
+  .explore-popover .explore-save-actions {
+    margin-top: 10px;
   }
   .explore-save-text {
     margin: 0 0 8px;
@@ -2724,12 +3093,13 @@
     justify-content: flex-end;
     gap: 8px;
   }
-  /* On a narrow screen there is no room beside the box: the popover opens under the button */
+  /* On a narrow screen there is no room beside the box: the popover opens under it, across the
+     window's width */
   @media (max-width: 640px) {
-    .explore-save-popover {
+    .explore-popover {
       left: 0;
-      bottom: auto;
       top: calc(100% + 8px);
+      width: calc(100vw - 32px);
     }
   }
   body.mode-explore #glass-info-sim {
