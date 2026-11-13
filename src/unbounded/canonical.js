@@ -47,7 +47,7 @@
 
 import { validateRules, RuleError } from './rules.js';
 import { COORDINATE_LIMIT, CHUNK_SIZES } from './world.js';
-import { END_REASONS } from './run.js';
+import { END_REASONS } from './endings.js';
 
 /** The version of the canonical bytes. */
 export const FORMAT_VERSION = 1;
@@ -71,7 +71,7 @@ const MAX_TEXT = 100;
 const SCORE_KEY = /^[a-z][A-Za-z]{0,31}$/;
 const MAX_SCORE_FIELDS = 8;
 const STATS_NUMBERS = [
-  'generation', 'elapsedMs', 'rate', 'live', 'livePeak', 'chunks', 'chunksPeak', 'chunksCreated',
+  'generation', 'elapsedMs', 'generationMs', 'rate', 'live', 'livePeak', 'chunks', 'chunksPeak', 'chunksCreated',
   'memoryBytes', 'usedBytes',
 ];
 

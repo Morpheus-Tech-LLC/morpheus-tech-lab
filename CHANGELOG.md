@@ -63,6 +63,16 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
   that the score follows from it; `scripts/reference-hashes.mjs --contest speed-1` makes the
   table Speed's results are looked up in. Results name the browser more exactly, telling Edge,
   Opera, Brave and Chrome apart (#76).
+- The Contest, a new mode: one contest on the unbounded engine, in three branches. A glowing
+  banner by the company logo, giving the date entries close, opens it in one click; a second click
+  or Esc leaves it. Its panel shows each branch as a card with its own logo and colour, and runs
+  the first branch, Speed, which times how many generations your browser computes in 6 seconds
+  from the same seed and rules as everyone else's, up to 1,000. Nothing is drawn during the run;
+  a 6-second clock, the statistics and a chart of the generations completed over time show
+  instead. The results card leads with the score, then the chart, the statistics, the browser and
+  the result's hash, and exports the result file. Verify a result checks a result from any branch
+  by replaying it in a background thread. Speed's timing is self-reported, and the page says so.
+  Methuselah and Contained chaos, the other two branches, are coming (#77).
 
 ### Changed
 - The lab opens in Explore, paused on a 10³ cube, instead of Game of Life 3D (#37).
@@ -96,6 +106,9 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
   comment freezes the final text. A maintainer assigns whoever claims an issue, and removes the
   assignee if the claim lapses or the issue goes back to planning, so an assignee always means
   someone is building it (#62).
+- The company panel opens at the top right, under the Morpheus Tech logo, instead of in the middle
+  of the screen. The logo stays on screen, lit, while it is open; a second click on it, or Esc,
+  closes it (#77).
 
 ### Removed
 - The `good first issue` label: the `ready` label alone says what work can be picked up (#71).

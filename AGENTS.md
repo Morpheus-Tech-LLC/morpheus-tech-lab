@@ -37,7 +37,9 @@ test/                    `npm test` (Node's built-in node:test, no dependency): 
                          its run loop on a fake clock and in a worker_threads Worker, the canonical hash and
                          the verifier (fixtures/ holds an example result and a hand-edited copy), the contests and
                          their scores (contests.test.js), and the engine against convolve3D() (dense.test.js);
-                         browser.test.js checks telling the browser; explore/ checks
+                         browser.test.js checks telling the browser; contests/ checks a Speed run and Verify a
+                         result… on worker_threads (verifyNodeWorker.js stands in for verify.worker.js) and
+                         the panel's text (format.test.js); explore/ checks
                          Explore's seeds, presets, seed files, saves, settings (setup.test.js), camera framing
                          and the seed editor's model (editorModel.test.js)
 src/
@@ -67,15 +69,34 @@ src/
   unbounded/step.js      step(): one generation, a lockstep over every chunk, or the limit that ends the run
   unbounded/rules.js     validateRules() (refuses B0) and the rule lookup table
   unbounded/reference.js ReferenceWorld: a deliberately simple Set-of-strings engine the tests check world.js against
-  unbounded/run.js       Run: the run loop (timed and open-ended runs, pause, step, stop, settling), statistics and snapshots
+  unbounded/run.js       Run: the run loop (timed and open-ended runs, pause, step, stop, settling), statistics,
+                         snapshots, and an ended run's result file (the `result` message)
   unbounded/run.worker.js The Web Worker that serves one Run
   unbounded/canonical.js The canonical state (a run's definition, the generation, the cells as bytes), its SHA-256
                          hash, the result file (readResult() reads one as untrusted data) and the reference table
   unbounded/verify.js    verifyResult(): replays a result, or looks it up in a table; verified, mismatch, refused
                          or not checked
+  unbounded/verify.worker.js The Web Worker that runs verifyResult() for the page's Verify a result
+  unbounded/endings.js   END_REASONS, how a run can end; apart from run.js so canonical.js can import it without
+                         a cycle (run.js imports canonical.js to make a result file in the Worker)
   unbounded/contests.js  The contests as data (#40): CONTESTS (speed-1), runFor(contest, entry), each kind's score,
                          and checkContest(), which checks a result's run and score against its contest; SEED_BOX
   unbounded/driver.js    EngineDriver: the page's side of a run; starts a fresh Worker per run and relays its messages
+  contests/              The Contests mode (#77): the contests on the page
+  contests/contests.js   isContests(), startContests() and stopContests(): an empty scene, the panel, nothing drawn
+  contests/panel.js      The panel in the middle of the screen: the list, a contest's page, the run (countdown,
+                         statistics, a chart of generations over time), the results card with Export result,
+                         Verify a result, and the
+                         HUD's Contest section. Sets only textContent
+  contests/speed.js      SpeedRun: one Speed run in a Worker, its score and its result file made in the Worker;
+                         verifyInWorker() (no DOM; tested in Node with worker_threads)
+  contests/looks.js      Each kind of contest's colour and logo (a stopwatch, an hourglass, a scribble in a box),
+                         and Verify a result's scales, drawn as SVG on the page
+  contests/format.js     What the panel says and draws: countdown, the chart's layout (chartLayout()), scores,
+                         endings, statistics (tested in Node)
+  contests/contests-check.html Not bundled: a dev page (/src/contests/contests-check.html under `npm run dev`) that
+                         clicks through the Contests mode in a frame holding the lab, two real Speed runs
+                         included, marking each check ✔ or ✖, and lists what to check by hand
   explore/               The Explore mode: the unbounded engine on the page (#37)
   explore/explore.js     Starts and drives the run, the control bar's commands in Explore, the HUD box and notices,
                          and the save popover
@@ -147,6 +168,14 @@ src/
   live in `state.explore`, a value from `setup.js` that is replaced, never edited, and only
   through `setup.js`'s changes, which check that it still makes a run. They are set from the
   HUD's boxes; the settings dialog shows only the mode choice in Explore.
+- **Contests is a mode that draws nothing.** `simulationMode === 'contests'` never reaches
+  `initSimulation()` either: its banner, left of the company logo, calls `enterContests()`
+  (`controls.js`), which calls `startContests()`; it has no card in the settings dialog. In
+  Contests the banner stays, pressed, and a click on it or Esc calls `leaveContests()`, back to
+  the mode it was opened from. Leaving the mode calls
+  `stopContests()`, and `animate()` calls `contestsFrame()` and returns before rendering, so a
+  Speed run has the machine to itself. The play, step and reverse handlers check `isContests()`
+  and do nothing: a contest's run starts and stops only from its panel.
 - **The seed editor borrows the view.** While it is open (`isEditorOpen()`), `animate()` calls
   `editorFrame()` and returns before Explore's frame and the main render; the editor draws its
   own scene into `state.renderer`, only when something changed, and turns `state.controls` off.

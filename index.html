@@ -17,7 +17,7 @@
   </div>
   <!-- Company (top-right) -->
   <div id="company-brand" class="company-brand-top">
-    <a id="company-logo-button-top" href="https://morpheustech.net" target="_blank" rel="noopener noreferrer" aria-label="About Morpheus Tech">
+    <a id="company-logo-button-top" href="https://morpheustech.net" target="_blank" rel="noopener noreferrer" aria-label="About Morpheus Tech" aria-controls="company-modal" aria-expanded="false">
       <img src="src/assets/images/morpheus-tech.png" alt="Morpheus Tech" class="footer-icon" />
     </a>
     <!-- <span id="company-name">Morpheus Tech LLC</span> -->
@@ -74,7 +74,8 @@
           <div id="mode-description" class="mode-description">
             <p>A classic cellular automaton extended to three dimensions. Cells evolve based on the number of living neighbors, creating complex patterns of growth, stability, and decay in 3D space.</p>
           </div>
-          <!-- Explore's settings are in the HUD's boxes (src/explore/hud.js) -->
+          <!-- Explore's settings are in the HUD's boxes (src/explore/hud.js); the Contests mode has
+               none, its contests fix everything (src/contests/) -->
           <p id="explore-settings-note" class="explore-settings-note" hidden></p>
         </div>
         <div id="sim-params-section" class="sim-col" style="grid-column: 1;">
@@ -523,9 +524,38 @@
             </div>
           </div>
         </div>
+        <!-- The Contests mode (src/contests/, #77): which contest is open and how its run stands;
+             the panel in the middle of the screen does the rest -->
+        <div id="glass-info-contest" class="glass-display glass-display--compact">
+          <div class="box-title"><span class="box-title-text">Contest</span><button type="button" class="hud-collapse" aria-expanded="true" aria-label="Collapse the Contest box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></div>
+          <div class="info-line"><span class="label">Branch</span><span id="contest-hud-name" class="value">–</span></div>
+          <div class="info-line"><span class="label">Status</span><span id="contest-hud-status" class="value">Choosing</span></div>
+          <div class="info-line"><span class="label">Generation</span><span id="contest-hud-generation" class="value">–</span></div>
+        </div>
       </div>
     </section>
   </div>
+  <!-- The Contests banner (#77), left of the company logo in every mode: one click opens the
+       Contests mode, and in it, shown as pressed, one click (or Esc) goes back. controls.js fills in
+       the date entries close, from src/unbounded/contests.js -->
+  <button type="button" id="contests-banner" class="contests-banner" aria-pressed="false" title="Open the contest">
+    <svg class="contests-banner-trophy" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M7 3.5 H17 V9 A5 5 0 0 1 7 9 Z"></path>
+      <path d="M7 5.5 H4.5 A2.5 2.5 0 0 0 7.2 10.5 M17 5.5 H19.5 A2.5 2.5 0 0 1 16.8 10.5"></path>
+      <path d="M12 14 V17 M9.5 17 H14.5 V20.5 H9.5 Z"></path>
+    </svg>
+    <span class="contests-banner-name">Contest</span>
+    <span id="contests-banner-closes" class="contests-banner-closes">Closes TBD</span>
+  </button>
+  <!-- The Contests mode's panel (src/contests/panel.js, #77): the list of contests, a contest's
+       page, its run, its results and Verify a result. panel.js fills it; nothing is drawn in 3D
+       behind it -->
+  <section id="contests-panel" class="contests-panel" aria-labelledby="contests-panel-title" hidden>
+    <h2 id="contests-panel-title" class="contests-panel-title">The Contest</h2>
+    <div id="contests-panel-body" class="contests-panel-body"></div>
+    <p id="contests-panel-status" class="contests-panel-status" role="status" aria-live="polite"></p>
+  </section>
+  <input type="file" id="contests-verify-file" accept=".json,application/json" hidden>
   <!-- The seed editor (src/explore/editor.js, #70): its panel, beside the 3D view it takes over.
        Every button has a key; ? lists them -->
   <aside id="seed-editor" class="seed-editor" role="dialog" aria-labelledby="seed-editor-title" hidden>
@@ -1071,6 +1101,7 @@
   #glass-info-rules.glass-display--compact,
   #glass-info-sim.glass-display--compact,
   #glass-info-explore.glass-display--compact,
+  #glass-info-contest.glass-display--compact,
   #glass-info-limits.glass-display--compact,
   #glass-info-modename.glass-display--compact,
   #glass-info-mode.glass-display--compact {
@@ -1088,6 +1119,7 @@
   #glass-info-rules .info-line,
   #glass-info-sim .info-line,
   #glass-info-explore .info-line,
+  #glass-info-contest .info-line,
   #glass-info-limits .info-line {
     display: flex;
     justify-content: space-between;
@@ -1101,6 +1133,7 @@
   #glass-info-rules .label,
   #glass-info-sim .label,
   #glass-info-explore .label,
+  #glass-info-contest .label,
   #glass-info-limits .label {
     color: var(--color-info-display-text);
     font-weight: 600;
@@ -1111,6 +1144,7 @@
   #glass-info-rules .value,
   #glass-info-sim .value,
   #glass-info-explore .value,
+  #glass-info-contest .value,
   #glass-info-limits .value {
     font-size: 16px;
     color: var(--color-control-font); /* blue-ish theme accent */
@@ -2013,8 +2047,18 @@
   /* Modal */
   .modal.hidden { display: none; }
   .modal { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: flex-start; justify-content: center; padding-top: 40px; }
-  /* The company panel is small: centre it in the viewport */
-  #company-modal { align-items: center; padding-top: 0; }
+  /* The company panel opens at the top right, under the logo that opened it, its right edge in
+     line with the logo's. The logo stays above it, lit, so a second click on it closes the panel */
+  #company-modal { align-items: flex-start; justify-content: flex-end; padding: 72px 10px 0 0; }
+  #company-modal .modal-content { max-height: calc(100vh - 82px); overflow-y: auto; }
+  body.company-modal-open #company-brand { z-index: 1001; }
+  body.company-modal-open #company-brand .footer-icon {
+    opacity: 1;
+    filter: drop-shadow(0 0 6px rgba(255, 140, 0, 0.9)) drop-shadow(0 0 14px rgba(255, 140, 0, 0.5));
+  }
+  /* With the panel open, the Contests banner and panel make way */
+  body.company-modal-open .contests-banner,
+  body.company-modal-open .contests-panel { display: none; }
   .modal-backdrop { 
     position: absolute; 
     inset: 0; 
@@ -2708,7 +2752,7 @@
   .explore-error[hidden] {
     display: none;
   }
-  /* What the view draws, and why a run stopped: under the mode title */
+  /* What the view draws, and why a run stopped: at the top, in the middle */
   .explore-notice {
     position: fixed;
     top: 20px;
@@ -2854,20 +2898,25 @@
   /* Run reports the run and sets nothing, so it reads as a readout, not a setting: a darker
      inset, a green title where the settings' titles are orange, and its figures in white, with
      digits that line up as they change */
-  #glass-info-mode .hud-mode-children > #glass-info-explore {
+  #glass-info-mode .hud-mode-children > #glass-info-explore,
+  #glass-info-mode .hud-mode-children > #glass-info-contest {
     background: rgba(0, 0, 0, 0.3);
     box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.35);
   }
   #glass-info-explore > .box-title,
-  #glass-info-explore > .box-title .hud-collapse {
+  #glass-info-explore > .box-title .hud-collapse,
+  #glass-info-contest > .box-title,
+  #glass-info-contest > .box-title .hud-collapse {
     color: rgba(130, 215, 160, 0.9);
   }
-  #glass-info-explore .info-line .value {
+  #glass-info-explore .info-line .value,
+  #glass-info-contest .info-line .value {
     color: #e8edf3;
     font-weight: 500;
     font-variant-numeric: tabular-nums;
   }
-  #glass-info-explore .info-line .label {
+  #glass-info-explore .info-line .label,
+  #glass-info-contest .info-line .label {
     opacity: 0.8;
   }
   /* Isolation and Overcrowding follow from Survival; in Explore the Rules popover shows them */
@@ -3201,6 +3250,768 @@
   }
   .explore-popover-button {
     margin-top: 8px;
+  }
+  /* ==== The Contests mode (src/contests/, #77) ==== */
+  /* The Contests banner, left of the company logo, glowing gold. In Contests it stays, pressed:
+     a click there (or Esc) goes back */
+  .contests-banner {
+    position: fixed;
+    top: 21px;
+    right: 92px;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px 6px 10px;
+    border: 1px solid rgba(255, 205, 90, 0.6);
+    border-radius: 10px;
+    background: linear-gradient(135deg, rgba(95, 72, 25, 0.88), rgba(35, 40, 50, 0.85));
+    box-shadow: 0 0 14px rgba(242, 193, 78, 0.3);
+    color: #fff;
+    font: inherit;
+    cursor: pointer;
+    animation: contests-glow 3.2s ease-in-out infinite;
+    transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  }
+  .contests-banner:hover {
+    transform: translateY(-1px);
+    border-color: rgba(255, 220, 130, 0.95);
+  }
+  .contests-banner:focus-visible {
+    outline: 3px solid rgba(120, 180, 255, 0.9);
+    outline-offset: 3px;
+  }
+  .contests-banner[aria-pressed="true"] {
+    border-color: #f6cd62;
+    background: linear-gradient(180deg, #f6cd62 0%, #d99a2b 100%);
+    box-shadow: 0 0 22px rgba(242, 193, 78, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+    color: #231703;
+    animation: none;
+  }
+  .contests-banner[aria-pressed="true"] .contests-banner-trophy {
+    color: #231703;
+    filter: none;
+  }
+  .contests-banner[aria-pressed="true"] .contests-banner-closes {
+    border-color: rgba(35, 23, 3, 0.45);
+    color: #231703;
+  }
+  body.seed-editor-open .contests-banner {
+    display: none;
+  }
+  @keyframes contests-glow {
+    0%, 100% { box-shadow: 0 0 10px rgba(242, 193, 78, 0.25); }
+    50% { box-shadow: 0 0 22px rgba(242, 193, 78, 0.55); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .contests-banner {
+      animation: none;
+    }
+  }
+  .contests-banner-trophy {
+    flex: none;
+    color: #f2c14e;
+    filter: drop-shadow(0 0 4px rgba(242, 193, 78, 0.6));
+  }
+  .contests-banner-name {
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .contests-banner-closes {
+    padding: 2px 8px;
+    border: 1px solid rgba(255, 205, 90, 0.6);
+    border-radius: 10px;
+    color: #f6dc9a;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  /* On a phone there is no room beside the logo: the banner goes under it, without the date */
+  @media (max-width: 640px) {
+    .contests-banner {
+      top: 72px;
+      right: 10px;
+    }
+    .contests-banner-closes {
+      display: none;
+    }
+  }
+  /* Its HUD section shows only in the mode, which has no grid, seed or rules of its own to show,
+     and no playback: a contest's run can only be started and stopped, from the panel */
+  #glass-info-contest {
+    display: none;
+  }
+  body.mode-contests #glass-info-contest {
+    display: block;
+  }
+  body.mode-contests #glass-info-sim,
+  body.mode-contests #glass-info-shape,
+  body.mode-contests #glass-info-rules {
+    display: none;
+  }
+  body.mode-contests #playPauseButton,
+  body.mode-contests #stepButton,
+  body.mode-contests #reverseButton {
+    opacity: 0.35;
+    pointer-events: none;
+  }
+  .contests-panel {
+    position: fixed;
+    top: calc(50% - 40px);
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(700px, calc(100vw - 32px));
+    max-height: calc(100vh - 160px);
+    overflow-y: auto;
+    box-sizing: border-box;
+    padding: 18px 20px;
+    background: rgba(35, 45, 60, 0.94);
+    border: 1px solid rgba(120, 180, 255, 0.4);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    color: rgba(200, 220, 255, 0.95);
+    font-size: 14px;
+    line-height: 1.45;
+    z-index: 60;
+  }
+  .contests-panel[hidden],
+  .contests-panel [hidden] {
+    display: none !important;
+  }
+  .contests-panel-title {
+    margin: 0 0 10px;
+    color: var(--color-text-contrast);
+    font-size: 20px;
+    font-weight: 700;
+  }
+  .contests-panel p {
+    margin: 0 0 10px;
+  }
+  .contests-panel a {
+    color: #8cc6ff;
+  }
+  .contests-panel-status:empty {
+    display: none;
+  }
+  .contests-panel-status {
+    margin: 10px 0 0;
+    color: rgba(200, 220, 255, 0.8);
+    font-size: 13px;
+  }
+  /* The list: a square card per contest, in its own colour (src/contests/looks.js) */
+  .contests-closes {
+    color: #f6dc9a;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .contests-tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 12px;
+    margin: 0 0 14px;
+  }
+  .contests-tile {
+    --contest-color: #f2c14e;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    aspect-ratio: 1;
+    padding: 14px;
+    box-sizing: border-box;
+    border: 1px solid color-mix(in srgb, var(--contest-color) 65%, transparent);
+    border-radius: 14px;
+    background:
+      radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--contest-color) 22%, transparent), transparent 70%),
+      rgba(30, 36, 48, 0.85);
+    box-shadow: 0 0 18px color-mix(in srgb, var(--contest-color) 25%, transparent);
+    color: rgba(200, 220, 255, 0.9);
+    font: inherit;
+    text-align: center;
+  }
+  button.contests-tile {
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  button.contests-tile:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 28px color-mix(in srgb, var(--contest-color) 45%, transparent);
+  }
+  button.contests-tile:focus-visible {
+    outline: 3px solid rgba(120, 180, 255, 0.9);
+    outline-offset: 3px;
+  }
+  .contests-tile--coming {
+    box-shadow: none;
+    border-style: dashed;
+  }
+  .contests-tile--coming .contests-tile-logo {
+    opacity: 0.7;
+  }
+  .contests-tile-logo {
+    filter: drop-shadow(0 0 8px color-mix(in srgb, var(--contest-color) 60%, transparent));
+  }
+  .contests-tile-name {
+    color: #fff;
+    font-size: 17px;
+    font-weight: 700;
+  }
+  .contests-tile-about {
+    font-size: 12px;
+    line-height: 1.35;
+  }
+  .contests-tile-foot {
+    margin-top: 4px;
+    color: var(--contest-color);
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .contests-tag {
+    flex: none;
+    padding: 2px 8px;
+    border: 1px solid rgba(140, 140, 150, 0.5);
+    border-radius: 10px;
+    color: rgba(200, 220, 255, 0.85);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  /* A contest's page: its logo and what it measures, Run, then titled areas */
+  .contests-page-head {
+    --contest-color: #f2c14e;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 0 0 12px;
+  }
+  .contests-page-logo {
+    flex: none;
+    filter: drop-shadow(0 0 10px color-mix(in srgb, var(--contest-color) 60%, transparent));
+  }
+  .contests-page-head p {
+    margin: 0 0 2px;
+  }
+  .contests-page-kicker {
+    color: var(--contest-color);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .contests-page-summary {
+    color: #e8edf3;
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .contests-section {
+    margin: 0 0 14px;
+  }
+  .contests-section-title {
+    margin: 0 0 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    color: var(--color-title);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .contests-section p {
+    margin: 0;
+  }
+  .contests-facts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 8px;
+  }
+  .contests-fact {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.2);
+  }
+  .contests-fact-label {
+    color: rgba(200, 220, 255, 0.7);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+  }
+  .contests-fact-value {
+    color: #fff;
+    font-size: 18px;
+    font-weight: 700;
+  }
+  .contests-fact-about {
+    font-size: 12px;
+    line-height: 1.35;
+  }
+  /* The result's hash on one line, with Copy at its right */
+  .contests-hash-box {
+    margin: 0 0 12px;
+  }
+  .contests-hash-label {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--color-info-display-text);
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .contests-hash-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 6px 6px 10px;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.25);
+  }
+  .contests-hash-row .contests-hash {
+    flex: 1;
+    min-width: 0;
+  }
+  .contests-hash-row .contests-button {
+    flex: none;
+  }
+  .contests-facts {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 4px 14px;
+    margin: 0 0 12px;
+  }
+  .contests-facts dt {
+    color: var(--color-info-display-text);
+    font-weight: 600;
+    font-size: 13px;
+  }
+  .contests-facts dd {
+    margin: 0;
+    color: #e8edf3;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+  }
+  .contests-note {
+    padding: 8px 10px;
+    border-left: 3px solid rgba(240, 190, 80, 0.7);
+    background: rgba(0, 0, 0, 0.2);
+    font-size: 13px;
+  }
+  .contests-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .contests-button {
+    padding: 6px 14px;
+    font-size: 14px;
+  }
+  .contests-button--main {
+    border-color: rgba(255, 205, 90, 0.8);
+    color: #fff;
+  }
+  .contests-button:focus-visible {
+    outline: 2px solid rgba(120, 180, 255, 0.8);
+    outline-offset: 2px;
+  }
+  .contests-button[disabled] {
+    opacity: 0.45;
+    cursor: default;
+  }
+  /* The contest's page leads with Run: the one thing to do there */
+  .contests-run-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    width: 100%;
+    margin: 4px 0 16px;
+    padding: 14px 18px;
+    border: 1px solid rgba(255, 220, 140, 0.9);
+    border-radius: 10px;
+    background: linear-gradient(180deg, #f6cd62 0%, #d99a2b 100%);
+    box-shadow: 0 6px 18px rgba(217, 154, 43, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+    color: #231703;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+  }
+  .contests-run-button:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.05);
+    box-shadow: 0 10px 24px rgba(217, 154, 43, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  }
+  .contests-run-button:active {
+    transform: translateY(0);
+  }
+  .contests-run-button:focus-visible {
+    outline: 3px solid rgba(120, 180, 255, 0.9);
+    outline-offset: 3px;
+  }
+  .contests-run-icon {
+    width: 0;
+    height: 0;
+    border-top: 11px solid transparent;
+    border-bottom: 11px solid transparent;
+    border-left: 18px solid #231703;
+  }
+  .contests-run-text {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    line-height: 1.2;
+  }
+  .contests-run-label {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: 0.2px;
+  }
+  .contests-run-sub {
+    font-size: 13px;
+    font-weight: 600;
+    opacity: 0.8;
+  }
+  /* The run's clock, an arc that empties over the contest's seconds round the seconds left,
+     beside the statistics */
+  .contests-run-top {
+    display: grid;
+    grid-template-columns: 160px 1fr;
+    gap: 16px;
+    align-items: center;
+    margin: 0 0 12px;
+  }
+  .contests-run-top .contests-stats {
+    margin: 0;
+  }
+  .contests-clock {
+    position: relative;
+    width: 160px;
+    height: 160px;
+  }
+  .contests-clock-ring {
+    display: block;
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+  }
+  .contests-clock-track {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.1);
+    stroke-width: 10;
+  }
+  .contests-clock-arc {
+    fill: none;
+    stroke: #f2c14e;
+    stroke-width: 10;
+    stroke-linecap: round;
+    stroke-dasharray: 100;
+    stroke-dashoffset: 0;
+  }
+  .contests-clock-face {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .contests-countdown-value {
+    color: #fff;
+    font-size: 42px;
+    font-weight: 800;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .contests-clock-unit {
+    margin-top: 4px;
+    font-size: 12px;
+    color: rgba(200, 220, 255, 0.75);
+  }
+  /* The chart: generations completed over time, one series in the contest's gold */
+  .contests-chart {
+    margin: 0 0 12px;
+  }
+  .contests-chart-caption {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 8px;
+    margin: 0 0 6px;
+  }
+  .contests-chart-title {
+    color: var(--color-text-contrast);
+    font-weight: 700;
+  }
+  .contests-chart-subtitle {
+    color: rgba(200, 220, 255, 0.7);
+    font-size: 12px;
+  }
+  .contests-chart-plot {
+    position: relative;
+  }
+  .contests-chart-svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+    touch-action: pan-y;
+  }
+  .contests-chart-grid {
+    stroke: rgba(255, 255, 255, 0.08);
+    stroke-width: 1;
+    shape-rendering: crispEdges;
+  }
+  .contests-chart-axis {
+    stroke: rgba(255, 255, 255, 0.3);
+    stroke-width: 1;
+    shape-rendering: crispEdges;
+  }
+  .contests-chart-tick {
+    fill: rgba(200, 220, 255, 0.7);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+  }
+  .contests-chart-axis-title {
+    fill: rgba(200, 220, 255, 0.85);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .contests-chart-area {
+    fill: #c0862a;
+    fill-opacity: 0.12;
+  }
+  .contests-chart-line {
+    fill: none;
+    stroke: #c0862a;
+    stroke-width: 2;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+  }
+  .contests-chart-dot {
+    fill: #c0862a;
+    stroke: rgb(35, 45, 60);
+    stroke-width: 2;
+  }
+  .contests-chart-end {
+    fill: var(--color-text-contrast);
+    font-size: 13px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .contests-chart-crosshair {
+    stroke: rgba(255, 255, 255, 0.35);
+    stroke-width: 1;
+  }
+  .contests-chart-readout {
+    position: absolute;
+    padding: 4px 8px;
+    border: 1px solid rgba(120, 180, 255, 0.4);
+    border-radius: 6px;
+    background: rgba(20, 26, 36, 0.95);
+    color: #e8edf3;
+    font-size: 12px;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .contests-chart-table summary {
+    cursor: pointer;
+    font-size: 12px;
+    color: rgba(200, 220, 255, 0.8);
+  }
+  .contests-chart-table table {
+    margin-top: 6px;
+    border-collapse: collapse;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  .contests-chart-table th,
+  .contests-chart-table td {
+    padding: 2px 12px 2px 0;
+    text-align: right;
+  }
+  /* The statistics: small figures, secondary to the clock and the score */
+  .contests-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 6px;
+    margin: 0 0 12px;
+  }
+  .contests-stat {
+    display: flex;
+    flex-direction: column;
+    padding: 6px 8px;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.18);
+  }
+  .contests-stat-label {
+    font-size: 11px;
+    color: rgba(200, 220, 255, 0.7);
+  }
+  .contests-stat-value {
+    color: #e8edf3;
+    font-size: 14px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  /* The score leads the results card, sized for a screenshot */
+  .contests-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0 0 16px;
+    padding: 18px 12px 16px;
+    border: 1px solid rgba(255, 205, 90, 0.45);
+    border-radius: 12px;
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(242, 193, 78, 0.28), transparent 70%),
+      linear-gradient(180deg, rgba(60, 48, 20, 0.55), rgba(25, 30, 40, 0.4));
+    text-align: center;
+  }
+  .contests-hero-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #f2c14e;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+  .contests-hero-value {
+    margin: 2px 0 0;
+    color: #fff;
+    font-size: clamp(56px, 14vw, 84px);
+    font-weight: 800;
+    line-height: 1.05;
+    text-shadow: 0 0 24px rgba(242, 193, 78, 0.55), 0 2px 0 rgba(0, 0, 0, 0.35);
+  }
+  .contests-hero-unit {
+    color: #f6dc9a;
+    font-size: 18px;
+    font-weight: 600;
+  }
+  .contests-hero-meta {
+    margin-top: 8px;
+    color: rgba(200, 220, 255, 0.75);
+    font-size: 12px;
+  }
+  .contests-ending {
+    font-size: 13px;
+  }
+  .contests-hash {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px;
+    word-break: break-all;
+  }
+  /* Verify a result judges every contest's entries: a steel-blue button with a pair of scales,
+     apart from the gold that each contest's own Run wears */
+  .contests-verify-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 16px 8px 12px;
+    border: 1px solid rgba(140, 190, 255, 0.55);
+    border-radius: 8px;
+    background: linear-gradient(180deg, rgba(62, 88, 128, 0.7), rgba(34, 48, 74, 0.75));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 2px 8px rgba(0, 0, 0, 0.25);
+    color: #dbe9ff;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+  }
+  .contests-verify-button:hover {
+    border-color: rgba(170, 210, 255, 0.85);
+    background: linear-gradient(180deg, rgba(74, 104, 150, 0.8), rgba(40, 57, 88, 0.85));
+    transform: translateY(-1px);
+  }
+  .contests-verify-button:focus-visible {
+    outline: 3px solid rgba(120, 180, 255, 0.9);
+    outline-offset: 3px;
+  }
+  .contests-verify-glyph {
+    flex: none;
+    color: #9cc9ff;
+  }
+  /* On the list, Verify a result is a bar across the panel, under its own heading below the
+     contests' cards, so it never reads as a fourth card */
+  .contests-judge {
+    margin: 4px 0 0;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+  }
+  .contests-judge-title {
+    display: block;
+    margin-bottom: 8px;
+    color: rgba(200, 220, 255, 0.7);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .contests-verify-button--wide {
+    display: flex;
+    width: 100%;
+    gap: 14px;
+    padding: 10px 18px;
+    box-sizing: border-box;
+  }
+  .contests-verify-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.25;
+  }
+  .contests-verify-label {
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .contests-verify-sub {
+    color: rgba(200, 220, 255, 0.75);
+    font-size: 12px;
+  }
+  .contests-verdict-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 6px;
+  }
+  .contests-verdict-head .contests-verdict {
+    margin: 0;
+  }
+  .contests-verdict {
+    margin: 0 0 6px;
+    font-size: 18px;
+    font-weight: 700;
+  }
+  .contests-verdict--verified { color: #9be3b0; }
+  .contests-verdict--mismatch,
+  .contests-verdict--refused,
+  .contests-verdict--error { color: #ffb4ad; }
+  .contests-verdict--not-checked,
+  .contests-verdict--cancelled { color: #f0d890; }
+  @media (max-width: 640px) {
+    .contests-panel {
+      top: auto;
+      bottom: 110px;
+      transform: translateX(-50%);
+      max-height: calc(100vh - 140px);
+      padding: 14px;
+    }
+    .contests-run-top {
+      grid-template-columns: 1fr;
+      justify-items: center;
+    }
+    .contests-run-top .contests-stats {
+      width: 100%;
+    }
+    .contests-clock {
+      width: 132px;
+      height: 132px;
+    }
+    .contests-countdown-value {
+      font-size: 34px;
+    }
   }
   /* ==== The seed editor (src/explore/editor.js) ==== */
   /* It takes over the view: the HUD, the control bar and the notices step aside */

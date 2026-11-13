@@ -61,6 +61,8 @@ const deepFreeze = (value) => {
  *   what the contest fixes; what it leaves out (rules, seed) comes from the entry
  * @property {number} chunkSize - the chunk size its runs use: not in the hash, but fixed so every
  *   entrant runs the same engine
+ * @property {string | null} closes - the day entries close, as YYYY-MM-DD, or null while it is
+ *   still to be announced. It decides nothing about a result, so setting it needs no new id
  * @property {number} [seconds] - Speed: how long a run lasts
  * @property {number} [ceiling] - Speed: the generation that ends a run early (limits.generations)
  */
@@ -84,6 +86,7 @@ const SPEED_1 = {
     limits: { cells: null, extent: null, generations: 1000 },
   },
   chunkSize: 16,
+  closes: null,
   seconds: 6,
   ceiling: 1000,
 };

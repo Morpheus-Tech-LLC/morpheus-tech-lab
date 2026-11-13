@@ -4,6 +4,9 @@ import * as THREE from 'three';
 import { initComputeControl, updateComputeControl } from "./gpu/computeControl.js";
 import { isExplore, stopExplore, togglePlay, stepOnce, restart, exploreViewChanged, toggleSave, confirmSave, closeSave } from "./explore/explore.js";
 import { initHud, startFromSetup, settingsNote } from "./explore/hud.js";
+import { isContests, startContests, stopContests } from "./contests/contests.js";
+import { CONTESTS } from "./unbounded/contests.js";
+import { closingText } from "./contests/format.js";
 
 let pendingShapeKey = null;
 let shapeDropdownPrevValue = null;
@@ -31,6 +34,7 @@ const MODE_NAMES = {
   sineWave: ['Sine Wave', 'A continuous wave field'],
   sandpile: ['Sandpile', 'The Abelian sandpile'],
   explore: ['Explore', 'Game of Life 3D, without walls'],
+  contests: ['Contest', 'One contest, three branches'],
 };
 
 function updateSimulationModeTitle() {
@@ -64,6 +68,18 @@ export function initControls() {
   
   // The Mode section's name, on first load
   updateSimulationModeTitle();
+  // The Contests banner by the company logo opens the mode in one click, and says when entries
+  // close; in Contests, a click on it or Esc goes back to the mode before
+  const contestsBanner = document.getElementById('contests-banner');
+  if (contestsBanner) contestsBanner.onclick = () => (isContests() ? leaveContests() : enterContests());
+  const contestsCloses = document.getElementById('contests-banner-closes');
+  if (contestsCloses) contestsCloses.textContent = closingText(CONTESTS, { short: true });
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' || event.defaultPrevented || !isContests()) return;
+    if (!document.getElementById('shapeModal')?.classList.contains('hidden')) return; // the dialog's own
+    if (!document.getElementById('company-modal')?.classList.contains('hidden')) return; // closes that first
+    leaveContests();
+  });
   // GPU compute toggle and indicator
   initComputeControl();
   // Initialize Simulation info displays on first load
@@ -237,7 +253,7 @@ export function initControls() {
   if (rightStepCircle) rightStepCircle.classList.add("active");
   
   reverseBtn.addEventListener("click", () => {
-    if (isExplore()) return; // a stream only runs forward
+    if (isExplore() || isContests()) return; // a stream only runs forward; a contest only runs
     // isReversing = getPlaybackDirection
     isReversing = !isReversing; // toggle on/off
 
@@ -279,6 +295,7 @@ export function initControls() {
   const playPauseButton = document.getElementById("playPauseButton");
   const playPauseIcon = document.getElementById("playPauseIcon");
   playPauseButton.onclick = () => {
+    if (isContests()) return; // a contest's run starts and stops from its panel
     if (isExplore()) {
       togglePlay(); // the run answers, and explore.js updates the button
       return;
@@ -294,6 +311,7 @@ export function initControls() {
   // const reverseButton = document.getElementById("reverseButton");
   const stepButton = document.getElementById("stepButton");
   stepButton.addEventListener("click", () => {
+    if (isContests()) return;
     if (isExplore()) {
       stepOnce();
       return;
@@ -496,17 +514,18 @@ export function initControls() {
     document.getElementById('company-logo-button-top')
   ];
   
-  // Functions to hide/show UI when company modal opens/closes
+  // Functions to hide/show UI when company modal opens/closes. The top logo stays, lit, above
+  // the panel, which opens under it at the top right; a click on it again, or Esc, closes it
   function hideUIForCompanyModal() {
     const glassDisplayContainer = document.getElementById('glass-display-container');
     const bottomControlsDisplay = document.getElementById('bottom-controls-display');
     const additionalControlsDisplay = document.getElementById('additional-controls-display');
     const controlsWrapper = document.getElementById('controls-wrapper');
     const footerIcons = document.getElementById('footer-icons');
-    const companyBrand = document.getElementById('company-brand');
 
+    document.body.classList.add('company-modal-open');
+    document.getElementById('company-logo-button-top')?.setAttribute('aria-expanded', 'true');
     if (footerIcons) footerIcons.style.display = 'none';
-    if (companyBrand) companyBrand.style.display = 'none';
     if (glassDisplayContainer) glassDisplayContainer.style.display = 'none';
     if (bottomControlsDisplay) bottomControlsDisplay.style.display = 'none';
     if (additionalControlsDisplay) additionalControlsDisplay.style.display = 'none';
@@ -519,21 +538,35 @@ export function initControls() {
     const additionalControlsDisplay = document.getElementById('additional-controls-display');
     const controlsWrapper = document.getElementById('controls-wrapper');
     const footerIcons = document.getElementById('footer-icons');
-    const companyBrand = document.getElementById('company-brand');
 
+    document.body.classList.remove('company-modal-open');
+    document.getElementById('company-logo-button-top')?.setAttribute('aria-expanded', 'false');
     if (footerIcons) footerIcons.style.display = '';
-    if (companyBrand) companyBrand.style.display = '';
     if (glassDisplayContainer && state.showHUD) glassDisplayContainer.style.display = 'flex';
     if (bottomControlsDisplay && state.showHUD) bottomControlsDisplay.style.display = 'grid';
     if (additionalControlsDisplay && state.showHUD) additionalControlsDisplay.style.display = 'grid';
     if (controlsWrapper) controlsWrapper.style.display = '';
   }
   
+  const companyModalOpen = () => Boolean(companyModal && !companyModal.classList.contains('hidden'));
+  function closeCompanyModal() {
+    if (!companyModalOpen()) return;
+    companyModal.classList.add('hidden');
+    showUIAfterCompanyModal();
+    // Closed with Esc, the browser would ring the logo, which still has focus from its click
+    const focused = document.activeElement;
+    if (focused && (focused.closest('#company-brand') || companyModal.contains(focused))) focused.blur();
+  }
   companyLogoButtons.forEach(button => {
     if (button && companyModal) {
       button.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
+        // The top logo stays on screen while the panel is open: a second click closes it
+        if (companyModalOpen()) {
+          closeCompanyModal();
+          return;
+        }
         companyModal.classList.remove('hidden');
         hideUIForCompanyModal();
       });
@@ -541,16 +574,17 @@ export function initControls() {
   });
   
   if (companyModalClose && companyModal) {
-    companyModalClose.addEventListener('click', () => {
-      companyModal.classList.add('hidden');
-      showUIAfterCompanyModal();
-    });
+    companyModalClose.addEventListener('click', closeCompanyModal);
     
     // Close modal when clicking outside
     companyModal.addEventListener('click', (e) => {
-      if (e.target === companyModal) {
-        companyModal.classList.add('hidden');
-        showUIAfterCompanyModal();
+      if (e.target === companyModal) closeCompanyModal();
+    });
+    // and with Esc
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && companyModalOpen()) {
+        e.preventDefault();
+        closeCompanyModal();
       }
     });
   }
@@ -776,14 +810,18 @@ function openShapeModal() {
 
     // Explore's settings are in its HUD boxes (src/explore/hud.js): the dialog shows only the
     // mode choice, and a line saying where they are
+    // The Contests mode has no settings at all: each contest fixes its own
     const simParamsSection = document.getElementById('sim-params-section');
     const exploreNote = document.getElementById('explore-settings-note');
+    const streams = mode === 'explore' || mode === 'contests';
     if (exploreNote) {
-      exploreNote.hidden = mode !== 'explore';
-      exploreNote.textContent = mode === 'explore' ? settingsNote() : '';
+      exploreNote.hidden = !streams;
+      exploreNote.textContent = mode === 'explore' ? settingsNote()
+        : mode === 'contests' ? 'Each branch of the contest fixes its own seed, rules and limits, so there is nothing to set here. Choose a branch from the panel in the middle of the screen.'
+        : '';
     }
-    if (simParamsSection) simParamsSection.style.display = mode === 'explore' ? 'none' : '';
-    if (mode === 'explore') {
+    if (simParamsSection) simParamsSection.style.display = streams ? 'none' : '';
+    if (streams) {
       if (rulesSection) rulesSection.style.display = 'none';
       if (seedSection) seedSection.style.display = 'none';
       if (boundaryRulesSection) boundaryRulesSection.style.display = 'none';
@@ -1069,6 +1107,7 @@ function openShapeModal() {
     rule30: 'A one-dimensional cellular automaton that generates complex, seemingly random patterns from simple rules. Each cell\'s state depends on its left, center, and right neighbors, producing fractal-like structures.',
     sineWave: 'A continuous mathematical function visualized in discrete 3D space. Represents periodic oscillations and wave patterns, demonstrating how continuous phenomena can be sampled and displayed on a grid.',
     sandpile: 'The Abelian Sandpile Model, a self-organized criticality system. Sand grains accumulate and topple when reaching a threshold, creating cascading avalanches that exhibit power-law distributions and fractal patterns.',
+    contests: 'One contest on the unbounded Game of Life 3D engine, in three branches. In the first, Speed times how many generations your browser computes in 6 seconds, from the same seed under the same rules for everyone. Results can be exported and checked by anyone, by replaying them. Methuselah and Contained chaos, the other two branches, are coming.',
     explore: 'Game of Life 3D in a world without walls. The pattern grows as far as it likes, for as long as you let it run, with no score and no clock. Pause, step and restart it, try other rules, a preset or a seed file, and set a memory limit or an arena.'
   };
   
@@ -1455,12 +1494,20 @@ function openShapeModal() {
   };
 
   const onConfirm = async () => {
-    // Get selected simulation mode from active card
+    // Get selected simulation mode from active card. Contests has no card (its banner beside the
+    // HUD opens it), so opened from Contests with no card chosen, Apply stays in Contests
     const activeCard = document.querySelector('.mode-card.active');
-    const selectedMode = activeCard ? activeCard.dataset.mode : 'gameOfLife';
+    const selectedMode = activeCard ? activeCard.dataset.mode
+      : state.simulationMode === 'contests' ? 'contests' : 'gameOfLife';
 
     // Explore streams from a Worker instead of precomputing (src/explore/), with the settings
     // its HUD boxes hold
+    if (selectedMode === 'contests') {
+      modal.classList.add('hidden');
+      cleanup();
+      enterContests();
+      return;
+    }
     if (selectedMode === 'explore') {
       state.simulationMode = 'explore';
       state.useRule30 = false;
@@ -1665,6 +1712,7 @@ function openShapeModal() {
     cleanup();
     pendingShapeKey = null;
     stopExplore(); // if Explore was running, its Worker and view go
+    stopContests(); // and the Contests panel, with any run
     await initSimulation();
 
     // Update displays
@@ -1711,11 +1759,57 @@ function openShapeModal() {
   cancelBtn.addEventListener('click', onCancel);
 }
 
+// The mode the Contests banner was clicked in, and its flags, to go back to
+let beforeContests = null;
+const MODE_FLAGS = ['useRule30', 'useRule30_2D', 'useSineWave', 'useSandpile'];
+
+/**
+ * Opens the Contests mode (src/contests/): from its banner by the company logo, or Apply in the
+ * dialog when opened from Contests. It has nothing to set.
+ */
+function enterContests() {
+  if (state.simulationMode !== 'contests') {
+    beforeContests = { mode: state.simulationMode, flags: Object.fromEntries(MODE_FLAGS.map((f) => [f, state[f]])) };
+  }
+  state.simulationMode = 'contests';
+  state.useRule30 = false;
+  state.useRule30_2D = false;
+  state.useSineWave = false;
+  state.useSandpile = false;
+  pendingShapeKey = null;
+  stopExplore(); // its Worker and view go
+  resetControlsUI();
+  initControls(); // the title and the GPU toggle follow the mode
+  startContests();
+}
+
+/**
+ * Leaves Contests for the mode its banner was clicked in (Explore, the landing page, if none):
+ * from the pressed banner, or Esc. Any run in progress ends.
+ */
+async function leaveContests() {
+  if (!isContests()) return;
+  const before = beforeContests ?? { mode: 'explore', flags: {} };
+  beforeContests = null;
+  if (before.mode === 'explore') {
+    state.simulationMode = 'explore';
+    restartExplore();
+    return;
+  }
+  stopContests();
+  state.simulationMode = before.mode;
+  Object.assign(state, before.flags);
+  resetControlsUI();
+  initControls(); // the title and the GPU toggle follow the mode
+  await initSimulation();
+}
+
 /**
  * Starts Explore again with the settings its HUD boxes hold: from the dialog's Apply, and from
  * the Apply of a box's popover (src/explore/hud.js).
  */
 function restartExplore() {
+  stopContests();
   resetControlsUI();
   initControls(); // the title and the GPU toggle follow the mode
   startFromSetup();

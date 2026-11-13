@@ -103,6 +103,27 @@ export class EngineDriver {
     });
   }
 
+  /**
+   * After the run has ended: its result file, made in the Worker from its last complete
+   * generation (run.js), so the page never holds the cells.
+   * @param {object} options
+   * @param {object} options.run - the run's definition (canonical.js)
+   * @param {object} [options.score] - the contest's score
+   * @param {object} [options.details] - elapsedMs, stats, browser; the Worker adds the chunk size
+   * @returns {Promise<object>} the result, for resultText()
+   */
+  result({ run, score, details }) {
+    if (!this.worker) return Promise.reject(new Error('There is no run.'));
+    const id = this.nextId++;
+    return new Promise((resolve, reject) => {
+      this.pending.set(id, { resolve, reject });
+      const message = { type: 'result', id, run };
+      if (score !== undefined) message.score = score;
+      if (details !== undefined) message.details = details;
+      this.send(message);
+    });
+  }
+
   /** Terminates the Worker, if any, and with it the run and its memory. */
   close() {
     if (!this.worker) return;
@@ -126,6 +147,8 @@ export class EngineDriver {
         return this.onStats(message.stats);
       case 'state':
         return this.onState(message.state, message.stats, message.reason, message.cycle);
+      case 'result':
+        return this.settle(message.id, (p) => p.resolve(message.result));
       case 'cycle':
       case 'snapshot':
         return this.settle(message.id, (p) => {
