@@ -168,7 +168,7 @@ async function exportDesign() {
   }
   const text = toSeedFile({ rules, cells: model.toCells() });
   try {
-    const status = await writeJsonFile(SEED_FILE_NAME, text, 'Explore seed file');
+    const status = await writeJsonFile(SEED_FILE_NAME, text, 'Game of Life 3D seed file');
     showNote('seed-editor-status', `${status} Load it in the Seed box, under Custom, File, or in this editor with Load…, to open it again.`);
   } catch (err) {
     if (err?.name !== 'AbortError') showNote('seed-editor-error', `Not exported: ${err.message}`);

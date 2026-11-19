@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Explore's camera framing (src/explore/framing.js).
+// Game of Life 3D's camera framing (src/explore/framing.js).
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

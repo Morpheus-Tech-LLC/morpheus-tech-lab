@@ -121,7 +121,7 @@ export function parseSeedFile(text) {
   } catch {
     throw new SeedError("This isn't a seed file: it isn't JSON.");
   }
-  if (data?.format !== SEED_FILE_FORMAT) throw new SeedError("This isn't an Explore seed file.");
+  if (data?.format !== SEED_FILE_FORMAT) throw new SeedError("This isn't a Game of Life 3D seed file.");
   if (data.version !== SEED_FILE_VERSION) {
     throw new SeedError(`This seed file is version ${data.version}; this page reads version ${SEED_FILE_VERSION}.`);
   }

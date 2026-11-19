@@ -50,9 +50,9 @@
         <div class="sim-col" style="grid-column: 1 / -1; margin-bottom: 0.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid rgba(140, 140, 150, 0.25);">
           <div class="rules-title">Simulation Mode</div>
           <div class="mode-selector">
-            <button class="mode-card" data-mode="gameOfLife" id="mode-gameOfLife">
-              <span class="mode-name">Game of Life</span>
-              <span class="mode-subtitle">3D</span>
+            <button class="mode-card" data-mode="explore" id="mode-explore">
+              <span class="mode-name">Game of Life 3D</span>
+              <span class="mode-subtitle">Unbounded</span>
             </button>
             <button class="mode-card" data-mode="rule30" id="mode-rule30">
               <span class="mode-name">Rule 30</span>
@@ -66,13 +66,9 @@
               <span class="mode-name">Sandpile</span>
               <span class="mode-subtitle">Abelian</span>
             </button>
-            <button class="mode-card" data-mode="explore" id="mode-explore">
-              <span class="mode-name">Explore</span>
-              <span class="mode-subtitle">Unbounded</span>
-            </button>
         </div>
           <div id="mode-description" class="mode-description">
-            <p>A classic cellular automaton extended to three dimensions. Cells evolve based on the number of living neighbors, creating complex patterns of growth, stability, and decay in 3D space.</p>
+            <p>Conway's Game of Life in three dimensions, where each cell has 26 neighbours, in a world without walls: the pattern grows as far as it likes, for as long as you let it run, with no score and no clock. Pause, step and restart it, try other rules, a preset, a seed file or a seed of your own design, and set a memory limit, or an arena that ends the run, lets ships leave, wraps around or has walls.</p>
           </div>
           <!-- Explore's settings are in the HUD's boxes (src/explore/hud.js); the Contests mode has
                none, its contests fix everything (src/contests/) -->
@@ -118,134 +114,6 @@
           </div>
         </div>
 
-        <div id="seed-section" class="seed-col">
-          <div class="rules-title">
-            <span data-tooltip="Configuration for the initial state of the simulation. Choose a shape pattern and set its size and density to determine starting conditions.">Initial Seed</span>
-          </div>
-          <div class="modal-field-row seed-shape-row">
-            <label class="modal-label" for="modal-shape-select">
-              <span data-tooltip="The geometric pattern used as the initial state. Options include procedural noise patterns (Perlin, Worley) and geometric shapes (Cube, Tetrahedron, Octahedron).">Shape</span>
-            </label>
-          <select id="modal-shape-select" class="glass-select">
-            <option value="perlin">Perlin</option>
-            <option value="worley">Worley</option>
-            <option value="cube">Cube</option>
-            <option value="tetrahedron">Tetrahedron</option>
-            <option value="octahedron">Octahedron</option>
-            <!-- <option value="rule30">Rule 30</option> -->
-          </select>
-          </div>
-          <div class="modal-field-row seed-shape-row">
-            <div class="label-row">
-              <label id="shape-size-label" class="modal-label" for="shape-size">
-                <span id="shape-size-label-text" data-tooltip="The size of the initial seed shape within the simulation grid. Must be smaller than the simulation size.">Size</span>
-              </label>
-              <span class="input-range-hint" id="shape-size-range">min: 1</span>
-            </div>
-            <input type="number" id="shape-size" class="glass-input" min="1" step="1" />
-          </div>
-          <div class="modal-field-row seed-shape-row">
-            <div class="label-row">
-              <label id="shape-density-label" class="modal-label" for="shape-density">
-                <span id="shape-density-label-text" data-tooltip="The probability (0.0 to 1.0) that a cell within the seed shape will be initially alive. Higher values create denser initial patterns.">Density</span>
-              </label>
-              <span class="input-range-hint" id="shape-density-range">0 - 1</span>
-            </div>
-            <input type="number" id="shape-density" class="glass-input" min="0" max="1" step="0.01" />
-          </div>
-          <div class="modal-field-row seed-shape-row hidden" id="shape-region-size-row">
-            <div class="label-row">
-              <label id="shape-region-size-label" class="modal-label" for="shape-region-size">
-                <span id="shape-region-size-label-text" data-tooltip="Controls the scale of noise features for Perlin and Worley patterns. Larger values create smoother, larger-scale variations.">Region Size</span>
-              </label>
-              <span class="input-range-hint" id="shape-region-size-range">min: 1</span>
-            </div>
-            <input type="number" id="shape-region-size" class="glass-input" min="1" step="1" />
-          </div>
-        </div>
-
-        <div id="rules-section" class="rules-col">
-          <div class="rules-title">
-            <span data-tooltip="Rules that govern how cells evolve between generations. Birth rules determine when dead cells become alive, and survival rules determine when living cells stay alive. Enter values as list or range (e.g., 9,10 or 5-15). Isolation and overcrowding are calculated automatically.">Evolution Rules</span>
-          </div>
-          <div class="modal-field-row">
-            <div class="label-row">
-              <label class="modal-label" for="rule-birth">
-                <span data-tooltip="Neighbor counts that cause a dead cell to become alive. Enter as comma-separated list (e.g., 9,10) or range (e.g., 5-15).">Birth</span>
-              </label>
-              <span class="input-range-hint" id="rule-birth-range">0 - 26</span>
-            </div>
-            <input type="text" id="rule-birth" class="glass-input" placeholder="" />
-          </div>
-          <div class="modal-field-row">
-            <div class="label-row">
-              <label class="modal-label" for="rule-survival">
-                <span data-tooltip="Neighbor counts that allow a living cell to stay alive. Enter as comma-separated list (e.g., 5,6,7) or range (e.g., 5-15).">Survival</span>
-              </label>
-              <span class="input-range-hint" id="rule-survival-range">0 - 26</span>
-            </div>
-            <input type="text" id="rule-survival" class="glass-input" placeholder="" />
-          </div>
-        </div>
-
-        <div id="boundary-rules-section" class="boundary-col">
-          <div class="rules-title">
-            <span data-tooltip="Rules for cells at the grid boundaries. When grid wrapping is disabled, boundary cells (corner, edge, face) have fewer neighbors and can use different evolution rules than interior cells.">Boundary Rules</span>
-          </div>
-          <div class="modal-field-row" id="grid-wrapping-label">
-            <label class="modal-label" for="grid-wrapping-checkbox" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-            <input type="checkbox" id="grid-wrapping-checkbox" checked style="width: auto; cursor: pointer;" />
-              <span data-tooltip="When enabled, the grid edges wrap around (toroidal topology). When disabled, boundary cells have fewer neighbors and use different rules.">Grid Wrapping</span>
-          </label>
-          </div>
-          <div id="boundary-rules-inputs" style="display: none;">
-            <div style="margin-bottom: 15px;">
-              <div class="rules-title" style="font-size: 0.9em; margin-bottom: 10px;">Corner (7 neighbors)</div>
-              <div class="modal-field-row">
-                <label class="modal-label" for="boundary-corner-birth">
-                  <span data-tooltip="Neighbor counts that cause a dead corner cell to become alive. Corner cells have 7 neighbors.">Birth</span>
-                </label>
-              <input type="text" id="boundary-corner-birth" class="glass-input" placeholder="2,3" />
-              </div>
-              <div class="modal-field-row">
-                <label class="modal-label" for="boundary-corner-survival">
-                  <span data-tooltip="Neighbor counts that allow a living corner cell to stay alive. Corner cells have 7 neighbors.">Survival</span>
-                </label>
-              <input type="text" id="boundary-corner-survival" class="glass-input" placeholder="2-4" />
-              </div>
-            </div>
-            <div style="margin-bottom: 15px;">
-              <div class="rules-title" style="font-size: 0.9em; margin-bottom: 10px;">Edge (11 neighbors)</div>
-              <div class="modal-field-row">
-                <label class="modal-label" for="boundary-edge-birth">
-                  <span data-tooltip="Neighbor counts that cause a dead edge cell to become alive. Edge cells have 11 neighbors.">Birth</span>
-                </label>
-              <input type="text" id="boundary-edge-birth" class="glass-input" placeholder="4" />
-              </div>
-              <div class="modal-field-row">
-                <label class="modal-label" for="boundary-edge-survival">
-                  <span data-tooltip="Neighbor counts that allow a living edge cell to stay alive. Edge cells have 11 neighbors.">Survival</span>
-                </label>
-              <input type="text" id="boundary-edge-survival" class="glass-input" placeholder="2-6" />
-              </div>
-            </div>
-            <div style="margin-bottom: 15px;">
-              <div class="rules-title" style="font-size: 0.9em; margin-bottom: 10px;">Face (17 neighbors)</div>
-              <div class="modal-field-row">
-                <label class="modal-label" for="boundary-face-birth">
-                  <span data-tooltip="Neighbor counts that cause a dead face cell to become alive. Face cells have 17 neighbors.">Birth</span>
-                </label>
-              <input type="text" id="boundary-face-birth" class="glass-input" placeholder="6" />
-              </div>
-              <div class="modal-field-row">
-                <label class="modal-label" for="boundary-face-survival">
-                  <span data-tooltip="Neighbor counts that allow a living face cell to stay alive. Face cells have 17 neighbors.">Survival</span>
-                </label>
-              <input type="text" id="boundary-face-survival" class="glass-input" placeholder="3-9" />
-              </div>
-            </div>
-          </div>
-        </div>
         <div id="sandpile-section" class="sandpile-col" style="display: none;">
           <div class="rules-title">
             <span data-tooltip="Configuration for the Abelian Sandpile Model. Controls the initial sand distribution and toppling behavior.">Sandpile Parameters</span>
@@ -339,8 +207,8 @@
         <!-- The mode: which simulation runs; its gear opens the settings dialog -->
         <div id="glass-info-modename" class="glass-display glass-display--compact">
           <div class="box-title"><span class="box-title-text">Mode</span><span class="box-title-tools"><button type="button" id="hud-change-mode" class="hud-gear" aria-label="Change the mode" title="Change the mode" aria-haspopup="dialog"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.14,12.94a7.43,7.43,0,0,0,.05-.94,7.43,7.43,0,0,0-.05-.94l2.11-1.65a.5.5,0,0,0,.12-.64l-2-3.46a.5.5,0,0,0-.6-.22l-2.49,1a7.28,7.28,0,0,0-1.63-.94l-.38-2.65A.5.5,0,0,0,13.64,2H10.36a.5.5,0,0,0-.5.42L9.48,5.07a7.28,7.28,0,0,0-1.63.94l-2.49-1a.5.5,0,0,0-.6.22l-2,3.46a.5.5,0,0,0,.12.64L4.91,11.06a7.43,7.43,0,0,0-.05.94,7.43,7.43,0,0,0,.05.94L2.8,14.59a.5.5,0,0,0-.12.64l2,3.46a.5.5,0,0,0,.6.22l2.49-1a7.28,7.28,0,0,0,1.63.94l.38,2.65a.5.5,0,0,0,.5.42h3.28a.5.5,0,0,0,.5-.42l.38-2.65a7.28,7.28,0,0,0,1.63-.94l2.49,1a.5.5,0,0,0,.6-.22l2-3.46a.5.5,0,0,0-.12-.64ZM12,15.5A3.5,3.5,0,1,1,15.5,12,3.5,3.5,0,0,1,12,15.5Z"/></svg></button><button type="button" class="hud-collapse" aria-expanded="true" aria-label="Collapse the Mode box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></span></div>
-          <div id="hud-mode-name" class="hud-mode-name">Explore</div>
-          <div id="hud-mode-about" class="hud-mode-about">Game of Life 3D, without walls</div>
+          <div id="hud-mode-name" class="hud-mode-name">Game of Life 3D</div>
+          <div id="hud-mode-about" class="hud-mode-about">Without walls, or in an arena</div>
         </div>
         <div id="glass-info-sim" class="glass-display glass-display--compact">
           <div class="box-title"><span class="box-title-text">Grid</span><button type="button" class="hud-collapse" aria-expanded="true" aria-label="Collapse the Grid box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></div>
@@ -349,9 +217,8 @@
         </div>
         <div id="glass-info-shape" class="glass-display glass-display--compact">
           <div class="box-title"><span class="box-title-text">Seed</span><span class="box-title-tools"><button type="button" id="explore-change-seed" class="hud-gear hud-gear--explore" aria-label="Change the seed" title="Change the seed" aria-haspopup="dialog" aria-expanded="false" aria-controls="explore-seed-popover"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.14,12.94a7.43,7.43,0,0,0,.05-.94,7.43,7.43,0,0,0-.05-.94l2.11-1.65a.5.5,0,0,0,.12-.64l-2-3.46a.5.5,0,0,0-.6-.22l-2.49,1a7.28,7.28,0,0,0-1.63-.94l-.38-2.65A.5.5,0,0,0,13.64,2H10.36a.5.5,0,0,0-.5.42L9.48,5.07a7.28,7.28,0,0,0-1.63.94l-2.49-1a.5.5,0,0,0-.6.22l-2,3.46a.5.5,0,0,0,.12.64L4.91,11.06a7.43,7.43,0,0,0-.05.94,7.43,7.43,0,0,0,.05.94L2.8,14.59a.5.5,0,0,0-.12.64l2,3.46a.5.5,0,0,0,.6.22l2.49-1a7.28,7.28,0,0,0,1.63.94l.38,2.65a.5.5,0,0,0,.5.42h3.28a.5.5,0,0,0,.5-.42l.38-2.65a7.28,7.28,0,0,0,1.63-.94l2.49,1a.5.5,0,0,0,.6-.22l2-3.46a.5.5,0,0,0-.12-.64ZM12,15.5A3.5,3.5,0,1,1,15.5,12,3.5,3.5,0,0,1,12,15.5Z"/></svg></button><button type="button" class="hud-collapse" aria-expanded="true" aria-label="Collapse the Seed box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></span></div>
-          <div class="info-line hud-shape-line"><span class="label">Shape</span><span id="shape-name-value" class="value">cube</span></div>
-          <div class="info-line hud-shape-line"><span class="label">Density</span><span id="shape-density-value" class="value">1</span></div>
-          <div class="info-line hud-shape-line"><span class="label">Size</span><span id="shape-size-value" class="value">10</span></div>
+          <!-- The precomputed modes: what they start from -->
+          <div class="info-line hud-shape-line"><span class="label">Shape</span><span id="shape-name-value" class="value"></span></div>
           <!-- Explore only (src/explore/hud.js): what the run started from, and Save seed (the save
                popover is shared, below); the gear in the title changes the seed -->
           <div id="explore-seed-label" class="explore-hud-name">Cube, size 10, density 1</div>
@@ -2251,14 +2118,6 @@
     .modal-grid {
       grid-template-columns: repeat(2, 1fr);
     }
-    .modal-grid .rules-col,
-    .modal-grid .boundary-col {
-      border-left: none;
-      border-top: 1px solid rgba(140, 140, 150, 0.25);
-      padding-left: 0;
-      padding-top: 10px;
-      margin-top: 6px;
-    }
   }
   @media (max-width: 600px) {
     .modal-content {
@@ -2269,16 +2128,6 @@
     #company-modal .modal-content { min-width: min(300px, calc(100vw - 64px)); }
     .modal-grid {
       grid-template-columns: 1fr;
-    }
-    .modal-grid .seed-col,
-    .modal-grid .rules-col,
-    .modal-grid .boundary-col {
-      border-left: none;
-      border-top: 1px solid rgba(140, 140, 150, 0.25);
-      padding-left: 0;
-      padding-top: 10px;
-      margin-top: 6px;
-      width: 100%;
     }
     .modal-field-row .glass-input,
     .modal-field-row .glass-select {
@@ -2304,51 +2153,11 @@
     width: 100%;
     box-sizing: border-box;
   }
-  .modal-grid .seed-col { 
-    grid-column: 2; 
-    display: flex; 
-    flex-direction: column; 
-    gap: 2px; 
-    border-left: 1px solid rgba(140, 140, 150, 0.25); 
-    padding-left: 12px; 
-    min-width: 0;
-    width: 100%;
-    box-sizing: border-box;
-  }
-  .modal-grid .rules-col { 
-    grid-column: 3; 
-    display: flex; 
-    flex-direction: column; 
-    gap: 2px; 
-    border-left: 1px solid rgba(140, 140, 150, 0.25); 
-    padding-left: 12px; 
-    min-width: 0;
-    width: 100%;
-    box-sizing: border-box;
-  }
-  .modal-grid .boundary-col { 
-    grid-column: 4; 
-    display: flex; 
-    flex-direction: column; 
-    gap: 2px; 
-    border-left: 1px solid rgba(140, 140, 150, 0.25); 
-    padding-left: 12px; 
-    padding-right: 0;
-    min-width: 0;
-    width: 100%;
-    box-sizing: border-box;
-  }
   @media (max-width: 1200px) {
     .modal-grid .sim-col:not(:first-child) { grid-column: 1; }
-    .modal-grid .seed-col { grid-column: 1; }
-    .modal-grid .rules-col { grid-column: 2; }
-    .modal-grid .boundary-col { grid-column: 1 / -1; }
   }
   @media (max-width: 768px) {
-    .modal-grid .sim-col:not(:first-child),
-    .modal-grid .seed-col,
-    .modal-grid .rules-col,
-    .modal-grid .boundary-col {
+    .modal-grid .sim-col:not(:first-child) {
       grid-column: 1;
     }
   }
@@ -2399,13 +2208,6 @@
       0 4px 16px rgba(0, 0, 0, 0.4),
       inset 0 1px 0 rgba(255, 255, 255, 0.1);
     color: rgba(220, 235, 255, 1);
-  }
-  .mode-card[data-mode="gameOfLife"] {
-    border-left: 3px solid rgba(100, 180, 255, 0.6);
-  }
-  .mode-card[data-mode="gameOfLife"].active {
-    border-left: 3px solid rgba(120, 200, 255, 0.9);
-    background: rgba(40, 70, 110, 0.7);
   }
   .mode-card[data-mode="rule30"] {
     border-left: 3px solid rgba(100, 200, 150, 0.6);
@@ -3070,6 +2872,10 @@
   }
   body:not(.mode-explore) .hud-gear--explore,
   .glass-display.is-collapsed > .box-title .hud-gear {
+    display: none;
+  }
+  /* The Rules box is Game of Life 3D's: the precomputed modes have no rules to show (#116) */
+  body:not(.mode-explore) #glass-info-rules {
     display: none;
   }
   .hud-collapse:focus-visible {

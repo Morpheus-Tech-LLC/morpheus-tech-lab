@@ -15,11 +15,11 @@ import {
 import { arenaBox, toSeedFile, parseSeedFile, MAX_FILE_CELLS, SeedError } from './seed.js';
 
 /** The file Save seed writes. */
-export const SEED_FILE_NAME = 'explore-seed.json';
+export const SEED_FILE_NAME = 'game-of-life-3d-seed.json';
 
 /** The file Save this generation writes. */
 export function generationFileName(generation) {
-  return `explore-generation-${generation}.json`;
+  return `game-of-life-3d-generation-${generation}.json`;
 }
 
 /**
@@ -127,23 +127,23 @@ export async function readGenerationSave(text) {
     throw err;
   }
   if (!result.cells) {
-    throw new SeedError("This result file doesn't hold its generation's cells, so Explore can't start from it. Files from Save this generation do.");
+    throw new SeedError("This result file doesn't hold its generation's cells, so Game of Life 3D can't start from it. Files from Save this generation do.");
   }
   const wrong = await checkResultHashes(result);
   if (wrong) throw new SeedError(wrong);
   const { run } = result;
   if (run.limits.cells !== null || run.limits.extent !== null || run.limits.generations !== null) {
-    throw new SeedError("This run has cell, extent or generation limits, which Explore doesn't keep, so it can't carry on here.");
+    throw new SeedError("This run has cell, extent or generation limits, which Game of Life 3D doesn't keep, so it can't carry on here.");
   }
   let arena = null;
   if (run.arena) {
     arena = run.arena.max[0] - run.arena.min[0] + 1;
     const box = arenaBox(arena);
     const same = [0, 1, 2].every((a) => run.arena.min[a] === box.min[a] && run.arena.max[a] === box.max[a]);
-    if (!same) throw new SeedError("This run's arena isn't a cube centred on the origin, the only arena Explore has.");
+    if (!same) throw new SeedError("This run's arena isn't a cube centred on the origin, the only arena Game of Life 3D has.");
   }
   if (result.cells.length / 3 > MAX_FILE_CELLS) {
-    throw new SeedError(`This generation has more than ${MAX_FILE_CELLS.toLocaleString('en')} live cells, the most Explore loads.`);
+    throw new SeedError(`This generation has more than ${MAX_FILE_CELLS.toLocaleString('en')} live cells, the most Game of Life 3D loads.`);
   }
   return {
     rules: run.rules,

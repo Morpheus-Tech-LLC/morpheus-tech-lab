@@ -1,51 +1,6 @@
 // state.js
-import { perlinShape, cubeShape, tetrahedronShape, octahedronShape, worleyShape, rule30Shape } from './shapeGenerators.js';
+import { rule30Shape } from './shapeGenerators.js';
 import { initialSetup } from './explore/setup.js';
-
-/**
- * Calculate isolation and overcrowding rules from survival values
- * @param {number[]} survival - Array of survival neighbor counts
- * @param {number} maxNeighbors - Maximum number of neighbors (26 for interior, 7 for corner, 11 for edge, 17 for face)
- * @returns {Object} Object with isolation and overcrowding arrays
- */
-function calculateDeathRules(survival, maxNeighbors) {
-  if (!survival || survival.length === 0) {
-    return {
-      isolation: [],
-      overcrowding: []
-    };
-  }
-  
-  const minSurvival = Math.min(...survival);
-  const maxSurvival = Math.max(...survival);
-  
-  // Isolation: all values from 0 to (minSurvival - 1)
-  const isolation = [];
-  for (let i = 0; i < minSurvival; i++) {
-    isolation.push(i);
-  }
-  
-  // Overcrowding: all values from (maxSurvival + 1) to maxNeighbors
-  const overcrowding = [];
-  for (let i = maxSurvival + 1; i <= maxNeighbors; i++) {
-    overcrowding.push(i);
-  }
-  
-  return { isolation, overcrowding };
-}
-
-// Calculate initial rules from survival values
-const initialSurvival = Array.from({ length: 11 }, (_, i) => i + 5); // 5-15
-const initialDeathRules = calculateDeathRules(initialSurvival, 26);
-
-const initialCornerSurvival = [2, 3, 4];
-const cornerDeathRules = calculateDeathRules(initialCornerSurvival, 7);
-
-const initialEdgeSurvival = [2, 3, 4, 5, 6];
-const edgeDeathRules = calculateDeathRules(initialEdgeSurvival, 11);
-
-const initialFaceSurvival = [3, 4, 5, 6, 7, 8, 9];
-const faceDeathRules = calculateDeathRules(initialFaceSurvival, 17);
 
 // Mutable state
 export const state = {
@@ -57,6 +12,8 @@ export const state = {
   currentGen: 0,
   isPlaying: false,
   isReversing: false,
+  // Rule 30 and the sandpile wrap at the grid's edges; nothing turns it off since the old
+  // Game of Life 3D mode, whose setting it was, retired (#116). compare.js checks both ways.
   gridWrapping: true,
   showWireframeGrid: false,
   showCellWireframe: false,
@@ -76,15 +33,15 @@ export const state = {
   simulationModel: null,
   clockData: null,
   controlsInitialized: false,
-  shapeKey: "cube",
+  shapeKey: "rule30", // Rule 30's seed (state.shapes); the other precomputed modes have none
   simulationMode: "explore", // the lab opens in Explore (src/explore/)
   useRule30: false,
   useRule30_2D: false,
   useSineWave: false,
   useSandpile: false,
   flipOrientation: false,
-  // Compute Game of Life 3D and Rule 30 on the GPU when it's available (src/gpu/). The
-  // control bar's toggle sets this, and remembers it per browser.
+  // Compute Rule 30 on the GPU when it's available (src/gpu/). The control bar's toggle sets
+  // this, and remembers it per browser.
   gpuCompute: true,
   // Explore (src/explore/): its settings, as one value (src/explore/setup.js): the seed, the
   // rules, the arena and the memory limit, which the HUD's boxes show and change. Set below,
@@ -96,57 +53,16 @@ export const state = {
   },
   // Store per-mode values for size and generations
   modeValues: {
-    gameOfLife: { size: 50, generations: 100 },
     sineWave: { size: 50, generations: 100 },
     rule30: { size: null, generations: 100 }, // size is auto-calculated
     sandpile: { size: 50, generations: 1000 },
     monteCarlo: { size: 50, generations: 100 }
   },
   shapes: {
-    perlin: perlinShape(10, 0.3, 30),
-    cube: cubeShape(5, 1),
-    tetrahedron: tetrahedronShape(13),
-    octahedron: octahedronShape(8, 1),
-    worley: worleyShape(8, 0.5, 20),
     rule30: rule30Shape()
   },
-  // Simulation rules (neighbor counts)
-  // Isolation and overcrowding are automatically calculated from survival
-  rules: {
-    birth: [9, 10],
-    survival: initialSurvival, // 5-15
-    isolation: initialDeathRules.isolation, // 0-4 (calculated from survival)
-    overcrowding: initialDeathRules.overcrowding, // 16-26 (calculated from survival)
-  },
-  // Boundary rules for cells with fewer neighbors (proportional to interior rules)
-  // Only applied when grid wrapping is OFF
-  // Isolation and overcrowding are automatically calculated from survival
-  boundaryRules: {
-    // Corner cells: 7 neighbors (7/26 ≈ 0.269 of interior)
-    // All 3 coordinates are on boundary (0 or size-1)
-    corner: {
-      birth: [2, 3],
-      survival: initialCornerSurvival,
-      isolation: cornerDeathRules.isolation, // Calculated from survival
-      overcrowding: cornerDeathRules.overcrowding, // Calculated from survival
-    },
-    // Edge cells (two faces): 11 neighbors (11/26 ≈ 0.423 of interior)
-    // Exactly 2 coordinates are on boundary
-    edgeTwoFaces: {
-      birth: [4],
-      survival: initialEdgeSurvival,
-      isolation: edgeDeathRules.isolation, // Calculated from survival
-      overcrowding: edgeDeathRules.overcrowding, // Calculated from survival
-    },
-    // Face cells (one face): 17 neighbors (17/26 ≈ 0.654 of interior)
-    // Exactly 1 coordinate is on boundary
-    face: {
-      birth: [6],
-      survival: initialFaceSurvival,
-      isolation: faceDeathRules.isolation, // Calculated from survival
-      overcrowding: faceDeathRules.overcrowding, // Calculated from survival
-    },
-  },
+  // Game of Life 3D's shape settings (src/explore/): the last size, density and region used for
+  // each shape, which the Seed popover starts from
   shapeParams: {
     perlin: { size: 10, density: 0.3, regionSize: 25 },
     cube: { size: 10, density: 1 },
@@ -176,5 +92,5 @@ export const state = {
   }
 };
 
-// Explore opens on the cube in the shape settings above, under the default rules
+// Game of Life 3D opens on the cube in the shape settings above, under the default rules
 state.explore = initialSetup(state.shapeParams.cube);

@@ -25,9 +25,10 @@ local storage: whether GPU compute is on.
  │                              │                                               │
  │   time.animate() ──► simulationModel.updatePoints() ──► Three.js Points      │
  │                                     space.js: scene, camera, OrbitControls   │
- │   └ in Explore: explore.exploreFrame() ──► explore/view.js (points, boxes)   │
+ │   └ in Game of Life 3D: explore.exploreFrame() ──► explore/view.js           │
  │                                                                              │
- │ main.js opens Explore: hud.startFromSetup() ─► startExplore() ── unbounded/  │
+ │ main.js opens Game of Life 3D: hud.startFromSetup() ─► startExplore()        │
+ │   ── unbounded/                                                              │
  │   driver ◄──► run.worker; explore/hud.js: the boxes' settings (state.explore)│
  │   └ seed editor open: editor.editorFrame() ──► explore/editorView.js, drawn  │
  │     into the same renderer, only on change                                   │
@@ -56,16 +57,22 @@ It is computed in full before playback.
 
 | Mode | Space | Evolve step |
 |---|---|---|
-| Game of Life 3D | `size³`, 26 neighbours | `convolve3D()`: birth 9–10, survival 5–15 by default; separate corner, edge and face rules when wrapping is off |
 | Rule 30 | 1D or 2D, depth 1 | `evolveRule30()`, `evolveRule30_2D()` |
 | Sine wave | `size³` | `generateSineWaveGrid()`: an analytic field per generation, no state carried |
 | Abelian sandpile | `size²` at `z = 0` | `evolveSandpile()`: one grain is added at the centre each generation, and cells topple above 4 |
 
-Game of Life 3D and both Rule 30 modes also run on the GPU (`src/gpu/engine.js` and the
-WGSL in `src/shaders/`), with one compute dispatch per generation. The GPU gives exactly the
-CPU's grids; the CPU functions above are the reference.
+Both Rule 30 modes also run on the GPU (`src/gpu/engine.js` and `src/shaders/rule30.wgsl`), with
+one compute dispatch per generation. The GPU gives exactly the CPU's grids; the CPU functions
+above are the reference.
 
-**Unbounded world** (`src/unbounded/`, shown by the Explore mode): Game of Life 3D without edges.
+Game of Life 3D isn't one of these: it streams from the unbounded engine, below. Until #116 a
+precomputed Game of Life 3D mode sat in this table, with its own GPU kernel and its corner, edge
+and face rules for a grid that doesn't wrap; it retired once the unbounded engine's arena could
+wrap (#114, #115) and have walls (#119), and its dense step, `convolve3D()` (`denseStep.js`),
+stays only as the tests' reference.
+
+**Unbounded world** (`src/unbounded/`, shown by the Game of Life 3D mode, which the code calls
+`explore`, its name until #116): Game of Life 3D without edges, unless an arena gives it some.
 Space is divided into chunks of 16³ cells (8³ or 32³ also work), held in a `Map` from chunk
 coordinate to slot. A chunk is allocated when live cells reach it and released once it is empty.
 Each slot lives in a large slab (64 MB by default) and holds two copies of its chunk, the
@@ -90,14 +97,14 @@ which can also pause, step one generation and cap its rate). On the page, `Engin
 (at most four times a second) and, on request, snapshots of the live cells, or past a budget
 of cells, of the chunks that hold them.
 
-**Explore** (`src/explore/`): the mode that shows the unbounded world. Its seed is one of the
+**Game of Life 3D** (`src/explore/`): the mode that shows the unbounded world. Its seed is one of the
 shapes, lifted into world coordinates around the origin (`seed.js`), a preset with its own rules
 (`presets.js`), or a seed file, JSON with the rules and the cells. A preset or a seed file
 replaces the shape and the rules. Presets may have a group, which the Preset and shape lists show
 as an optgroup: the nine Ships (#105), found by #100's search, each record when they become a
 ship, with what period and shift.
 
-Explore's settings (#69) are one value, `state.explore`: the seed's source and its cells, the
+Game of Life 3D's settings (#69) are one value, `state.explore`: the seed's source and its cells, the
 visitor's rules, the arena, what happens at its edge (`edge`: `'end'`, `'ships'`, #103, `'wrap'`,
 #115, or `'walls'`, #119, with the walls' rules in `walls`) and the memory limit (`setup.js`, with no DOM). With an arena and `'ships'`, `worldOf()` gives the Worker's world
 Classic Methuselah's departure rule (`SHIP_PERIOD`, 32, read from the contest), so a run lets
@@ -117,8 +124,8 @@ value, or the reason it is refused, checked by building that config, and restart
 `hud.js` wires the gears in the Seed, Rules and Limits boxes' titles to their popovers, and the
 folding of every HUD box, and `popover.js` keeps one popover open at a time, the save popover
 too. The HUD is one panel, Simulation, in every mode, with the boxes as its sections: first
-Mode, which names the simulation that runs (`controls.js`), then the mode's own. Explore's Run
-box only reports. The settings dialog shows only the mode choice in Explore.
+Mode, which names the simulation that runs (`controls.js`), then the mode's own. Game of Life 3D's Run
+box only reports. The settings dialog shows only the mode choice in Game of Life 3D.
 
 **The seed editor** (#70) designs a seed in the seed box, `SEED_BOX` in `contests.js`, which `seed.js` re-exports (cells −5 to 4
 on each axis), where the Discovery contests' seeds go. The Seed popover opens it: Design… on the
@@ -131,7 +138,7 @@ has its own scene, camera and orbit controls, but draws into the lab's renderer,
 never a second WebGL context: one instanced mesh for the live cubes (another for the faded ones),
 points for the lattice, boxes and lines for the selection and the cursor. It draws only when
 something changes. While the editor is open, `time.animate()` calls `editorFrame()` instead of
-`exploreFrame()` and the main render, and Explore's camera controls are off; the run's Worker
+`exploreFrame()` and the main render, and Game of Life 3D's camera controls are off; the run's Worker
 keeps going. `editor.js` holds the panel, the keys and picking. Use goes through `useDesign()`,
 which makes the seed `{kind: 'design', cells}` with the rules the editor opened with, and
 restarts the run as a popover's Apply does.
@@ -140,7 +147,7 @@ restarts the run as a popover's Apply does.
 `state.simulationData` stays null. `view.js` draws the latest snapshot in a point buffer that
 grows with the pattern, or the occupied chunks as boxes past 300,000 cells, and moves the camera
 to keep the pattern in view (`framing.js`). In the 2D view it asks the Worker for one plane of
-cells; the slice slider spans the pattern's extent on that axis. Explore's runs *settle*
+cells; the slice slider spans the pattern's extent on that axis. Game of Life 3D's runs *settle*
 (`settle.js`, #93): the run ends when every cell has died, or the cells repeat in place those of
 one of the last 10,000 generations. The engine keeps a 64-bit fingerprint of the cells
 (`World`'s `fingerprint` option), and a match only proposes a repeat: the candidate generation is
@@ -149,7 +156,7 @@ with the current cells, cell for cell, before the run ends. A false match costs 
 and the run carries on. The Worker then replays the cycle once to send its frames, which the view
 loops while the count stays put.
 
-**Saving** (`save.js`): Save this generation, in Explore's Run box, and Save seed, in the Seed
+**Saving** (`save.js`): Save this generation, in Game of Life 3D's Run box, and Save seed, in the Seed
 box, open one popover, which moves beside the box of the button that opened it. **Save this generation**
 asks the Worker for every live cell of the current generation, with the statistics of the same
 moment (a snapshot whose budget is 1,000,000 cells, so a bigger generation comes back as chunks
@@ -169,7 +176,7 @@ live cells sorted by z, y, x, as zigzag varints of the difference from the cell 
 SHA-256 hash goes in a result file, beside run details (timings, statistics, browser) that are
 outside the hash. A result may also carry `cells`, the live cells at its generation, and
 `seedHash`, the hash of generation 0 under the same run; `checkResultHashes()` confirms both
-without a replay, so an edited file fails. Explore's Save this generation writes them, so Load…
+without a replay, so an edited file fails. Game of Life 3D's Save this generation writes them, so Load…
 can carry on from the generation. `verifyResult()` replays the run from its seed to the stated generation and
 compares hashes, and checks an ending the pattern decides by taking one more step; with a
 reference table (every generation's hash, made once by `scripts/reference-hashes.mjs`) it looks
@@ -228,7 +235,7 @@ keeps its name). It is a sixth mode, opened from a compact banner left of the
 company logo, which also gives the date entries close (`closes` in `contests.js`, "Closes TBD"
 while null). It has nothing to set, so one click opens it (`enterContests()` in `controls.js`),
 and it has no card in the settings dialog. In Contests the banner stays, pressed; a click on it,
-or Esc, goes back to the mode it was opened from (`leaveContests()`). Like Explore, it never reaches
+or Esc, goes back to the mode it was opened from (`leaveContests()`). Like Game of Life 3D, it never reaches
 `initSimulation()`. `contests.js` starts it in an empty scene and
 shows the panel (`panel.js`) in the middle of the screen; `animate()` then draws nothing, and only
 moves the countdown (`contestsFrame()`). The panel lists the contests as square cards, each kind
@@ -246,23 +253,23 @@ file and checks it in its own Worker (`verify.worker.js`, running `verifyResult(
 only `textContent`, so nothing from a file is read as HTML. Leaving the mode closes the panel and
 terminates its Workers.
 
-**Use in a contest** (#95). Explore's Seed popover takes the seed in use and its rules into
+**Use in a contest** (#95). Game of Life 3D's Seed popover takes the seed in use and its rules into
 Methuselah: `setup.js`'s `contestEntry()` makes the entry from the setup's cells exactly as they
 are, or refuses it (a cell outside the seed box, naming them; an empty seed; a saved generation),
-with a note when Explore's arena isn't the contest's. `hud.js` hands the entry to `controls.js`
+with a note when Game of Life 3D's arena isn't the contest's. `hud.js` hands the entry to `controls.js`
 (`initHud()`'s `useInContest`), whose `enterContests({entry})` opens Contests; `startContests()`
 passes it to `openPanel()`, which checks it again with `runFor()`, as a loaded file is, and opens
-the contest's page with it as the entry, Run focused. Explore stays the mode to go back to.
+the contest's page with it as the entry, Run focused. Game of Life 3D stays the mode to go back to.
 
 **Methuselah's page** (#94). `panel.js` gives Methuselah its own page: the entry, what the contest
 fixes, its four endings, the Hall of Fame and how it runs. The entry is a seed and its rules,
 kept per contest while the panel is open. **Load seed…** reads a seed file (`seed.js`'s
 `parseSeedFile()`, as untrusted data) and passes it through `runFor()`, which refuses a B0 rule,
 an empty seed or a cell outside the seed box with the reason, shown before Run; a B1 rule gets
-`methuselahWarnings()`'s warning. **Design a seed in Explore** calls back into `controls.js`
-(`designInExplore()`, handed to `startContests()`), which sets Explore's arena to the contest's,
+`methuselahWarnings()`'s warning. **Design a seed in Game of Life 3D** calls back into `controls.js`
+(`designInExplore()`, handed to `startContests()`), which sets Game of Life 3D's arena to the contest's,
 with ships leaving at its edge for Classic Methuselah and not for Methuselah, and never wrapping (`setup.js`'s
-`contestArena()`; a saved generation keeps its own), starts Explore and opens the
+`contestArena()`; a saved generation keeps its own), starts Game of Life 3D and opens the
 seed editor (`hud.js`'s `openSeedEditor()`) with a note on the contest; the panel remembers the contest, so the
 banner comes back to its page. The seed is drawn as cubes in the seed box, seen from above a
 corner, with hidden cubes left out (`format.js`'s `seedPicture()`, tested in Node). A run is
@@ -283,7 +290,7 @@ The page adds what differs: a sentence and a fact on the ships, a fifth ending (
 ships that left on the results card (`departuresText()`) and in the email, and in Watch, which
 replays with the same rule, a tick on the scrub bar where each left and a line that follows them
 (`watchDeparturesText()`). Verify a result's Worker passes a file's departures back, without
-their cells. Explore's Use in a contest offers both Methuselah contests. Contained chaos (#42), a
+their cells. Game of Life 3D's Use in a contest offers both Methuselah contests. Contained chaos (#42), a
 later season's, would add its kind.
 
 **Watch** (`watch.js`, #78) plays a result back in 3D: from the results card, or from a file Verify
@@ -299,8 +306,8 @@ first ends at the result's generation, the Worker hashes its cells under the res
 compares them with its hash (`replayed`); a replay a limit of the run's ends early doesn't
 match, and one the machine ends (memory) isn't checked. `format.js`'s `selfVerifiedText()` says
 which, on Watch's bar and on the card. While Watch is open, `contestsFrame()` calls
-`watchFrame()`, which draws with Explore's `ExploreView` and camera following, and takes the
-control bar's view settings as Explore does: the grid and the slice from the replay's extent
+`watchFrame()`, which draws with Game of Life 3D's `ExploreView` and camera following, and takes the
+control bar's view settings as Game of Life 3D does: the grid and the slice from the replay's extent
 (`explore.js`'s `fitSlice()`, shared), the orientation and cell size every frame, and the view
 toggles call `watchViewChanged()` for a new snapshot. Play and step in
 `controls.js`, and the speed slider in `time.js`, go to Watch in Contests, and Esc closes Watch
@@ -337,16 +344,17 @@ candidates through the real run loop, and projects the Discovery worst case, a r
 `scripts/bench/worst-case.mjs` that `scripts/verify.mjs` replays. The dev page
 `src/unbounded/memory.html` measures what one tab can take in slabs in each browser. Their numbers
 pinned the contests' values: the chunk size, Speed's seed, rules and ceiling, the Discovery arena
-and budget, and Explore's default memory limit.
+and budget, and Game of Life 3D's default memory limit.
 
-**Seed**: a shape function from `shapeGenerators.js` (perlin, cube, tetrahedron, octahedron,
-worley, rule30). Its parameters are in `state.shapeParams`.
+**Seed**: a shape function from `shapeGenerators.js`: perlin, cubeOfSide, tetrahedron, octahedron
+and worley for Game of Life 3D (lifted into the unbounded world by `explore/seed.js`, with their
+parameters in `state.shapeParams`), and rule30 for Rule 30.
 
 ## Data flows
 
 **Write path (rebuild).** A control changes `state`, then `initSimulation()`:
 1. `state.reset()`
-2. `generateSimulation()` computes the full history. For Game of Life 3D and Rule 30, with
+2. `generateSimulation()` computes the full history. For Rule 30, with
    GPU compute on and a device ready, `evolveOnGpu()` steps the grid on the GPU and reads the
    generations back in batches; the CPU computes any generations the GPU didn't (all of them
    when it's off or unavailable). If a newer rebuild started meanwhile, this one's result is
@@ -361,15 +369,15 @@ only the camera or the visible set.
 
 ## Architectural decisions
 
-**Precompute the whole history.** It costs memory (`size³ × generations`, all at once) and a
+**Precompute the whole history (Rule 30, the sine wave, the sandpile).** It costs memory (`size³ × generations`, all at once) and a
 wait up front. In return, scrubbing and reverse playback are instant and the render loop never
 waits on compute.
 
 **The CPU is the reference; the GPU is an accelerator (#28).** The lab shows what is possible
 in plain JavaScript, readable by anyone, and every demo is written fresh for the CPU first. A
 50³ grid over 100 generations is the default because it is comfortable on a laptop; 100³
-proved too slow on the CPU. Game of Life 3D and Rule 30 now also run as WebGPU compute
-shaders, using only the browser's WebGPU API, and must give exactly the CPU's generations
+proved too slow on the CPU. Rule 30 also runs as a WebGPU compute shader (Game of Life 3D did
+too, until its precomputed mode retired in #116), using only the browser's WebGPU API, and must give exactly the CPU's generations
 (`src/gpu/compare.js` checks this). The CPU path stays: it is the fallback when WebGPU, an
 adapter or a device is missing or fails, and the definition of what each mode does. With the
 GPU, memory and rendering, not the step, set the size limit (README §4).

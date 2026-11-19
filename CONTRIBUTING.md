@@ -187,8 +187,8 @@ in the browser, in each mode it touches.
 
 ### Test the GPU path
 
-Game of Life 3D and Rule 30 run on the GPU with WebGPU, and fall back to the CPU. Check a change
-to them both ways: the chip button in the control bar switches GPU compute off and on, and its
+Rule 30 runs on the GPU with WebGPU, and falls back to the CPU. Check a change to it both
+ways: the chip button in the control bar switches GPU compute off and on, and its
 badge says where the next run computes.
 
 - **Use `http://localhost:5180`.** WebGPU only runs on a secure page, and `localhost` counts as

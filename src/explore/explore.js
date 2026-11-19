@@ -124,7 +124,8 @@ export function stopExplore() {
   if (wasOn) restoreControls();
 }
 
-// Puts back what Explore changed in the control bar and the HUD, as the other modes show it
+// Puts back what Game of Life 3D changed in the control bar, as the other modes show it. Its
+// Seed's and Rules' boxes are its own: the other modes don't show the Rules box (#116).
 function restoreControls() {
   const slider = document.getElementById('speed-control');
   if (slider) setText('bottom-speed-value', `${Math.round(10 * Number(slider.value))}`);
@@ -132,10 +133,6 @@ function restoreControls() {
   const icon = document.getElementById('playPauseIcon');
   if (icon) icon.className = 'play';
   document.getElementById('stepButton')?.classList.remove('disabled');
-  setText('rules-birth', stringify(state.rules.birth));
-  setText('rules-survival', stringify(state.rules.survival));
-  setText('rules-isolation', stringify(state.rules.isolation));
-  setText('rules-overcrowd', stringify(state.rules.overcrowding));
 }
 
 /**
@@ -274,7 +271,7 @@ export async function confirmSave() {
   const save = session.save;
   if (!save?.text || save.saved) return;
   try {
-    const status = await writeJsonFile(save.name, save.text, save.kind === 'seed' ? 'Explore seed file' : 'Explore saved generation');
+    const status = await writeJsonFile(save.name, save.text, save.kind === 'seed' ? 'Game of Life 3D seed file' : 'Game of Life 3D saved generation');
     if (session.save !== save) return;
     save.saved = true;
     fillSave({ status, ready: false });

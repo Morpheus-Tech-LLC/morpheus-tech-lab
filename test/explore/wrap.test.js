@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Explore's arena that wraps around (#115): the choice of what happens at the arena's edge, the
+// Game of Life 3D's arena that wraps around (#115): the choice of what happens at the arena's edge, the
 // world a run steps in, the Ships presets coming round and settling, Use in a contest and Design a
 // seed in Explore, a saved generation, and Save this generation's refusal.
 
@@ -95,23 +95,23 @@ test('Use in a contest notes that the contest\'s arena doesn\'t wrap, and Explor
   const setup = wrapping(changeSeed(start(), seed));
   for (const contest of [METHUSELAH, CLASSIC]) {
     assert.equal(contestEntry(setup, contest).entry.note,
-      `${contest.title}'s arena doesn't wrap around, and Explore's did, so a run here may end differently from one in Explore.`);
+      `${contest.title}'s arena doesn't wrap around, and Game of Life 3D's did, so a run here may end differently from one in Game of Life 3D.`);
   }
   // Another arena: the arena's note says it
-  assert.match(contestEntry(changeArena(setup, true, 100), METHUSELAH).entry.note, /^Methuselah runs in its own 64³ arena, and Explore's was 100³/);
+  assert.match(contestEntry(changeArena(setup, true, 100), METHUSELAH).entry.note, /^Methuselah runs in its own 64³ arena, and Game of Life 3D's was 100³/);
 });
 
 test("Design a seed in Explore stops the arena wrapping, as no contest's does", () => {
   const strict = contestArena(wrapping(), 64, 'Methuselah');
   assert.equal(edgeOf(strict.setup), 'end');
-  assert.match(strict.note, /^Explore's 64³ arena no longer wraps around, as in Methuselah: a run here settles, or reaches the edge, where Methuselah's would/);
+  assert.match(strict.note, /^Game of Life 3D's 64³ arena no longer wraps around, as in Methuselah: a run here settles, or reaches the edge, where Methuselah's would/);
   const classic = contestArena(wrapping(), 64, 'Classic Methuselah', true);
   assert.equal(edgeOf(classic.setup), 'ships');
-  assert.match(classic.note, /^Explore's 64³ arena no longer wraps around, and ships leave at its edge, as in Classic Methuselah: /);
+  assert.match(classic.note, /^Game of Life 3D's 64³ arena no longer wraps around, and ships leave at its edge, as in Classic Methuselah: /);
   // From another arena: on, at the contest's, as before
   const other = contestArena(wrapping(start(), 100), 64, 'Methuselah');
   assert.equal(edgeOf(other.setup), 'end');
-  assert.match(other.note, /^Explore's arena is now on, at 64³, as Methuselah's: /);
+  assert.match(other.note, /^Game of Life 3D's arena is now on, at 64³, as Methuselah's: /);
 });
 
 test('a saved generation carries on with the run ending at the edge; Use your own rules gives the choice back', async () => {

@@ -208,9 +208,24 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
   equal, cell for cell, not on a matching fingerprint alone, so a false match can't end a run
   early. A saved generation that died or repeated is verified by replaying the run's settling
   from its seed (#93).
+- Explore is called **Game of Life 3D**, the lab's one Game of Life, everywhere a visitor reads
+  it: the mode's card (now first) and the HUD's Mode section, its notes and refusals, Contests'
+  Design a seed in Game of Life 3D and Brought from Game of Life 3D, and its files' default names,
+  `game-of-life-3d-seed.json` and `game-of-life-3d-generation-N.json`. Seed files, saved
+  generations and result files are unchanged, and every one made before still loads. The HUD's
+  Rules box shows only in Game of Life 3D, and the other modes' Seed box shows only what they
+  start from (#116).
 
 ### Removed
 - The `good first issue` label: the `ready` label alone says what work can be picked up (#71).
+- The old, precomputed Game of Life 3D mode, now that Explore's arena can wrap around (#115) and
+  have walls with their own corner, edge and face rules (#119). With it go its card and settings
+  in the dialog (size, generations, seed shape, rules, Grid wrapping and the boundary rules), its
+  GPU kernel (`gameOfLife3D.wgsl`; GPU compute now covers Rule 30), playing it backwards and
+  scrubbing (Game of Life 3D keeps only its current generation), its walls' double counting (a
+  wall cell counted some neighbours past the wall several times; the new walls count only real
+  ones), and its cube seed's odd sizes coming out a cell smaller (#49). Its dense step stays,
+  unbundled, as the reference the unbounded engine is checked against (#116).
 
 ### Fixed
 - The check pages (`hud-check.html`, `editor-check.html`, `contests-check.html`, dev pages) keep

@@ -82,7 +82,7 @@ test("Speed's definition is #44's pinned values", () => {
   assert.ok(Object.isFrozen(SPEED) && Object.isFrozen(SPEED.fixes.seed[0]));
 });
 
-test("Speed's run is Explore's Cube10, in the seed box Explore shares", () => {
+test("Speed's run is Game of Life 3D's Cube10, in the seed box they share", () => {
   assert.equal(EXPLORE_SEED_BOX, SEED_BOX);
   assert.deepEqual([...SEED_BOX.min], [-5, -5, -5]);
   assert.deepEqual([...SEED_BOX.max], [4, 4, 4]);

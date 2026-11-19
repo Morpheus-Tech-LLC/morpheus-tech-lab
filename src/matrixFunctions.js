@@ -3,7 +3,6 @@ import { generateClockHistory } from './time.js';
 import { state } from './state.js';
 import { getGpuDevice } from './gpu/device.js';
 import { evolveOnGpu, gpuModeOf, isPlainGrid } from './gpu/engine.js';
-import { convolve3D as denseStep } from './denseStep.js';
 
 // ---------------------------
 // Matrix evolution
@@ -112,6 +111,9 @@ export async function generateSimulation(size, generations, shapeFn, useRule30 =
       console.log(`Sandpile Generation ${generationNumber}: ${activeCount} active cells, center sand: ${grid.get(center, center, 0)}`);
     }
   } else {
+    // Rule 30, 1D or 2D: the only precomputed mode with a seed, and the only one the GPU runs.
+    // (Game of Life 3D runs on the unbounded engine, src/unbounded/, since #116.)
+    if (!useRule30 && !useRule30_2D) throw new Error('generateSimulation() runs Rule 30, the sine wave or the sandpile.');
     let grid = initMatrix(size, shapeFn);
     
     console.log(`Initial grid active cells: ${grid.active.length}`);
@@ -130,8 +132,6 @@ export async function generateSimulation(size, generations, shapeFn, useRule30 =
             seed: grid,
             generations,
             wrapping: state.gridWrapping ?? true,
-            rules: state.rules,
-            boundaryRules: state.boundaryRules,
           };
           for await (const next of evolveOnGpu(device, run)) {
             history.push(next);
@@ -145,13 +145,7 @@ export async function generateSimulation(size, generations, shapeFn, useRule30 =
     }
 
     for (let i = history.length - 1; i < generations; i++) {
-      if (useRule30_2D) {
-        grid = evolveRule30_2D(grid);
-      } else if (useRule30) {
-        grid = evolveRule30(grid);
-      } else {
-        grid = convolve3D(grid);
-      }
+      grid = useRule30_2D ? evolveRule30_2D(grid) : evolveRule30(grid);
       history.push(grid);
       console.log(`Generation ${i + 1}: ${grid.active.length} active cells`);
     }
@@ -183,25 +177,6 @@ export function initMatrix(size, shapeFn) {
   }
 
   return grid;
-}
-
-// ---------------------------
-// Game of Life logic
-// ---------------------------
-
-/**
- * One Game of Life 3D generation on a dense grid, with the lab's current settings: wrapping,
- * rules and boundary rules from `state`. The step itself is in denseStep.js, which doesn't read
- * `state`, so Node can run it too.
- * @param {Grid3D} grid
- * @returns {Grid3D} the next generation
- */
-export function convolve3D(grid) {
-  return denseStep(grid, {
-    wrapping: state.gridWrapping ?? true,
-    rules: state.rules,
-    boundaryRules: state.boundaryRules,
-  });
 }
 
 // ---------------------------

@@ -567,7 +567,7 @@
       ok(doc.body.classList.contains('mode-explore') && !doc.body.classList.contains('mode-contests'), 'It leaves Contests for Explore');
       ok(visible('seed-editor') && doc.body.classList.contains('seed-editor-open'), 'with the seed editor open');
       ok(text('seed-editor-note').startsWith('For Methuselah: the seed must lie in this 10³ box.') && text('seed-editor-note').includes('Contest banner'), `Its note says how to come back ("${text('seed-editor-note').slice(0, 60)}…")`);
-      ok(state.explore.arena === 64 && /Explore's arena is (now on, at )?64³, as Methuselah's/.test(text('seed-editor-note')), `Explore's arena is the contest's, 64³, and the note says so (arena ${state.explore.arena})`);
+      ok(state.explore.arena === 64 && /Game of Life 3D's arena is (now on, at )?64³, as Methuselah's/.test(text('seed-editor-note')), `Explore's arena is the contest's, 64³, and the note says so (arena ${state.explore.arena})`);
       el('seed-editor').querySelector('[data-action="cancel"]').click();
       await sleep(300);
       ok(!visible('seed-editor') && el('contests-banner').getAttribute('aria-pressed') === 'false', 'Cancel closes the editor, in Explore');
@@ -782,7 +782,7 @@
       ok(!visible('contests-panel') && !visible('glass-info-contest'), 'The panel and the Contest section are gone');
       const g = Number(text('explore-generation').replace(/,/g, ''));
       await sleep(1000);
-      ok(Number(text('explore-generation').replace(/,/g, '')) >= g && text('hud-mode-name') === 'Explore', 'Explore runs as before');
+      ok(Number(text('explore-generation').replace(/,/g, '')) >= g && text('hud-mode-name') === 'Game of Life 3D', 'Game of Life 3D runs as before');
       ok(el('contests-banner').getAttribute('aria-pressed') === 'false', 'Back in Explore, the banner is not pressed');
       await openContests();
       press('contests-banner');
@@ -800,15 +800,15 @@
       ok(!visible('sim-params-section') && text('explore-settings-note').includes('Each branch of the contest fixes its own'), 'with nothing to set');
       await apply();
       ok(doc.body.classList.contains('mode-contests') && visible('contests-panel'), 'Apply with no mode chosen stays in Contests');
-      await chooseMode('gameOfLife');
+      await chooseMode('rule30');
       await apply();
       await sleep(1500);
-      ok(!doc.body.classList.contains('mode-contests') && !visible('contests-panel'), 'Choosing Game of Life leaves Contests too');
-      ok(text('hud-mode-name') === 'Game of Life' && visible('glass-info-sim'), 'Game of Life shows its Grid section as before');
+      ok(!doc.body.classList.contains('mode-contests') && !visible('contests-panel'), 'Choosing Rule 30 leaves Contests too');
+      ok(text('hud-mode-name') === 'Rule 30' && visible('glass-info-sim'), 'Rule 30 shows its Grid section as before');
       await openContests();
       doc.body.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
       await sleep(2500);
-      ok(text('hud-mode-name') === 'Game of Life' && !doc.body.classList.contains('mode-contests') && visible('glass-info-sim'), 'Opened from Game of Life, Esc goes back to Game of Life');
+      ok(text('hud-mode-name') === 'Rule 30' && !doc.body.classList.contains('mode-contests') && visible('glass-info-sim'), 'Opened from Rule 30, Esc goes back to Rule 30');
     }
 
     run()

@@ -1,8 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// The dense Game of Life 3D step, convolve3D(), for the existing modes. It reads no `state`: the
-// lab's wrapper in matrixFunctions.js passes the settings in, and Node (the tests, the bench) can
-// call it directly.
+// The dense Game of Life 3D step, convolve3D(): the step of the old, precomputed Game of Life 3D
+// mode, which retired in #116. The page no longer runs it; it stays as the dense reference the
+// unbounded engine is checked against (test/unbounded/dense.test.js and wrap.test.js,
+// src/unbounded/compareDense.js, the bench). It reads no `state`, so Node can run it.
+//
+// With wrapping off, it clamps a neighbour past a wall to the wall cell, so a wall cell counts some
+// neighbours several times over: the old mode's quirk, kept here as the reference it was. The
+// unbounded engine's walls (#119) count only real neighbours instead, so this can't check them.
 
 import { Grid3D } from './grid3D.js';
 

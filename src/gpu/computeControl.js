@@ -86,17 +86,17 @@ export function updateComputeControl() {
 function unavailableReason() {
   if (state.simulationMode === 'contests') {
     return 'The contest runs on the CPU, in a background thread (a Web Worker), so every entrant runs the same engine. '
-      + 'GPU compute covers Game of Life 3D and Rule 30.';
+      + 'GPU compute covers Rule 30.';
   }
   if (state.simulationMode === 'explore') {
-    return 'Explore runs on the CPU, in a background thread (a Web Worker), so the page stays responsive however hard it works. '
-      + 'GPU compute covers Game of Life 3D and Rule 30.';
+    return 'Game of Life 3D runs on the CPU, in a background thread (a Web Worker), so the page stays responsive however hard it works. '
+      + 'GPU compute covers Rule 30.';
   }
   const hardware = REASONS[gpuStatus()];
   if (hardware) return hardware;
   if (!gpuModeOf(state)) {
     const mode = CPU_ONLY_MODES[state.simulationMode] ?? 'This mode';
-    return `${mode} runs on the CPU only. GPU compute covers Game of Life 3D and Rule 30.`;
+    return `${mode} runs on the CPU only. GPU compute covers Rule 30.`;
   }
   return null;
 }

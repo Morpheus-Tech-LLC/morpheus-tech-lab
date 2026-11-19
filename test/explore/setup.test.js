@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Explore's settings (src/explore/setup.js): each seed source gives the config the settings dialog
+// Game of Life 3D's settings (src/explore/setup.js): each seed source gives the config the settings dialog
 // gave before #69, what locks the rules and the arena, Use your own rules, the changes each HUD
 // popover makes and the messages it refuses them with, and what each box shows.
 
@@ -203,12 +203,12 @@ test('bad rules are refused, B0 with its reason', () => {
 });
 
 test('bad shape sizes, densities and regions are refused', () => {
-  assert.throws(() => makeShape('cube', { size: 0, density: 1 }), { message: "In Explore, the seed's size must be a whole number from 1 to 100." });
+  assert.throws(() => makeShape('cube', { size: 0, density: 1 }), { message: "In Game of Life 3D, the seed's size must be a whole number from 1 to 100." });
   assert.throws(() => makeShape('cube', { size: 101, density: 1 }), SeedError);
   assert.throws(() => makeShape('cube', { size: 2.5, density: 1 }), SeedError);
   assert.throws(() => makeShape('cube', { size: 5, density: 1.5 }), { message: "The seed's density must be from 0 to 1." });
   assert.throws(() => makeShape('cube', { size: 5, density: '' }), SeedError);
-  assert.throws(() => makeShape('perlin', { size: 5, density: 0.3, regionSize: 201 }), { message: 'In Explore, the region size must be a whole number up to 200.' });
+  assert.throws(() => makeShape('perlin', { size: 5, density: 0.3, regionSize: 201 }), { message: 'In Game of Life 3D, the region size must be a whole number up to 200.' });
   assert.throws(() => makeShape('dodecahedron', { size: 5, density: 1 }), { message: 'Pick a shape for the seed.' });
   assert.throws(() => presetSeed('no-such-preset'), SeedError);
 });
@@ -374,14 +374,14 @@ test("a contest's arena for designing an entry: on at its side, already so, or l
   assert.equal(arenaOf(setup), null);
   const on = contestArena(setup, 64, 'Methuselah');
   assert.equal(arenaOf(on.setup), 64);
-  assert.match(on.note, /^Explore's arena is now on, at 64³, as Methuselah's: a run here settles, or reaches the edge, where Methuselah's would/);
+  assert.match(on.note, /^Game of Life 3D's arena is now on, at 64³, as Methuselah's: a run here settles, or reaches the edge, where Methuselah's would/);
   assert.match(on.note, /The Limits box turns it off\.$/);
-  // Explore's 64 arena is the contest's box
+  // Game of Life 3D's 64 arena is the contest's box
   assert.deepEqual(arenaBox(64), contestById('methuselah-1').fixes.arena);
   // Already 64: unchanged
   const again = contestArena(on.setup, 64, 'Methuselah');
   assert.equal(again.setup, on.setup);
-  assert.match(again.note, /^Explore's arena is 64³, as Methuselah's/);
+  assert.match(again.note, /^Game of Life 3D's arena is 64³, as Methuselah's/);
   // Another side is replaced
   assert.equal(arenaOf(contestArena(changeArena(setup, true, 100), 64, 'Methuselah').setup), 64);
   // A saved generation keeps its own arena, and the note says so
@@ -415,20 +415,20 @@ test('Use in a contest: the seed in use and its rules, from a shape, a preset, a
   // A shape: the 10³ cube fills the seed box, all 1,000 cells
   const shape = entered(start());
   assert.equal(shape.cells.length / 3, 1000);
-  assert.equal(shape.source, 'Explore: Cube, size 10, density 1');
+  assert.equal(shape.source, 'Game of Life 3D: Cube, size 10, density 1');
   // A preset, with its own rules
   const preset = entered(changeSeed(start(), presetSeed('cube10')));
   assert.deepEqual(preset.rules, CUBE10.rules);
-  assert.equal(preset.source, `Explore: ${CUBE10.name}`);
+  assert.equal(preset.source, `Game of Life 3D: ${CUBE10.name}`);
   // A design, under the Rules box's rules
   const designed = useDesign(changeRules(start(), '5', '4-6'), Int32Array.from([0, 0, 0, 1, 0, 0, -5, -5, -5, 4, 4, 4]), B5);
   const design = entered(designed);
   assert.deepEqual(design.rules, B5);
-  assert.equal(design.source, 'Explore: Design: 4 cells');
+  assert.equal(design.source, 'Game of Life 3D: Design: 4 cells');
   // A seed file, its rules in the Rules box
   const file = entered(await withSeedFile(start()));
   assert.deepEqual(file.rules, B5);
-  assert.equal(file.source, 'Explore: Seed file: mine.json');
+  assert.equal(file.source, 'Game of Life 3D: Seed file: mine.json');
   // The entry is a copy: the setup's cells stay as they are
   shape.cells[0] = 99;
   assert.notEqual(start().seed.cells[0], 99);
@@ -451,9 +451,9 @@ test('Use in a contest refuses a seed outside the box, saying which cells; an em
   assert.match(contestEntry({ ...start(), seed: { kind: 'design', cells: new Int32Array(0) } }, METHUSELAH).reason, /^The seed has no live cells/);
 });
 
-test("Use in a contest says when Explore's arena isn't the contest's, which runs in its own", () => {
+test("Use in a contest says when Game of Life 3D's arena isn't the contest's, which runs in its own", () => {
   const off = changeArena(start(), false, 64);
-  assert.equal(contestEntry(off, METHUSELAH).entry.note, "Methuselah runs in its own 64³ arena, and Explore's was off, so a run here may end differently from one in Explore.");
-  assert.match(contestEntry(changeArena(start(), true, 100), METHUSELAH).entry.note, /Explore's was 100³/);
+  assert.equal(contestEntry(off, METHUSELAH).entry.note, "Methuselah runs in its own 64³ arena, and Game of Life 3D's was off, so a run here may end differently from one in Game of Life 3D.");
+  assert.match(contestEntry(changeArena(start(), true, 100), METHUSELAH).entry.note, /Game of Life 3D's was 100³/);
   assert.equal(contestEntry(changeArena(start(), true, 64), METHUSELAH).entry.note, null);
 });

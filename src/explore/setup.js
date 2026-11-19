@@ -137,11 +137,11 @@ export function makeShape(key, params = {}, current = null) {
   const density = number(params.density);
   const regionSize = shape.noise ? Number(params.regionSize) || 0 : 0;
   if (!Number.isInteger(size) || size < 1 || size > MAX_SHAPE_SIZE) {
-    throw new SeedError(`In Explore, the seed's size must be a whole number from 1 to ${MAX_SHAPE_SIZE}.`);
+    throw new SeedError(`In Game of Life 3D, the seed's size must be a whole number from 1 to ${MAX_SHAPE_SIZE}.`);
   }
   if (!(density >= 0 && density <= 1)) throw new SeedError("The seed's density must be from 0 to 1.");
   if (!Number.isInteger(regionSize) || regionSize < 0 || regionSize > 2 * MAX_SHAPE_SIZE) {
-    throw new SeedError(`In Explore, the region size must be a whole number up to ${2 * MAX_SHAPE_SIZE}.`);
+    throw new SeedError(`In Game of Life 3D, the region size must be a whole number up to ${2 * MAX_SHAPE_SIZE}.`);
   }
   const checked = shape.noise ? { size, density, regionSize } : { size, density };
   if (current?.kind === 'shape' && current.key === key && sameParams(current.params, checked)) return current;
@@ -576,17 +576,17 @@ export function contestEntry(setup, contest) {
   const ships = Boolean(contest.departures);
   let note = null;
   if (arena !== side) {
-    note = `${contest.title} runs in its own ${side}³ arena, and Explore's ${arena ? `was ${n(arena)}³` : 'was off'}, so a run here may end differently from one in Explore.`;
+    note = `${contest.title} runs in its own ${side}³ arena, and Game of Life 3D's ${arena ? `was ${n(arena)}³` : 'was off'}, so a run here may end differently from one in Game of Life 3D.`;
   } else if (wrapOf(setup)) {
-    note = `${contest.title}'s arena doesn't wrap around, and Explore's did, so a run here may end differently from one in Explore.`;
+    note = `${contest.title}'s arena doesn't wrap around, and Game of Life 3D's did, so a run here may end differently from one in Game of Life 3D.`;
   } else if (wallsOf(setup)) {
-    note = `${contest.title}'s arena has no walls, and Explore's had, so a run here may end differently from one in Explore.`;
+    note = `${contest.title}'s arena has no walls, and Game of Life 3D's had, so a run here may end differently from one in Game of Life 3D.`;
   } else if (shipsOf(setup) !== ships) {
     note = ships
-      ? `${contest.title} lets ships leave at the edge of its arena, and Explore's didn't, so a run here may end differently from one in Explore.`
-      : `${contest.title} doesn't let ships leave its arena, and Explore's did, so a run here may end differently from one in Explore.`;
+      ? `${contest.title} lets ships leave at the edge of its arena, and Game of Life 3D's didn't, so a run here may end differently from one in Game of Life 3D.`
+      : `${contest.title} doesn't let ships leave its arena, and Game of Life 3D's did, so a run here may end differently from one in Game of Life 3D.`;
   }
-  return { entry: { rules: rulesOf(setup), cells: Int32Array.from(cells), source: `Explore: ${seedLabel(seed)}`, note } };
+  return { entry: { rules: rulesOf(setup), cells: Int32Array.from(cells), source: `Game of Life 3D: ${seedLabel(seed)}`, note } };
 }
 
 /**
@@ -601,25 +601,25 @@ export function contestEntry(setup, contest) {
  * @returns {{setup: object, note: string}} the setup to use, and what changed, for the editor
  */
 export function contestArena(setup, side, title, ships = false) {
-  const same = `a run here settles, or reaches the edge, where ${title}'s would, though Explore doesn't stop at its budget.`;
+  const same = `a run here settles, or reaches the edge, where ${title}'s would, though Game of Life 3D doesn't stop at its budget.`;
   const leaving = ships ? ', with ships leaving at its edge' : '';
   const edge = ships ? 'ships' : 'end';
-  if (arenaOf(setup) === side && edgeOf(setup) === edge) return { setup, note: `Explore's arena is ${side}³${leaving}, as ${title}'s: ${same}` };
+  if (arenaOf(setup) === side && edgeOf(setup) === edge) return { setup, note: `Game of Life 3D's arena is ${side}³${leaving}, as ${title}'s: ${same}` };
   try {
     const next = changeArena(setup, true, side, { edge });
     let note;
     if (arenaOf(setup) !== side) {
-      note = `Explore's arena is now on, at ${side}³${leaving}, as ${title}'s: ${same} The Limits box turns it off.`;
+      note = `Game of Life 3D's arena is now on, at ${side}³${leaving}, as ${title}'s: ${same} The Limits box turns it off.`;
     } else if (wrapOf(setup) || wallsOf(setup)) {
       const was = wrapOf(setup) ? 'no longer wraps around' : 'no longer has walls';
-      note = `Explore's ${side}³ arena ${was}${ships ? ', and ships leave at its edge' : ''}, as in ${title}: ${same} The Limits box changes it.`;
+      note = `Game of Life 3D's ${side}³ arena ${was}${ships ? ', and ships leave at its edge' : ''}, as in ${title}: ${same} The Limits box changes it.`;
     } else {
-      note = `Ships ${ships ? 'now leave' : 'no longer leave'} at the edge of Explore's ${side}³ arena, as in ${title}: ${same} The Limits box changes it.`;
+      note = `Ships ${ships ? 'now leave' : 'no longer leave'} at the edge of Game of Life 3D's ${side}³ arena, as in ${title}: ${same} The Limits box changes it.`;
     }
     return { setup: next, note };
   } catch (err) {
     if (!(err instanceof SeedError)) throw err;
-    return { setup, note: `Explore's arena stays the saved generation's, so a run of it here may not end as ${title}'s would.` };
+    return { setup, note: `Game of Life 3D's arena stays the saved generation's, so a run of it here may not end as ${title}'s would.` };
   }
 }
 

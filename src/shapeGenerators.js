@@ -142,23 +142,7 @@ export function perlinShape(scale, threshold = 0.3, regionSize = null) {
   };
 }
 
-export function cubeShape(halfSize = 5, prob = 1) {
-  return (grid, size) => {
-    const center = Math.floor(size / 2);
-    for (let x = center - halfSize; x <= center + halfSize -1; x++) {
-      for (let y = center - halfSize; y <= center + halfSize -1; y++) {
-        for (let z = center - halfSize; z <= center + halfSize -1; z++) {
-          if (Math.random() < prob) grid.set(x, y, z, 1);
-        }
-      }
-    }
-  };
-}
-
-/**
- * A cube `side` cells wide, centred like the other shapes. cubeShape() takes half a side and
- * fills twice that, so it can't make an odd side; Explore uses this one.
- */
+/** A cube `side` cells wide, centred like the other shapes, odd sides too. */
 export function cubeOfSide(side, prob = 1) {
   return (grid, size) => {
     const start = Math.floor(size / 2) - Math.floor(side / 2);

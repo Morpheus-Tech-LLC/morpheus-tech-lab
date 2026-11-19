@@ -176,7 +176,7 @@ export const PRESETS = [
   {
     id: 'cube10',
     name: 'Cube10',
-    description: "The 10³ cube Explore opens on, under the lab's default rules: a dense mass that keeps swelling outward.",
+    description: "The 10³ cube the lab opens on, under its default rules: a dense mass that keeps swelling outward.",
     rules: validateRules({ birth: [9, 10], survival: range(5, 15) }),
     cells: defaultCube(),
   },

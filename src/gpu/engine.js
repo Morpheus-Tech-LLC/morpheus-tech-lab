@@ -1,31 +1,29 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Runs Game of Life 3D and Rule 30 (1D and 2D) on the GPU with WebGPU compute shaders.
+// Runs Rule 30 (1D and 2D) on the GPU with a WebGPU compute shader.
 //
 // The CPU functions in matrixFunctions.js are the reference: every grid this yields must equal
 // theirs, cell for cell, and compare.js checks that. Cells live on the GPU packed four to a u32
 // word, which is byte for byte the layout of a Uint8Array, so results read back with one copy.
 //
-// Game of Life 3D steps the whole size³ grid. Rule 30 only ever grows one layer below its
-// lowest, so the GPU steps just that size² layer, and each grid is built here from the one
-// before it plus the new layer, as evolveRule30() builds it.
+// Rule 30 only ever grows one layer below its lowest, so the GPU steps just that size² layer, and
+// each grid is built here from the one before it plus the new layer, as evolveRule30() builds it.
+// (The old, precomputed Game of Life 3D mode had a kernel here too; it was retired in #116, and
+// Game of Life 3D runs on the unbounded engine, src/unbounded/, on the CPU.)
 
 import { Grid3D } from '../grid3D.js';
-import gameOfLifeSource from '../shaders/gameOfLife3D.wgsl?raw';
 import rule30Source from '../shaders/rule30.wgsl?raw';
 
 const WORKGROUP_SIZE = 64;
 // Generations are read back in batches through one staging buffer of up to this size
 const STAGING_BYTES = 64 * 1024 * 1024;
-// The interior survival rule convolve3D() falls back to when the survival list is empty: 5–15
-const DEFAULT_SURVIVAL = [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
 
 /** The GPU mode for a run's mode flags, or null if that mode runs on the CPU only. */
 export function gpuModeOf({ useRule30, useRule30_2D, useSineWave, useSandpile }) {
   if (useSineWave || useSandpile) return null;
   if (useRule30_2D) return 'rule30_2D';
   if (useRule30) return 'rule30';
-  return 'gameOfLife3D';
+  return null;
 }
 
 /**
@@ -58,17 +56,13 @@ export function isPlainGrid(grid) {
  *
  * @param {GPUDevice} device
  * @param {object} run
- * @param {'gameOfLife3D'|'rule30'|'rule30_2D'} run.mode
+ * @param {'rule30'|'rule30_2D'} run.mode
  * @param {Grid3D} run.seed - a plain grid (see isPlainGrid)
  * @param {number} run.generations
  * @param {boolean} run.wrapping
- * @param {object} [run.rules] - state.rules (Game of Life 3D)
- * @param {object} [run.boundaryRules] - state.boundaryRules (Game of Life 3D)
  */
-export async function* evolveOnGpu(device, { mode, seed, generations, wrapping, rules, boundaryRules }) {
-  const plan = mode === 'gameOfLife3D'
-    ? lifePlan(seed, rules, boundaryRules)
-    : rule30Plan(seed, mode === 'rule30_2D');
+export async function* evolveOnGpu(device, { mode, seed, generations, wrapping }) {
+  const plan = rule30Plan(seed, mode === 'rule30_2D');
   const { cellCount } = plan;
   const wordCount = Math.ceil(cellCount / 4);
   const slotBytes = wordCount * 4;
@@ -100,7 +94,7 @@ export async function* evolveOnGpu(device, { mode, seed, generations, wrapping, 
 
     const { layout, pipeline } = getPipelines(device)[plan.kernel];
 
-    // Params, as the shaders' struct: size, cellCount, wordCount, wrap, rowWords, then the mode's
+    // Params, as the shader's struct: size, cellCount, wordCount, wrap, rowWords, then the mode's
     const params = new Uint32Array(16);
     params.set([seed.size, cellCount, wordCount, wrapping ? 1 : 0, groupsX * WORKGROUP_SIZE]);
     params.set(plan.params, 5);
@@ -175,23 +169,6 @@ export async function* evolveOnGpu(device, { mode, seed, generations, wrapping, 
   }
 }
 
-// Game of Life 3D: the GPU holds the whole grid, and each generation reads back whole
-function lifePlan(seed, rules, boundaryRules) {
-  const masks = lifeRuleMasks(rules, boundaryRules);
-  return {
-    kernel: 'gameOfLife',
-    cellCount: seed.data.length,
-    initial: seed.data,
-    params: [0, 0, 0, ...masks.birth, ...masks.survival], // birth and survival start at index 8
-    toGrid(cells) {
-      const grid = new Grid3D(seed.size, 0);
-      grid.data.set(cells);
-      listLiveCells(grid);
-      return grid;
-    },
-  };
-}
-
 // Rule 30: the GPU holds only the lowest layer, and each generation reads back the layer below
 // it. As in evolveRule30(), a new layer goes one below the lowest live cell; it becomes the
 // lowest only if it has a live cell. If it has none, every later layer is empty too, on the CPU
@@ -235,56 +212,7 @@ function rule30Plan(seed, twoD) {
   };
 }
 
-// Rebuilds `active` from `data`, in index order (x fastest, then y, then z). Reading the cells
-// four at a time skips dead stretches quickly, which matters on large, sparse grids.
-function listLiveCells(grid) {
-  const { size, data } = grid;
-  const area = size * size;
-  const active = [];
-  const add = (i) => active.push([i % size, Math.floor(i / size) % size, Math.floor(i / area)]);
-  const words = new Uint32Array(data.buffer, data.byteOffset, data.length >> 2);
-  for (let w = 0; w < words.length; w++) {
-    if (words[w] === 0) continue;
-    for (let i = w * 4; i < w * 4 + 4; i++) {
-      if (data[i] === 1) add(i);
-    }
-  }
-  for (let i = words.length * 4; i < data.length; i++) {
-    if (data[i] === 1) add(i);
-  }
-  grid.active = active;
-}
-
-// A bit mask of the neighbour counts in `values`: bit n is set if n is listed. Only numbers
-// count, as the CPU's Set.has(count) only matches numbers.
-function ruleMask(values) {
-  let mask = 0;
-  for (const v of values ?? []) {
-    if (Number.isInteger(v) && v >= 0 && v < 32) mask |= 1 << v;
-  }
-  return mask >>> 0;
-}
-
-// The birth and survival masks for [interior, face, edge, corner], chosen as convolve3D()
-// chooses its rule sets. A boundary kind with no rules uses the interior's.
-function lifeRuleMasks(rules, boundaryRules) {
-  const interiorSurvival = rules?.survival ?? [];
-  const interior = {
-    birth: ruleMask(rules?.birth ?? [9, 10]),
-    survival: ruleMask(new Set(interiorSurvival).size > 0 ? interiorSurvival : DEFAULT_SURVIVAL),
-  };
-  const boundary = boundaryRules ?? {};
-  const kinds = [null, 'face', 'edgeTwoFaces', 'corner'].map((key) => {
-    const r = key && boundary[key];
-    return r ? { birth: ruleMask(r.birth), survival: ruleMask(r.survival) } : interior;
-  });
-  return {
-    birth: kinds.map((k) => k.birth),
-    survival: kinds.map((k) => k.survival),
-  };
-}
-
-// Compiled once per device. Both shaders bind params, the current cells and the next cells.
+// Compiled once per device. The shader binds params, the current cells and the next cells.
 const pipelineCache = new WeakMap();
 
 function getPipelines(device) {
@@ -302,7 +230,6 @@ function getPipelines(device) {
   });
 
   cached = {
-    gameOfLife: { layout, pipeline: pipeline('gameOfLife3D.wgsl', gameOfLifeSource) },
     rule30: { layout, pipeline: pipeline('rule30.wgsl', rule30Source) },
   };
   pipelineCache.set(device, cached);

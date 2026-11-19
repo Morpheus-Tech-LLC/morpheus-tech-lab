@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Explore's preset seeds (src/explore/presets.js): their cells and rules, where they came from,
+// Game of Life 3D's preset seeds (src/explore/presets.js): their cells and rules, where they came from,
 // and their round trip through a seed file; and that each ship (#105) becomes the ship it says,
 // on the lab's own engine.
 
@@ -47,7 +47,7 @@ for (const preset of PRESETS) {
   });
 }
 
-test("Cube10 is the seed Explore opens on: the default cube shape, under Explore's default rules", () => {
+test("Cube10 is the seed Game of Life 3D opens on: the default cube shape, under its default rules", () => {
   const preset = presetById('cube10');
   const { size, density } = state.shapeParams.cube;
   assert.equal(density, 1, "the lab's default cube is solid");

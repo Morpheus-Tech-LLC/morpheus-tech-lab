@@ -129,13 +129,13 @@
       await load(1280, 800);
 
       section('Opening');
-      ok(doc.body.classList.contains('mode-explore'), 'The lab opens in Explore');
+      ok(doc.body.classList.contains('mode-explore'), 'The lab opens in Game of Life 3D');
       ok(text('explore-seed-label') === 'Cube, size 10, density 1', `The Seed box names the cube ("${text('explore-seed-label')}")`);
       ok(text('explore-seed-cells') === '1,000', 'The Seed box shows 1,000 cells');
-      ok(!visible('shape-density-value'), "The Seed box hides the other modes' Shape, Density and Size lines");
+      ok(!visible('shape-name-value') && !doc.getElementById('shape-density-value'), "The Seed box hides the other modes' Shape line; the old mode's Density and Size lines are gone (#116)");
       ok(text('hud-panel-title') === 'Simulation', 'The HUD is one panel, titled Simulation');
       ok(el('glass-info-mode').querySelector('.hud-mode-children > .glass-display') === el('glass-info-modename'), 'Its first section is Mode');
-      ok(text('hud-mode-name') === 'Explore' && visible('hud-change-mode'), 'Mode names Explore, with its gear');
+      ok(text('hud-mode-name') === 'Game of Life 3D' && visible('hud-change-mode'), 'Mode names Game of Life 3D, with its gear');
       ok(win.getComputedStyle(el('hud-panel-title')).color !== win.getComputedStyle(el('glass-info-rules').querySelector('.box-title-text')).color, "The panel's title is a different colour from its sections'");
       ok(!doc.getElementById('simulation-mode-title'), 'There is no title at the top centre');
       const boxes = ['glass-info-shape', 'glass-info-rules', 'glass-info-limits', 'glass-info-explore'];
@@ -432,10 +432,10 @@
       press('explore-use-in-contest');
       await sleep(1500);
       ok(doc.body.classList.contains('mode-contests') && text('contests-panel-title') === 'Methuselah', 'Use in a contest opens Methuselah');
-      ok(text('contests-entry-0') === '3 cells' && text('contests-entry-1') === 'B5/S4-5' && text('contests-entry-2') === 'Explore: Seed file: tiny.json',
+      ok(text('contests-entry-0') === '3 cells' && text('contests-entry-1') === 'B5/S4-5' && text('contests-entry-2') === 'Game of Life 3D: Seed file: tiny.json',
         `with the seed and rules as the entry (${text('contests-entry-0')}, ${text('contests-entry-1')}, ${text('contests-entry-2')})`);
       ok(!el('contests-run').disabled && activeId() === 'contests-run', 'ready to run: Run has the focus');
-      ok(text('contests-panel-status').startsWith('Brought from Explore'), `The status says where it came from ("${text('contests-panel-status')}")`);
+      ok(text('contests-panel-status').startsWith('Brought from Game of Life 3D'), `The status says where it came from ("${text('contests-panel-status')}")`);
       const arenaNoted = visible('contests-entry-arena');
       ok(arenaBefore === '64³' ? !arenaNoted : arenaNoted && text('contests-entry-arena').includes('runs in its own 64³ arena'),
         `With Explore's arena ${arenaBefore}, the page ${arenaNoted ? 'says the contest runs in its own 64³ arena' : 'has no arena note'}`);
@@ -462,21 +462,23 @@
       press('seedConfigButton');
       await sleep(300);
       ok(visible('explore-settings-note') && text('explore-settings-note').includes('top left'), "The dialog says where Explore's settings are");
-      ok(!visible('seed-section') && !visible('rules-section') && !visible('sim-params-section'), 'It shows only the mode choice');
+      ok(!visible('sim-params-section') && !doc.getElementById('seed-section') && !doc.getElementById('rules-section') && !doc.getElementById('mode-gameOfLife'), 'It shows only the mode choice, and no old Game of Life 3D card or settings (#116)');
+      ok(el('mode-explore').querySelector('.mode-name').textContent === 'Game of Life 3D' && doc.querySelector('.mode-card') === el('mode-explore'), 'Game of Life 3D is the first card');
       press('shapeConfirm');
       await sleep(1000);
-      ok(text('explore-seed-label') === 'Seed file: tiny.json' && text('rules-birth') === '5', "Its Apply starts Explore with the boxes' settings");
+      ok(text('explore-seed-label') === 'Seed file: tiny.json' && text('rules-birth') === '5', "Its Apply starts Game of Life 3D with the boxes' settings");
       press('seedConfigButton');
       await sleep(300);
-      press('mode-gameOfLife');
-      ok(!visible('explore-settings-note') && visible('seed-section') && visible('rules-section'), 'Game of Life 3D shows its own settings in the dialog');
+      press('mode-rule30');
+      ok(!visible('explore-settings-note') && visible('sim-params-section'), 'Rule 30 shows its own settings in the dialog');
       press('shapeConfirm');
       await sleep(4000);
-      ok(!doc.body.classList.contains('mode-explore'), 'Game of Life 3D runs');
-      ok(visible('shape-density-value') && !visible('explore-change-seed') && !visible('explore-change-rules') && !visible('explore-save-seed') && !visible('explore-seed-label'), 'Its boxes show the shape lines, and no Change or Save seed buttons');
-      ok(text('hud-mode-name') === 'Game of Life' && el('glass-info-mode').contains(el('glass-info-sim')) && visible('glass-info-sim'), 'Mode names Game of Life, with its own sections below');
+      ok(!doc.body.classList.contains('mode-explore'), 'Rule 30 runs');
+      ok(visible('shape-name-value') && text('shape-name-value').startsWith('rule30') && !visible('explore-change-seed') && !visible('explore-save-seed') && !visible('explore-seed-label'), 'Its Seed box shows its shape, and no Change or Save seed buttons');
+      ok(!visible('glass-info-rules'), 'The Rules box shows only in Game of Life 3D (#116)');
+      ok(text('hud-mode-name') === 'Rule 30' && el('glass-info-mode').contains(el('glass-info-sim')) && visible('glass-info-sim'), 'Mode names Rule 30, with its own sections below');
       ok(el('glass-info-sim').querySelector('.box-title-text').textContent === 'Grid', 'Its Generations and Size section is called Grid');
-      ok(!visible('glass-info-limits') && !visible('glass-info-explore'), "Explore's Limits and Run boxes don't show");
+      ok(!visible('glass-info-limits') && !visible('glass-info-explore'), "Game of Life 3D's Limits and Run boxes don't show");
       el('glass-info-sim').querySelector('.box-title').click();
       ok(el('glass-info-sim').classList.contains('is-collapsed') && !visible('sim-size-value'), 'Its boxes fold too');
       el('glass-info-sim').querySelector('.box-title').click();
@@ -489,7 +491,7 @@
       press('mode-explore');
       press('shapeConfirm');
       await sleep(1000);
-      ok(text('explore-seed-label') === 'Seed file: tiny.json', 'Back in Explore, the boxes keep their settings');
+      ok(text('explore-seed-label') === 'Seed file: tiny.json' && visible('glass-info-rules'), 'Back in Game of Life 3D, the boxes keep their settings, Rules included');
 
       section('Phone width (375 × 740)');
       await load(375, 740);

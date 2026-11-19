@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Explore's saves (src/explore/save.js, #66): Save this generation writes a result file, the same
+// Game of Life 3D's saves (src/explore/save.js, #66): Save this generation writes a result file, the same
 // file a contest entry is, with the generation's cells, which the verifier confirms and Load…
 // carries on from; Save seed writes the run's first seed.
 
@@ -144,12 +144,12 @@ test('Save seed saves the seed the run started from, with its rules', async () =
   const loaded = await readSeedOrSave(seedSave(CONFIG));
   assert.equal(loaded.kind, 'seed');
   assert.deepEqual(loaded.cells, SEED);
-  assert.equal(SEED_FILE_NAME, 'explore-seed.json');
+  assert.equal(SEED_FILE_NAME, 'game-of-life-3d-seed.json');
 });
 
 test('a saved generation is named for its generation', () => {
-  assert.equal(generationFileName(0), 'explore-generation-0.json');
-  assert.equal(generationFileName(1234), 'explore-generation-1234.json');
+  assert.equal(generationFileName(0), 'game-of-life-3d-generation-0.json');
+  assert.equal(generationFileName(1234), 'game-of-life-3d-generation-1234.json');
 });
 
 test('a run still going is saved as stopped there; an ended run keeps its reason', () => {

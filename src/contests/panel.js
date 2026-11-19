@@ -166,7 +166,7 @@ export function openPanel({ designInExplore = null, entry = null } = {}) {
     const refusal = setEntry(brought, entry, entry.source, entry.note);
     panel.refused = refusal ? { contest: brought.id, message: `Not used: ${refusal}` } : null;
     showContest(brought);
-    if (!refusal) status(`Brought from Explore: ${entry.source.replace(/^Explore: /, '')}.`);
+    if (!refusal) status(`Brought from Game of Life 3D: ${entry.source.replace(/^Game of Life 3D: /, '')}.`);
   } else if (resume) showContest(resume);
   else showList();
 }
@@ -385,13 +385,13 @@ function endingsTable(contest) {
  */
 function entrySection(contest, entry) {
   const load = button(entry ? 'Load another seed…' : 'Load seed…', () => el('contests-seed-file').click(), { main: !entry, id: 'contests-load-seed' });
-  const design = panel.designInExplore ? button('Design a seed in Explore', () => designSeed(contest), { id: 'contests-design-seed' }) : null;
+  const design = panel.designInExplore ? button('Design a seed in Game of Life 3D', () => designSeed(contest), { id: 'contests-design-seed' }) : null;
   const refused = panel.refused?.contest === contest.id ? h('p', {
     className: 'contests-refused', text: panel.refused.message, attrs: { id: 'contests-entry-refused', role: 'alert' },
   }) : null;
   if (!entry) {
     return section('Your entry',
-      h('p', { text: 'A seed and its rules. Design a seed in Explore opens Explore\'s seed editor: place the cells, set the rules in Explore\'s Rules box, and Export the design as a seed file (or Save seed from the Seed box). The Contest banner brings you back here, to Load seed….', attrs: { id: 'contests-entry-none' } }),
+      h('p', { text: 'A seed and its rules. Design a seed in Game of Life 3D opens its seed editor: place the cells, set the rules in its Rules box, and Export the design as a seed file (or Save seed from the Seed box). The Contest banner brings you back here, to Load seed….', attrs: { id: 'contests-entry-none' } }),
       refused,
       h('div', { className: 'contests-actions' }, load, design));
   }

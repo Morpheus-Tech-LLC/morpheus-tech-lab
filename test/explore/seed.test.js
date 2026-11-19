@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Explore's seeds and rules (src/explore/seed.js): the shapes lifted into the unbounded world,
+// Game of Life 3D's seeds and rules (src/explore/seed.js): the shapes lifted into the unbounded world,
 // rules read from text, and the seed file's round trip.
 
 import { test } from 'node:test';
@@ -28,7 +28,7 @@ function bounds(cells) {
 }
 
 test('a solid cube seed is centred on the origin', () => {
-  const cells = shapeSeed(shapes.cubeShape(5, 1), 10);
+  const cells = shapeSeed(shapes.cubeOfSide(10, 1), 10);
   assert.equal(cells.length / 3, 1000);
   assert.deepEqual(bounds(cells), { min: [-5, -5, -5], max: [4, 4, 4] });
 });
@@ -53,7 +53,7 @@ test('an octahedron seed is whole and centred', () => {
 test('every shape fits its scratch grid, at the largest size too', () => {
   const size = MAX_SHAPE_SIZE;
   const cases = {
-    cube: [shapes.cubeShape(size / 2, 1), 0],
+    cube: [shapes.cubeOfSide(size, 1), 0],
     tetrahedron: [shapes.tetrahedronShape(size, 1), 0],
     octahedron: [shapes.octahedronShape(size, 0.01), 0],
     perlin: [shapes.perlinShape(size, 0.3, 40), 40],
@@ -70,8 +70,8 @@ test('every shape fits its scratch grid, at the largest size too', () => {
 });
 
 test('a seed size outside 1 to the maximum is refused', () => {
-  assert.throws(() => shapeSeed(shapes.cubeShape(1, 1), 0), SeedError);
-  assert.throws(() => shapeSeed(shapes.cubeShape(1, 1), MAX_SHAPE_SIZE + 1), SeedError);
+  assert.throws(() => shapeSeed(shapes.cubeOfSide(2, 1), 0), SeedError);
+  assert.throws(() => shapeSeed(shapes.cubeOfSide(2, 1), MAX_SHAPE_SIZE + 1), SeedError);
 });
 
 test('neighbour counts are read as lists and ranges', () => {
@@ -120,7 +120,7 @@ test('an exported seed loads back, and runs the same', () => {
 test('a seed file that is wrong is refused, saying why', () => {
   const file = (fields) => JSON.stringify({ format: SEED_FILE_FORMAT, version: 1, rules: RULES, cells: [[0, 0, 0]], ...fields });
   assert.throws(() => parseSeedFile('not json'), /isn't JSON/);
-  assert.throws(() => parseSeedFile(file({ format: 'something else' })), /isn't an Explore seed file/);
+  assert.throws(() => parseSeedFile(file({ format: 'something else' })), /isn't a Game of Life 3D seed file/);
   assert.throws(() => parseSeedFile(file({ version: 2 })), /version 2/);
   assert.throws(() => parseSeedFile(file({ rules: { birth: [0], survival: [] } })), RuleError);
   assert.throws(() => parseSeedFile(file({ cells: [[0, 0]] })), /Cell 1/);
