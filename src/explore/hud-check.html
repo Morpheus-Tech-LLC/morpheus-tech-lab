@@ -485,7 +485,7 @@
       ok(el('glass-info-sim').classList.contains('is-collapsed') && !visible('sim-size-value'), 'Its boxes fold too');
       el('glass-info-sim').querySelector('.box-title').click();
       el('glass-info-mode').querySelector('.box-title').click();
-      ok(!visible('glass-info-shape') && !visible('hud-change-mode') && visible('hud-panel-title'), 'Folding the Simulation panel folds everything but its title');
+      ok(!visible('glass-info-shape') && !visible('hud-change-mode') && visible('hud-panel-title'), 'Folding the Simulation box folds everything but its title');
       el('glass-info-mode').querySelector('.box-title').click();
       press('hud-change-mode');
       await sleep(300);

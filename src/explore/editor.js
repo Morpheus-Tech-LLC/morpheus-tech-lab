@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 // The seed editor (#70): designing a seed cell by cell in the 10³ seed box. It opens from the Seed
-// box's popover (hud.js), Design… under Custom or Edit a copy… under Preset, and takes over the
+// popover's Design… or the Simulation popover's Edit a copy… (hud.js), and takes over the
 // main 3D view: Explore's view pauses behind it, and its run, if any, goes on in its Worker. A
 // panel at the side holds the tools, and every tool has a key. Use makes the design Explore's
 // seed and restarts the run; Cancel, or Esc, leaves everything as it was.
@@ -166,10 +166,11 @@ async function exportDesign() {
     showNote('seed-editor-error', 'The design has no live cells to export: switch some on first.');
     return;
   }
-  const text = toSeedFile({ rules, cells: model.toCells() });
+  // A seed is only cells (#130): Export saves the design alone, without the rules
+  const text = toSeedFile({ cells: model.toCells() });
   try {
     const status = await writeJsonFile(SEED_FILE_NAME, text, 'Game of Life 3D seed file');
-    showNote('seed-editor-status', `${status} Load it in the Seed box, under Custom, File, or in this editor with Load…, to open it again.`);
+    showNote('seed-editor-status', `${status} A seed file, cells only. Load it in the Seed box, under File, or in this editor with Load…, to open it again. To keep the rules with it, Use the design, then Save simulation in the Simulation box.`);
   } catch (err) {
     if (err?.name !== 'AbortError') showNote('seed-editor-error', `Not exported: ${err.message}`);
   }
@@ -183,8 +184,11 @@ async function load(file) {
     const loaded = designFile(file.name, await readSeedOrSave(await file.text()));
     if (session !== open) return;
     open.model.replace(loaded.places);
-    open.rules = loaded.rules;
-    open.rulesFrom = file.name;
+    // A simulation file brings its rules; a seed file only cells, under the rules already here
+    if (loaded.rules) {
+      open.rules = loaded.rules;
+      open.rulesFrom = file.name;
+    }
     showNote('seed-editor-status', `Loaded ${file.name}: ${open.model.count.toLocaleString('en')} cells. Undo goes back to the design before it.`);
     showNote('seed-editor-error', null);
   } catch (err) {
@@ -234,7 +238,7 @@ function refresh() {
   byId('seed-editor-undo').disabled = !model.canUndo;
   byId('seed-editor-redo').disabled = !model.canRedo;
   byId('seed-editor-fade').setAttribute('aria-pressed', String(fade));
-  setText('seed-editor-rules', `Use runs it, and Export saves it, with ${ruleText(rules)}, from ${rulesFrom}.`);
+  setText('seed-editor-rules', `Use runs it with ${ruleText(rules)}, from ${rulesFrom}. Export saves the seed alone, without rules.`);
 }
 
 // The view's centre moves into the part of the window the panel leaves free

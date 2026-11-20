@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// Explore's preset seeds (#58): ready-made seeds, each with its own rules, offered in the
-// settings beside the shapes and seed files. Choosing one works like loading a seed file: its
-// cells and rules replace the shape and rules.
+// Explore's presets (#58): ready-made simulations, each a seed with its own rules, offered in the
+// Simulation box (#130). Choosing one works like loading a simulation file: its cells and rules
+// replace the seed and rules. Their cells alone are also shapes in the Seed box.
 //
 // Spreading noise is the Speed candidate 12345 from #39's search (scripts/bench/candidates.mjs).
 // The lab never imports scripts/, so its cells are written out here; a test checks that they are

@@ -18,7 +18,9 @@
 //   Its cells are made once, when it is chosen, so a change to the rules or the arena runs the
 //   same cells again.
 // - {kind: 'preset', id, cells}: a preset, whose rules are locked (#58).
-// - {kind: 'file', name, cells, label?}: a seed file's cells. Its rules went into the Rules box.
+// - {kind: 'file', name, cells, label?, rules?}: a file's cells. From a simulation file (#130),
+//   `rules` are the file's, which went into the Rules box too: while the Rules box still holds
+//   them, the simulation is the file's. From a seed file, or a file loaded as a seed, it has none.
 // - {kind: 'saved', name, cells, seed, from, rules, arena}: a saved generation (#66), which
 //   carries on from generation `from` under its own rules and arena, both locked.
 // - {kind: 'design', cells}: a seed designed in the seed editor (#70), in the seed box, under the
@@ -72,13 +74,13 @@ export const DEFAULT_RULES = Object.freeze({
 
 const PRESET_SHAPE = 'preset:';
 
-/** The shapes a Custom seed can take, in the Seed popover's order. */
+/** The shapes a seed can take, in the Seed popover's order: a preset's cells are one, without its rules. */
 export const SHAPES = [
   { key: 'cube', name: 'Cube' },
   { key: 'tetrahedron', name: 'Tetrahedron' },
   { key: 'octahedron', name: 'Octahedron' },
-  { key: 'perlin', name: 'Perlin noise', noise: true },
-  { key: 'worley', name: 'Worley noise', noise: true },
+  { key: 'perlin', name: 'Perlin noise', short: 'Perlin', noise: true },
+  { key: 'worley', name: 'Worley noise', short: 'Worley', noise: true },
   // #67: the presets' cells, under the rules in the Rules box; the ships' (#105) in their group
   ...PRESETS.map((preset) => ({
     key: `${PRESET_SHAPE}${preset.id}`, name: `${preset.name}'s cells`, preset: preset.id, ...(preset.group && { group: preset.group }),
@@ -162,16 +164,35 @@ export function presetSeed(id) {
 }
 
 /**
- * The seed a file loaded with Load… gives.
+ * The simulation a file loaded with the Simulation box's Load simulation… gives (#130): a
+ * simulation file's seed and rules, or a saved generation, which carries on from its generation.
  * @param {string} name - the file's name
  * @param {object} loaded - what readSeedOrSave() read from it
+ * @throws {SeedError} for a seed file, which has no rules to make a simulation
  */
-export function fileSeed(name, loaded) {
+export function simulationFile(name, loaded) {
   if (loaded.kind === 'generation') {
     const { cells, seed, from, rules, arena } = loaded;
     return { kind: 'saved', name, cells, seed, from, rules, arena };
   }
+  if (!loaded.rules) {
+    throw new SeedError(`${name} is a seed file: it holds cells, but no rules, so it isn't a simulation. Load it from the Seed box, under File, to run it under the rules in the Rules box.`);
+  }
   return { kind: 'file', name, cells: loaded.cells, rules: loaded.rules };
+}
+
+/**
+ * The seed a file loaded with the Seed box's Load seed… gives: its cells only, under the rules in
+ * the Rules box, from a seed file or a simulation file (#130).
+ * @param {string} name - the file's name
+ * @param {object} loaded - what readSeedOrSave() read from it
+ * @throws {SeedError} for a saved generation, which is a whole simulation mid-run
+ */
+export function fileSeed(name, loaded) {
+  if (loaded.kind === 'generation') {
+    throw new SeedError(`${name} is a saved generation: a simulation carried on from generation ${loaded.from.toLocaleString('en')}, not a seed. Load it from the Simulation box, with Load simulation….`);
+  }
+  return { kind: 'file', name, cells: loaded.cells };
 }
 
 /** A seed designed in the seed editor. @param {Int32Array} cells */
@@ -212,26 +233,28 @@ export function presetCopy(id) {
 }
 
 /**
- * A file loaded with the editor's own Load…, which takes seed files only.
+ * A file loaded with the editor's own Load…, which takes seed files and simulation files, not
+ * saved generations.
  * @param {string} name - the file's name
  * @param {object} loaded - what readSeedOrSave() read from it
- * @returns {{places: Uint8Array, rules: {birth: number[], survival: number[]}}}
+ * @returns {{places: Uint8Array, rules: {birth: number[], survival: number[]} | null}} - no rules
+ *   from a seed file
  * @throws {SeedError} for a saved generation, or a seed that doesn't fit the seed box
  */
 export function designFile(name, loaded) {
   if (loaded.kind === 'generation') {
-    throw new SeedError(`${name} is a saved generation. ${SAVED_NO_DESIGN} Load… in the Seed box carries it on.`);
+    throw new SeedError(`${name} is a saved generation. ${SAVED_NO_DESIGN} Load simulation… in the Simulation box carries it on.`);
   }
   try {
     return { places: designCells(loaded.cells), rules: loaded.rules };
   } catch (err) {
-    if (err instanceof SeedError) throw new SeedError(`${name} can't open here: ${err.message} Load… in the Seed box still runs it.`);
+    if (err instanceof SeedError) throw new SeedError(`${name} can't open here: ${err.message} Load seed… in the Seed box still runs it.`);
     throw err;
   }
 }
 
 /**
- * The editor's Use: the design becomes the seed, under Custom, with `rules` in the Rules box,
+ * The editor's Use: the design becomes the seed, a Custom simulation, with `rules` in the Rules box,
  * unlocked: the rules it opened with, a copied preset's or a loaded file's.
  * @param {Int32Array} cells
  * @param {{birth: number[], survival: number[]}} rules
@@ -305,28 +328,72 @@ export function restartNote(from) {
   return `Applying restarts the run from generation ${from.toLocaleString('en')}.`;
 }
 
-/** What the Seed box names the seed. */
+/**
+ * What the Seed box names the seed: short, to share its line with the save icon (#130). A shape
+ * is its name and size, and its density as a share when not every cell lives ("Cube 10",
+ * "Perlin 10, 30%"); the popover has the rest.
+ */
 export function seedLabel(seed) {
   const n = (x) => x.toLocaleString('en');
   switch (seed.kind) {
     case 'preset':
       return presetById(seed.id).name;
     case 'file':
-      return seed.label ?? `Seed file: ${seed.name}`;
+      return seed.label ?? seed.name;
     case 'saved':
-      return `Saved generation ${n(seed.from)}: ${seed.name}`;
+      return `Gen ${n(seed.from)}: ${seed.name}`;
     case 'design':
-      return `Design: ${n(seed.cells.length / 3)} cells`;
+      return 'Design';
     default: {
       const shape = shapeByKey(seed.key);
+      if (shape.preset) return presetById(shape.preset).name;
       if (!seed.params) return shape.name;
-      const { size, density, regionSize } = seed.params;
-      const region = regionSize ? `, region ${regionSize}` : '';
-      if (seed.key === 'perlin') return `${shape.name}, detail ${size}, fill ${density}${region}`;
-      if (seed.key === 'worley') return `${shape.name}, ${size} points, distance ${density}${region}`;
-      return `${shape.name}, size ${size}, density ${density}`;
+      const { size, density } = seed.params;
+      const share = density === 1 ? '' : `, ${Math.round(density * 100)}%`;
+      return `${shape.short ?? shape.name} ${size}${share}`;
     }
   }
+}
+
+/**
+ * The simulation in use, a seed and its rules (#130), as the Simulation box names it: a saved
+ * generation, or a simulation file while its seed and rules are the ones it brought; a preset
+ * whenever the seed and rules are a preset's, however they were set, so the lab opens on Cube10;
+ * and otherwise Custom, a seed and rules of the visitor's own.
+ * @returns {{name: string, from: 'preset' | 'file' | 'saved' | null, id?: string}} - id: the preset's
+ */
+export function simulationOf(setup) {
+  const { seed } = setup;
+  if (seed.kind === 'preset') return { name: presetById(seed.id).name, from: 'preset', id: seed.id };
+  if (seed.kind === 'saved') return { name: `Generation ${seed.from.toLocaleString('en')} of ${seed.name}`, from: 'saved' };
+  if (seed.kind === 'file' && seed.rules && sameRules(seed.rules, setup.rules)) return { name: seed.name, from: 'file' };
+  const preset = matchingPreset(seed.cells, setup.rules);
+  if (preset) return { name: preset.name, from: 'preset', id: preset.id };
+  return { name: 'Custom', from: null };
+}
+
+/** The preset whose cells and rules these are, in any order of cells, or undefined. */
+function matchingPreset(cells, rules) {
+  return PRESETS.find((preset) => preset.cells.length === cells.length && sameRules(preset.rules, rules)
+    && cellsKey(preset.cells) === cellsKey(cells));
+}
+
+// Cells as one string, sorted, so the same cells match in any order; kept per array
+const cellKeys = new WeakMap();
+function cellsKey(cells) {
+  let key = cellKeys.get(cells);
+  if (key === undefined) {
+    const list = [];
+    for (let i = 0; i < cells.length; i += 3) list.push(`${cells[i]},${cells[i + 1]},${cells[i + 2]}`);
+    key = list.sort().join(';');
+    cellKeys.set(cells, key);
+  }
+  return key;
+}
+
+function sameRules(a, b) {
+  const same = (x, y) => x.length === y.length && x.every((v, i) => v === y[i]);
+  return same(a.birth, b.birth) && same(a.survival, b.survival);
 }
 
 /**
@@ -433,22 +500,20 @@ function checked(setup) {
 // ---- Changes, one per popover ----
 
 /**
- * The Seed popover's Apply. A seed file's rules go into the Rules box; a preset's and a saved
- * generation's come with the seed, and the visitor's own rules stay for the next Custom seed.
- * @param {object} seed - from makeShape(), presetSeed() or fileSeed()
+ * A new seed. A simulation, from the Simulation box (#130), brings its rules: a simulation
+ * file's go into the Rules box; a preset's and a saved generation's come with the seed, locked.
+ * A seed alone, from the Seed box, keeps the rules in use, a preset's or a saved generation's
+ * (and its arena) too, now the visitor's own.
+ * @param {object} seed - from makeShape(), presetSeed(), simulationFile(), fileSeed() or designSeed()
  */
 export function changeSeed(setup, seed) {
-  const next = { ...setup, seed };
-  if (seed.kind === 'file' && seed.rules) {
-    next.rules = seed.rules;
-    next.seed = { ...seed };
-    delete next.seed.rules;
-  }
-  return checked(next);
+  if (seed.kind === 'file' && seed.rules) return checked({ ...setup, seed, rules: seed.rules });
+  if (seed.kind === 'preset' || seed.kind === 'saved') return checked({ ...setup, seed });
+  return checked({ ...ownRules(setup), seed });
 }
 
 /**
- * Use your own rules: the same cells, as a Custom seed from generation 0, with the rules (and,
+ * Use your own rules: the same cells, as a Custom simulation from generation 0, with the rules (and,
  * for a saved generation, the arena) it had, now the visitor's to change. A setup that nothing
  * locks comes back as it is.
  */
@@ -458,7 +523,7 @@ export function ownRules(setup) {
     return { ...setup, seed: makeShape(`${PRESET_SHAPE}${seed.id}`), rules: rulesOf(setup) };
   }
   if (seed.kind === 'saved') {
-    const label = `Generation ${seed.from.toLocaleString('en')} of ${seed.name}`;
+    const label = `Gen ${seed.from.toLocaleString('en')}: ${seed.name}`;
     return {
       ...setup,
       seed: { kind: 'file', name: seed.name, cells: seed.cells, label },
@@ -552,7 +617,7 @@ export function contestEntry(setup, contest) {
   const box = contest.fixes.seedBox;
   const boxText = `the ${box.max[0] - box.min[0] + 1}³ seed box, cells ${box.min[0]} to ${box.max[0]} on each axis`;
   if (seed.kind === 'saved') {
-    return { reason: `A saved generation carries on from generation ${n(seed.from)}, so it isn't a seed to start a contest from. Load its run's seed file, or design a seed, instead.` };
+    return { reason: `A saved generation carries on from generation ${n(seed.from)}, so it isn't a seed to start a contest from. Load its run's simulation file, or design a seed, instead.` };
   }
   const { cells } = seed;
   const count = cells.length / 3;

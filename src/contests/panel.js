@@ -10,8 +10,8 @@
 // Text from a result file comes from strangers, so the panel only ever sets textContent: nothing
 // from a file is parsed as HTML. What it says is worked out in format.js. A Speed run is
 // speed.js's SpeedRun, and a Discovery run, Methuselah's or Classic Methuselah's (#102),
-// discovery.js's DiscoveryRun (#94), with the entry the visitor brought: a seed and its rules,
-// from Load seed… or from Explore (#95). The two Methuselah contests share a page, which says
+// discovery.js's DiscoveryRun (#94), with the entry the visitor brought: a simulation, a seed and
+// its rules (#130), from Load simulation… or from Explore (#95). The two Methuselah contests share a page, which says
 // where Classic Methuselah differs: ships may leave at the arena's edge.
 
 import { CONTESTS, contestById, runFor, methuselahWarnings } from '../unbounded/contests.js';
@@ -55,7 +55,7 @@ const panel = {
   // Each Discovery contest's entry, by contest id: {rules, seed, source}, checked by runFor().
   // It stays while the page is open, so Run again runs it again
   entries: new Map(),
-  refused: null, // why the last seed file loaded was refused: {contest, message}
+  refused: null, // why the last simulation file loaded was refused: {contest, message}
   designInExplore: null, // leaves for Explore's seed editor (controls.js), from the mode's start
   resume: null, // the contest the visitor left to design an entry in, to come back to
 };
@@ -320,7 +320,7 @@ function showContest(contest) {
 
 /**
  * Methuselah's page, and Classic Methuselah's: the entry it will run (its seed, drawn, and its
- * rules) with Load seed…, Run, what the contest fixes, how a run ends and what scores, the Hall of
+ * rules) with Load simulation…, Run, what the contest fixes, how a run ends and what scores, the Hall of
  * Fame, and how it runs. Classic Methuselah's also says how it differs, and its ships' period.
  */
 function showMethuselah(contest) {
@@ -380,18 +380,19 @@ function endingsTable(contest) {
 }
 
 /**
- * The entry: its seed, drawn in the seed box with its cell count, and its rules, where they came
- * from, a warning for rules that can't score, and Load seed…; or, with none yet, how to bring one.
+ * The entry, a simulation: its seed, drawn in the seed box with its cell count, and its rules,
+ * where they came from, a warning for rules that can't score, and Load simulation…; or, with none
+ * yet, how to bring one.
  */
 function entrySection(contest, entry) {
-  const load = button(entry ? 'Load another seed…' : 'Load seed…', () => el('contests-seed-file').click(), { main: !entry, id: 'contests-load-seed' });
+  const load = button(entry ? 'Load another simulation…' : 'Load simulation…', () => el('contests-seed-file').click(), { main: !entry, id: 'contests-load-seed' });
   const design = panel.designInExplore ? button('Design a seed in Game of Life 3D (unbounded)', () => designSeed(contest), { id: 'contests-design-seed' }) : null;
   const refused = panel.refused?.contest === contest.id ? h('p', {
     className: 'contests-refused', text: panel.refused.message, attrs: { id: 'contests-entry-refused', role: 'alert' },
   }) : null;
   if (!entry) {
     return section('Your entry',
-      h('p', { text: 'A seed and its rules. Design a seed in Game of Life 3D (unbounded) opens its seed editor: place the cells, set the rules in its Rules box, and Export the design as a seed file (or Save seed from the Seed box). The Contest banner brings you back here, to Load seed….', attrs: { id: 'contests-entry-none' } }),
+      h('p', { text: 'A simulation: a seed and its rules. Design a seed in Game of Life 3D (unbounded) opens its seed editor: place the cells and Use them, set the rules in its Rules box, and save both with the Simulation box\'s save icon. The Contest banner brings you back here, to Load simulation…. A seed file holds no rules, so it can\'t be an entry.', attrs: { id: 'contests-entry-none' } }),
       refused,
       h('div', { className: 'contests-actions' }, load, design));
   }
@@ -422,7 +423,7 @@ function designSeed(contest) {
   panel.resume = contest;
   const { arena } = contest.fixes;
   design({
-    note: `For ${contest.title}: the seed must lie in this 10³ box. Export saves it, with the Rules box's rules, as a seed file; then the Contest banner takes you back to ${contest.title}, to Load seed….`,
+    note: `For ${contest.title}: the seed must lie in this 10³ box. Use makes it the seed; then save it, with the Rules box's rules, with the Simulation box's save icon, and the Contest banner takes you back to ${contest.title}, to Load simulation….`,
     arena: arena.max[0] - arena.min[0] + 1,
     title: contest.title,
     ships: Boolean(contest.departures),
@@ -479,21 +480,26 @@ function outsideCount(seed, box) {
   return seed.filter((cell) => cell.some((c, a) => c < box.min[a] || c > box.max[a])).length;
 }
 
-/** Load seed…: reads a seed file as untrusted data, and makes it the entry, or says why not. */
+/**
+ * Load simulation…: reads a simulation file as untrusted data, and makes it the entry, or says
+ * why not. A seed file has no rules (#130), so it can't be one.
+ */
 async function loadSeedFile(contest, file) {
   const view = panel.view;
   let refusal = null;
-  // A seed file holds at most a million cells, about 30 MB written out
+  // A simulation file holds at most a million cells, about 30 MB written out
   if (file.size > 64 * 1024 * 1024) {
-    refusal = "The file is larger than 64 MB, so it isn't a seed file. It wasn't read.";
+    refusal = "The file is larger than 64 MB, so it isn't a simulation file. It wasn't read.";
   } else {
     try {
       const text = await file.text();
       const seed = parseSeedFile(text);
-      refusal = setEntry(contest, seed, file.name);
+      refusal = seed.rules
+        ? setEntry(contest, seed, file.name)
+        : 'This is a seed file: it holds cells, but no rules, so it isn\'t a simulation, and an entry is one. In Game of Life 3D (unbounded), load it in the Seed box, set the rules, and save both with the Simulation box\'s save icon, as a simulation file.';
     } catch (err) {
       refusal = /"format"\s*:\s*"morpheus-tech-lab\/result"/.test(await file.slice(0, 4096).text().catch(() => ''))
-        ? 'This is a result file, not a seed file. Check one with Verify a result; load a seed saved with Save seed, or the seed editor\'s Export.'
+        ? 'This is a result file, not a simulation file. Check one with Verify a result; load a simulation saved with Save simulation.'
         : err?.message ?? String(err);
     }
   }
