@@ -45,7 +45,7 @@ export async function initSimulation() {
     state.sliceAxis = 'x';
     state.sliceIndex = Math.floor((simSize - 1) / 2); // Ensure valid index (0 to simSize - 1)
     // Generate Simulation Data - History (Game of Life, Rule 30, Sine Wave, or Sandpile)
-    const [simulationData, clockData] = await generateSimulation(
+    const simulationData = await generateSimulation(
       simSize,
       simGenerations,
       simSeed,
@@ -57,7 +57,6 @@ export async function initSimulation() {
     );
     if (run !== latestRun) return; // a newer rebuild started; its result wins
     state.simulationData = simulationData;
-    state.clockData = clockData;
 
     const depth = state.useRule30 ? 1 : simSize;
     state.simulationModel =  await buildSimulationModel(simSize, depth);  // Simulation Model
@@ -102,7 +101,6 @@ export async function initSimulation() {
     points.visible = !state.showCellWireframe;
 
     updatePoints();
-    // drawClock();
     scene.add(points);
 
     // Start auto-rotation for first load only
@@ -299,8 +297,6 @@ export function updatePoints() {
     state.simulationModel.colors[3 * i + 2] = color.b;
 
     i++;
-
-    // drawClock();
   }
 
   geometry.setDrawRange(0, i);
@@ -474,10 +470,3 @@ function createWireframeGrid(cellCount, depth) {
   
   return group;
 }
-
-// function drawClock() {
-//   const ctx = document.getElementById("clockCanvas").getContext("2d");
-//   const frame = state.clockData[state.currentGen % state.clockData.length];
-//   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-//   ctx.drawImage(frame, 0, 0, ctx.canvas.width, ctx.canvas.height);
-// }

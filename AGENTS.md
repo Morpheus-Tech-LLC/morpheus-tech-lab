@@ -72,10 +72,10 @@ src/
   grid3D.js              Grid3D: a dense size³ Uint8Array plus an `active` list of live cells
   shapeGenerators.js     Seed shapes: perlin, cube, tetrahedron, octahedron, worley, rule30
   space.js               Scene, camera, renderer, OrbitControls (stored on `state`)
-  time.js                The animation loop, playback speed, auto-rotate; a vestigial clock history
+  time.js                The animation loop, playback speed, auto-rotate
   controls.js            All UI wiring: buttons, sliders, modal, mode switching (~1,900 lines); Apply's
                          question above a high memory estimate (#123)
-  memoryAdvice.js        A precomputed run's memory estimate (grids, live cells, view, clock), the
+  memoryAdvice.js        A precomputed run's memory estimate (grids, live cells, view), the
                          suggested ranges for a laptop and a desktop, CONFIRM_BYTES, and the dialog's
                          texts (#123) (no DOM; tested in Node)
   adviceControl.js       The settings dialog's range hints and their popovers (#123)
@@ -427,8 +427,7 @@ src/
 
 ## Known debt
 
-`time.js` still computes a clock history that nothing displays: a 128×128 bitmap per generation, 64 KB
-each, which `memoryAdvice.js` counts now that generations have no cap. `index.html` carries many inline styles.
+`index.html` carries many inline styles.
 Each generation's `active` list is an array of `[x, y, z]` arrays, about 40 bytes of heap per
 live cell; with the GPU computing the steps, building and holding those lists, and
 `updatePoints()` walking them every frame, is what limits grid size now.
