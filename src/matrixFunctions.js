@@ -10,7 +10,6 @@ import { convolve3D as denseStep } from './denseStep.js';
 // ---------------------------
 
 export async function generateSimulation(size, generations, shapeFn, useRule30 = false, useRule30_2D = false, useSineWave = false, useSandpile = false, sandpileParams = null) {
-  console.log(`generateSimulation: size=${size}, generations=${generations}, useRule30=${useRule30}, useRule30_2D=${useRule30_2D}, useSineWave=${useSineWave}, useSandpile=${useSandpile}`);
   const history = [];
   
   if (useSineWave) {
@@ -18,7 +17,6 @@ export async function generateSimulation(size, generations, shapeFn, useRule30 =
     for (let gen = 0; gen <= generations; gen++) {
       const grid = generateSineWaveGrid(size, gen, generations);
       history.push(grid);
-      console.log(`Sine Wave Generation ${gen}: ${grid.active.length} active cells`);
     }
   } else if (useSandpile) {
     // Generate sandpile simulation
@@ -27,7 +25,6 @@ export async function generateSimulation(size, generations, shapeFn, useRule30 =
     // Start with empty grid (or minimal initial sand)
     let grid = initSandpile(size, params);
     
-    console.log(`Initial sandpile: ${countActiveSandpileCells(grid)} active cells`);
     history.push(grid);
     
     const center = Math.floor(size / 2);
@@ -108,13 +105,10 @@ export async function generateSimulation(size, generations, shapeFn, useRule30 =
       // Save final stable state after toppling
       grid.generation = generationNumber; // Store generation number
       history.push(grid);
-      const activeCount = countActiveSandpileCells(grid);
-      console.log(`Sandpile Generation ${generationNumber}: ${activeCount} active cells, center sand: ${grid.get(center, center, 0)}`);
     }
   } else {
     let grid = initMatrix(size, shapeFn);
     
-    console.log(`Initial grid active cells: ${grid.active.length}`);
     history.push(grid);
 
     // Compute on the GPU where it can. It gives the same grids as the CPU, so if it stops
@@ -123,7 +117,6 @@ export async function generateSimulation(size, generations, shapeFn, useRule30 =
     if (gpuMode && generations > 0) {
       const device = await getGpuDevice();
       if (device && isPlainGrid(grid)) {
-        const started = performance.now();
         try {
           const run = {
             mode: gpuMode,
@@ -139,7 +132,6 @@ export async function generateSimulation(size, generations, shapeFn, useRule30 =
         } catch (err) {
           console.warn(`GPU compute stopped after ${history.length - 1} generations; continuing on the CPU.`, err);
         }
-        console.log(`GPU: ${history.length - 1} of ${generations} generations in ${Math.round(performance.now() - started)} ms`);
         grid = history[history.length - 1];
       }
     }
@@ -153,15 +145,10 @@ export async function generateSimulation(size, generations, shapeFn, useRule30 =
         grid = convolve3D(grid);
       }
       history.push(grid);
-      console.log(`Generation ${i + 1}: ${grid.active.length} active cells`);
     }
   }
 
   const timeHistory = await generateClockHistory(128, generations);
-  console.log("Generated frames:", timeHistory.length);
-
-  console.log(history)
-  console.log(timeHistory)
 
   return [history, timeHistory];
 }
@@ -236,12 +223,8 @@ export function evolveRule30(grid) {
     bottomLayer = Math.max(bottomLayer, y);
   }
 
-  // Debug: log initial state
-  console.log(`Rule 30 evolve: grid.active.length=${grid.active.length}, bottomLayer=${bottomLayer}`);
-
   // If no cells found, return empty grid
   if (bottomLayer === -1) {
-    console.log('Rule 30: No cells found in grid');
     return newGrid;
   }
 
@@ -252,7 +235,6 @@ export function evolveRule30(grid) {
 
   // If we've reached the bottom of the space, can't evolve further
   if (bottomLayer >= size - 1) {
-    console.log(`Rule 30: Reached bottom of space at y=${bottomLayer}`);
     return newGrid;
   }
 
@@ -272,7 +254,6 @@ export function evolveRule30(grid) {
   };
 
   // For each z slice, evolve the new layer based on the source layer
-  let newCellsCount = 0;
   for (let z = 0; z < size; z++) {
     for (let x = 0; x < size; x++) {
       // Get the three neighbors from the source layer (left, center, right)
@@ -289,13 +270,9 @@ export function evolveRule30(grid) {
       // Set the cell in the new layer below
       if (newValue === 1) {
         newGrid.set(x, newLayerY, z, 1);
-        newCellsCount++;
       }
     }
   }
-  
-  // Debug: log some info about the evolution
-  console.log(`Rule 30: Evolved from ${grid.active.length} to ${newGrid.active.length} cells, bottomLayer: ${bottomLayer}, newLayerY: ${newLayerY}, newCellsCount: ${newCellsCount}`);
 
   return newGrid;
 }
@@ -333,12 +310,8 @@ export function evolveRule30_2D(grid) {
     bottomLayer = Math.max(bottomLayer, y);
   }
 
-  // Debug: log initial state
-  console.log(`Rule 30 2D evolve: grid.active.length=${grid.active.length}, bottomLayer=${bottomLayer}`);
-
   // If no cells found, return empty grid
   if (bottomLayer === -1) {
-    console.log('Rule 30 2D: No cells found in grid');
     return newGrid;
   }
 
@@ -349,7 +322,6 @@ export function evolveRule30_2D(grid) {
 
   // If we've reached the bottom of the space, can't evolve further
   if (bottomLayer >= size - 1) {
-    console.log(`Rule 30 2D: Reached bottom of space at y=${bottomLayer}`);
     return newGrid;
   }
 
@@ -403,9 +375,6 @@ export function evolveRule30_2D(grid) {
       }
     }
   }
-  
-  // Debug: log some info about the evolution
-  console.log(`Rule 30 2D: Evolved from ${grid.active.length} to ${newGrid.active.length} cells, bottomLayer: ${bottomLayer}, newLayerY: ${newLayerY}`);
 
   return newGrid;
 }
@@ -671,13 +640,4 @@ function updateSandpileActive(grid) {
       }
     }
   }
-}
-
-/**
- * Count active cells in a sandpile grid (cells with sand > 0).
- * @param {Grid3D} grid - Grid to count
- * @returns {number} - Number of active cells
- */
-function countActiveSandpileCells(grid) {
-  return grid.active.length;
 }

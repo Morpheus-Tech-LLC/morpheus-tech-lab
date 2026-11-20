@@ -45,7 +45,6 @@ export async function initSimulation() {
     state.sliceAxis = 'x';
     state.sliceIndex = Math.floor((simSize - 1) / 2); // Ensure valid index (0 to simSize - 1)
     // Generate Simulation Data - History (Game of Life, Rule 30, Sine Wave, or Sandpile)
-    console.log(`initSimulation: About to call generateSimulation with useRule30=${state.useRule30}, useRule30_2D=${state.useRule30_2D}, useSineWave=${state.useSineWave}, useSandpile=${state.useSandpile}`);
     const [simulationData, clockData] = await generateSimulation(
       simSize,
       simGenerations,
@@ -56,7 +55,6 @@ export async function initSimulation() {
       state.useSandpile,
       state.useSandpile ? state.sandpileParams : null
     );
-    console.log(`initSimulation: generateSimulation completed, history length: ${simulationData.length}`);
     if (run !== latestRun) return; // a newer rebuild started; its result wins
     state.simulationData = simulationData;
     state.clockData = clockData;
@@ -177,8 +175,6 @@ async function buildSimulationModel(simSize, depth) {
 
 export function updatePoints() {
 
-  console.log("Update Points")
-
   if (!state.simulationModel || !state.simulationModel.geometry) {
     return; // Simulation model not yet initialized
   }
@@ -192,13 +188,7 @@ export function updatePoints() {
   const simulationData = state.simulationData;
   const gen = state.currentGen;
   const grid = simulationData[gen];
-  
-  console.log(`updatePoints: gen=${gen}, grid.active.length=${grid.active.length}`);
-  
-  if (grid.active.length > 0) {
-    console.log(`updatePoints: First few cells:`, grid.active.slice(0, 5));
-  }
-  
+
   let i = 0;
   const activeCells = [];
   const halfSpanXY = (matrixSize - 1) / 2;
