@@ -116,20 +116,12 @@
             <div id="hud-simulation-name" class="hud-simulation-name">Cube10</div>
           </div>
           <form id="explore-simulation-popover" class="explore-popover" tabindex="-1" role="dialog" aria-label="Change the simulation" aria-describedby="explore-simulation-help" novalidate>
-            <div class="explore-seed-kind" role="group" aria-label="Where the simulation comes from">
-              <button type="button" id="explore-sim-preset" class="seed-kind-option" aria-pressed="true">Preset</button>
-              <button type="button" id="explore-sim-file" class="seed-kind-option" aria-pressed="false">File</button>
-            </div>
-            <div id="explore-sim-preset-part" class="explore-popover-part">
-              <label class="explore-field" for="explore-preset"><span class="explore-field-label">Preset</span></label>
-              <select id="explore-preset" class="glass-select"></select>
-              <button type="button" id="explore-edit-copy" class="glass-button explore-small-button explore-popover-button">Edit a copy…</button>
-            </div>
-            <div id="explore-sim-file-part" class="explore-popover-part" hidden>
-              <button type="button" id="explore-load-simulation" class="glass-button explore-small-button">Load simulation…</button>
-              <input type="file" id="explore-simulation-file" accept=".json,application/json" hidden />
-              <p id="explore-simulation-status" class="explore-popover-text" role="status"></p>
-            </div>
+            <label class="explore-field" for="explore-preset"><span class="explore-field-label">Preset</span></label>
+            <select id="explore-preset" class="glass-select"></select>
+            <div class="explore-popover-or" aria-hidden="true">or</div>
+            <button type="button" id="explore-load-simulation" class="glass-button explore-small-button">Load simulation…</button>
+            <input type="file" id="explore-simulation-file" accept=".json,application/json" hidden />
+            <p id="explore-simulation-status" class="explore-popover-text" role="status"></p>
             <p id="explore-simulation-error" class="explore-error" role="alert" hidden></p>
             <div class="explore-save-actions">
               <button type="submit" id="explore-simulation-apply" class="glass-button explore-small-button">Apply</button>
@@ -438,7 +430,7 @@
           </form>
         </div>
         <div id="glass-info-explore" class="glass-display glass-display--compact">
-          <div class="box-title"><span class="box-title-text">Run</span><button type="button" class="hud-collapse" aria-expanded="true" aria-label="Collapse the Run box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></div>
+          <div class="box-title"><span class="box-title-text">Run</span><span class="box-title-tools"><button type="button" id="explore-save-generation" class="hud-gear hud-gear--explore hud-save" aria-label="Save this generation" title="Save this generation" aria-haspopup="dialog" aria-expanded="false" aria-controls="explore-save-popover" disabled><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></button><button type="button" class="hud-collapse" aria-expanded="true" aria-label="Collapse the Run box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></span></div>
           <div class="info-line"><span class="label">Generation</span><span id="explore-generation" class="value">0</span></div>
           <div class="info-line"><span class="label">Gen/s</span><span id="explore-rate" class="value">0</span></div>
           <div class="info-line"><span class="label">Live cells</span><span id="explore-live" class="value">0</span></div>
@@ -452,12 +444,9 @@
                has reserved, of the limit in the Limits box -->
           <div class="info-line"><span class="label">Memory in use</span><span id="explore-memory-live" class="value">0 KB</span></div>
           <div class="info-line"><span class="label">Reserved</span><span id="explore-memory-used" class="value">0 MB</span></div>
-          <!-- Save this generation opens the save popover, which Save simulation and Save seed share: it
-               moves beside the box whose button opened it, and says what the file holds and where it
-               goes -->
-          <div class="explore-box-actions">
-            <button type="button" id="explore-save-generation" class="glass-button explore-small-button" aria-haspopup="dialog" aria-expanded="false" aria-controls="explore-save-popover" disabled>Save this generation</button>
-          </div>
+          <!-- Save this generation, the save icon in the Run box's title, opens the save popover, which
+               Save simulation and Save seed share: it moves beside the box whose icon opened it, and
+               says what the file holds and where it goes -->
           <div id="explore-save-popover" class="explore-popover explore-save-popover" role="dialog" aria-labelledby="explore-save-title" tabindex="-1">
             <div id="explore-save-title" class="explore-popover-title"></div>
             <p id="explore-save-what" class="explore-save-text"></p>
@@ -3382,6 +3371,13 @@
     font-size: 12px;
     line-height: 1.4;
   }
+  /* The Simulation popover's one page (#130): a preset from the list, or a file */
+  .explore-popover-or {
+    margin: 8px 0 6px;
+    color: var(--color-info-display-text);
+    font-size: 12px;
+    text-align: center;
+  }
   #explore-simulation-status:empty {
     display: none;
   }
@@ -3907,13 +3903,28 @@
     gap: 8px;
     margin-top: 12px;
   }
+  /* The panel's buttons read as buttons, not text (#130): filled in the lab's blue, as the HUD's
+     gears are, and the page's main one in the contests' gold */
   .contests-button {
-    padding: 6px 14px;
+    padding: 7px 14px;
+    border-color: rgba(120, 180, 255, 0.6);
+    background: rgba(77, 163, 255, 0.18);
+    color: #fff;
     font-size: 14px;
+    font-weight: 600;
+  }
+  .contests-button:hover:not([disabled]) {
+    border-color: rgba(120, 180, 255, 0.95);
+    background: rgba(77, 163, 255, 0.32);
   }
   .contests-button--main {
-    border-color: rgba(255, 205, 90, 0.8);
+    border-color: rgba(255, 205, 90, 0.85);
+    background: rgba(255, 205, 90, 0.16);
     color: #fff;
+  }
+  .contests-button--main:hover:not([disabled]) {
+    border-color: rgba(255, 205, 90, 1);
+    background: rgba(255, 205, 90, 0.28);
   }
   .contests-button:focus-visible {
     outline: 2px solid rgba(120, 180, 255, 0.8);

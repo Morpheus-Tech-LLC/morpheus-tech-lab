@@ -151,9 +151,9 @@ export function exploreViewChanged() {
 
 // ---- Saving ----
 //
-// Save this generation, at the foot of Explore's Run box, Save simulation, in the Simulation box,
-// and Save seed, at the foot of the Seed box, open one popover beside their box, which says what
-// the file holds and where it goes before anything is written:
+// Save this generation, Save simulation and Save seed, the save icons in the titles of Explore's
+// Run, Simulation and Seed boxes (#130), open one popover beside their box, which says what the
+// file holds and where it goes before anything is written:
 // - Save this generation: a result file, as a contest entry is one (save.js), with the
 //   generation's cells, so Load simulation… can carry on from it. Opening the popover takes the generation
 //   on screen from the Worker, every live cell of it, past the view's render budget too; while a

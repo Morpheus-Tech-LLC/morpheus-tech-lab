@@ -77,9 +77,10 @@ function h(tag, props = {}, ...children) {
   return node;
 }
 
-function button(text, onclick, { main = false, id } = {}) {
+function button(text, onclick, { main = false, id, title } = {}) {
   const attrs = { type: 'button' };
   if (id) attrs.id = id;
+  if (title) attrs.title = title;
   return h('button', { className: `glass-button contests-button${main ? ' contests-button--main' : ''}`, text, onclick, attrs });
 }
 
@@ -380,19 +381,21 @@ function endingsTable(contest) {
 }
 
 /**
- * The entry, a simulation: its seed, drawn in the seed box with its cell count, and its rules,
- * where they came from, a warning for rules that can't score, and Load simulation…; or, with none
- * yet, how to bring one.
+ * The entry, a simulation: its seed, drawn in the seed box with its cell count, its rules and its
+ * file, a warning for rules that can't score, and Load simulation…; or, with none yet, a line on
+ * what it is. Kept short (#130): the buttons' titles say the rest.
  */
 function entrySection(contest, entry) {
   const load = button(entry ? 'Load another simulation…' : 'Load simulation…', () => el('contests-seed-file').click(), { main: !entry, id: 'contests-load-seed' });
-  const design = panel.designInExplore ? button('Design a seed in Game of Life 3D (unbounded)', () => designSeed(contest), { id: 'contests-design-seed' }) : null;
+  const design = panel.designInExplore ? button('Design a seed…', () => designSeed(contest), {
+    id: 'contests-design-seed', title: "Opens the seed editor in Game of Life 3D (unbounded), in this contest's arena",
+  }) : null;
   const refused = panel.refused?.contest === contest.id ? h('p', {
     className: 'contests-refused', text: panel.refused.message, attrs: { id: 'contests-entry-refused', role: 'alert' },
   }) : null;
   if (!entry) {
     return section('Your entry',
-      h('p', { text: 'A simulation: a seed and its rules. Design a seed in Game of Life 3D (unbounded) opens its seed editor: place the cells and Use them, set the rules in its Rules box, and save both with the Simulation box\'s save icon. The Contest banner brings you back here, to Load simulation…. A seed file holds no rules, so it can\'t be an entry.', attrs: { id: 'contests-entry-none' } }),
+      h('p', { text: 'A simulation file: a seed and its rules.', attrs: { id: 'contests-entry-none' } }),
       refused,
       h('div', { className: 'contests-actions' }, load, design));
   }
@@ -405,7 +408,7 @@ function entrySection(contest, entry) {
         facts([
           ['Seed', `${n(cells)} cell${cells === 1 ? '' : 's'}`],
           ['Rules', rulesText(entry.rules)],
-          ['From', entry.source],
+          ['File', entry.source],
         ], 'contests-entry'))),
     entry.note ? h('p', { className: 'contests-note', text: entry.note, attrs: { id: 'contests-entry-arena' } }) : null,
     ...warnings.map((text) => h('p', { className: 'contests-warning', text, attrs: { id: 'contests-entry-warning', role: 'note' } })),
@@ -423,7 +426,7 @@ function designSeed(contest) {
   panel.resume = contest;
   const { arena } = contest.fixes;
   design({
-    note: `For ${contest.title}: the seed must lie in this 10³ box. Use makes it the seed; then save it, with the Rules box's rules, with the Simulation box's save icon, and the Contest banner takes you back to ${contest.title}, to Load simulation….`,
+    note: `For ${contest.title}: keep the seed in this 10³ box, Use it, and save the simulation with the Simulation box's save icon. The Contest banner brings you back.`,
     arena: arena.max[0] - arena.min[0] + 1,
     title: contest.title,
     ships: Boolean(contest.departures),

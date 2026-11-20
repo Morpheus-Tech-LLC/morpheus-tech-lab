@@ -11,9 +11,8 @@
 // both together: a preset, a simulation file or a saved generation. The Seed popover sets only the
 // cells, and the rules stay.
 //
-// The popovers also open the seed editor (editor.js, #70): Design… in the Seed popover, on the
-// seed in use, and Edit a copy… in the Simulation popover, on a preset. The editor's Use changes
-// the settings and restarts the run as Apply does. A contest takes a simulation file, from Save
+// The Seed popover also opens the seed editor (editor.js, #70): Design…, on the seed in use. The
+// editor's Use changes the settings and restarts the run as Apply does. A contest takes a simulation file, from Save
 // simulation (#130).
 
 import { state } from '../state.js';
@@ -27,7 +26,7 @@ import { MAX_SHAPE_SIZE, parseCounts } from './seed.js';
 import {
   SHAPES, shapeByKey, makeShape, presetSeed, fileSeed, simulationFile, simulationOf, changeSeed, changeRules, changeArena, changeMemory,
   configOf, boxesOf, lockOf, rulesOf, arenaOf, edgeOf, startOf, WALL_KINDS, restartNote, seedLabel, deathCounts,
-  designOf, presetCopy, useDesign,
+  designOf, useDesign,
 } from './setup.js';
 
 /** A loaded file larger than a result file may be is refused before it is read. */
@@ -157,9 +156,13 @@ function showError(el, message) {
 
 // ---- Simulation: a seed and its rules together (#130) ----
 
-// What the Simulation popover holds until Apply: Preset or File, which preset, and a file loaded
-// with Load simulation… (its simulation, or why it can't be used)
-const simDraft = { kind: 'preset', presetId: PRESETS[0].id, file: null, fileError: null };
+// What the Simulation popover holds until Apply: the one page's last choice, a preset from the list
+// or a file from Load simulation… (its simulation, or why it can't be used), or nothing yet, the
+// simulation in use
+const simDraft = { source: 'current', presetId: PRESETS[0].id, file: null, fileError: null };
+
+/** The list's first option: the simulation in use when it isn't a preset, or the file loaded. */
+const CURRENT = '';
 
 /**
  * A list's options: the items with no group on their own, then each group (#105's Ships) under its
@@ -201,81 +204,88 @@ function wireSimulation() {
   const popover = document.getElementById('explore-simulation-popover');
   const presetSelect = document.getElementById('explore-preset');
   if (!popover || !presetSelect) return;
-  presetSelect.replaceChildren(...groupedOptions(PRESETS, 'id', 'name'));
+  presetSelect.replaceChildren(new Option('', CURRENT), ...groupedOptions(PRESETS, 'id', 'name'));
 
   const byId = (id) => document.getElementById(id);
-  byId('explore-sim-preset').onclick = () => { simDraft.kind = 'preset'; showSimulationDraft(); };
-  byId('explore-sim-file').onclick = () => { simDraft.kind = 'file'; showSimulationDraft(); };
-  presetSelect.onchange = () => { simDraft.presetId = presetSelect.value; showSimulationDraft(); };
-  byId('explore-edit-copy').onclick = openCopy;
+  presetSelect.onchange = () => {
+    simDraft.source = presetSelect.value === CURRENT ? (simDraft.file || simDraft.fileError ? 'file' : 'current') : 'preset';
+    if (simDraft.source === 'preset') simDraft.presetId = presetSelect.value;
+    showSimulationDraft();
+  };
   const fileInput = byId('explore-simulation-file');
   byId('explore-load-simulation').onclick = () => fileInput.click();
-  wireFileInput(fileInput, simDraft, simulationFile, showSimulationDraft);
+  wireFileInput(fileInput, simDraft, simulationFile, () => {
+    simDraft.source = 'file';
+    showSimulationDraft();
+  });
   wireHelp(popover, byId('explore-simulation-help'), simulationHelp);
 
   wirePopover('explore-change-simulation', 'explore-simulation-popover', fillSimulation, () => {
     const setup = state.explore;
-    if (simDraft.kind === 'preset') return changeSeed(setup, presetSeed(simDraft.presetId));
+    if (simDraft.source === 'preset') return changeSeed(setup, presetSeed(simDraft.presetId));
+    if (simDraft.source === 'current') return setup; // runs it again
     if (!simDraft.file) throw new Error(simDraft.fileError ?? 'Load a simulation file or a saved generation first, with Load simulation….');
-    // The same file as now: its simulation as it is in use
     return simDraft.file === setup.seed ? setup : changeSeed(setup, simDraft.file);
   });
 }
 
-// The popover opens on the simulation in use
+// The popover opens on the simulation in use: its preset chosen in the list, or, for Custom or a
+// file, the list's first option naming it
 function fillSimulation() {
-  const { seed } = state.explore;
-  const { from, id } = simulationOf(state.explore);
-  simDraft.kind = from === 'file' || from === 'saved' ? 'file' : 'preset';
+  const { id } = simulationOf(state.explore);
+  simDraft.source = id ? 'preset' : 'current';
   if (id) simDraft.presetId = id;
-  simDraft.file = simDraft.kind === 'file' ? seed : null;
+  simDraft.file = null;
   simDraft.fileError = null;
-  document.getElementById('explore-preset').value = simDraft.presetId;
   showSimulationDraft();
 }
 
 function showSimulationDraft() {
   const byId = (id) => document.getElementById(id);
-  const preset = simDraft.kind === 'preset';
-  byId('explore-sim-preset').setAttribute('aria-pressed', String(preset));
-  byId('explore-sim-file').setAttribute('aria-pressed', String(!preset));
-  byId('explore-sim-preset-part').hidden = !preset;
-  byId('explore-sim-file-part').hidden = preset;
+  const n = (x) => x.toLocaleString('en');
+  const { source, file, fileError } = simDraft;
+  const inUse = simulationOf(state.explore);
+
+  // The list: a preset chosen, or its first option, which names the simulation in use when that
+  // isn't a preset (Custom, or a file's), or the file just loaded. Only then is it shown.
+  const select = byId('explore-preset');
+  const first = select.options[0];
+  const loaded = source === 'file' && file;
+  first.textContent = loaded ? `${file.name} (loaded, not yet applied)` : inUse.from === 'preset' ? '' : `${inUse.name} (in use)`;
+  first.hidden = !first.textContent;
+  select.value = source === 'preset' ? simDraft.presetId : CURRENT;
 
   // Each control's explanation shows at the popover's foot when it is pointed at or focused
-  const chosen = presetById(simDraft.presetId);
-  const n = (x) => x.toLocaleString('en');
   const help = (id, text) => { byId(id).dataset.help = text; };
-  help('explore-sim-preset', 'A preset is a ready-made simulation: a seed with its own rules. Applying one replaces both.');
-  help('explore-sim-file', LOAD_HELP);
+  const chosen = presetById(simDraft.presetId);
+  help('explore-preset', source === 'preset' && chosen
+    ? `${chosen.description} Seed: ${n(chosen.cells.length / 3)} cells. Rules: ${ruleText(chosen.rules)}.`
+    : inUse.from === null && !loaded ? CUSTOM_HELP : 'A preset is a ready-made simulation: a seed with its own rules. Applying one replaces both.');
   help('explore-load-simulation', LOAD_HELP);
-  help('explore-preset', chosen
-    ? `${chosen.description} Seed: ${n(chosen.cells.length / 3)} cells. Rules: ${ruleText(chosen.rules)}.` : 'Pick a preset.');
-  help('explore-edit-copy', chosen
-    ? `Opens ${chosen.name}'s cells in the seed editor, with its rules. Its Use makes them a Custom simulation, whose seed and rules you can then change; ${chosen.name} itself stays as it is.` : '');
 
   // A loaded file, or why it can't be used, stays in view: it answers the visitor's Load
-  const { file, fileError } = simDraft;
   let status = '';
-  if (fileError) status = fileError;
-  else if (!file) status = '';
-  else if (file === state.explore.seed) status = `${simulationOf(state.explore).name}: ${n(file.cells.length / 3)} cells, in use now.`;
-  else if (file.kind === 'saved') status = `${file.name}: generation ${n(file.from)} of a saved run, ${n(file.cells.length / 3)} cells, with its own rules, ${ruleText(file.rules)}, and ${file.arena ? `a ${n(file.arena)}³ arena` : 'no arena'}. They stay locked while it runs.`;
-  else status = `${file.name}: a seed of ${n(file.cells.length / 3)} cells, and its rules, ${ruleText(file.rules)}, which go into the Rules box, where you can change them.`;
-  setText('explore-simulation-status', preset ? '' : status);
+  if (source === 'file' && fileError) status = fileError;
+  else if (loaded && file.kind === 'saved') status = `${file.name}: generation ${n(file.from)} of a saved run, ${n(file.cells.length / 3)} cells, with its own rules, ${ruleText(file.rules)}, and ${file.arena ? `a ${n(file.arena)}³ arena` : 'no arena'}. They stay locked while it runs.`;
+  else if (loaded) status = `${file.name}: a seed of ${n(file.cells.length / 3)} cells, and its rules, ${ruleText(file.rules)}, which go into the Rules box, where you can change them.`;
+  setText('explore-simulation-status', status);
 
-  const from = !preset && file?.kind === 'saved' ? file.from : 0;
-  help('explore-simulation-apply', `Applying replaces the seed and the rules. ${restartNote(from)}`);
+  const from = loaded && file.kind === 'saved' ? file.from : 0;
+  help('explore-simulation-apply', source === 'current'
+    ? `Nothing chosen yet: Applying runs the simulation in use again. ${restartNote(0)}`
+    : `Applying replaces the seed and the rules. ${restartNote(from)}`);
   showError(byId('explore-simulation-error'), null);
   setText('explore-simulation-help', simulationHelp());
   placeOpenPopover();
 }
 
-const LOAD_HELP = 'Load simulation… takes a simulation file, from Save simulation, whose seed and rules both come in, or a saved generation, from Save this generation, which carries on from its generation under its own rules and arena. A seed file has no rules: load it in the Seed box.';
+const LOAD_HELP = 'Load simulation… takes a simulation file, from the Simulation box\'s save icon, whose seed and rules both come in, or a saved generation, from Save this generation, which carries on from its generation under its own rules and arena. A seed file has no rules: load it in the Seed box.';
 
-// The foot's text when no control is pointed at or focused: the preset chosen, or what Load takes
+const CUSTOM_HELP = 'Custom: a seed and rules of your own. To make one, change the seed in the Seed box, or the rules in the Rules box: the simulation becomes Custom. Save it with the save icon, and load it again here; or pick a preset to start from.';
+
+// The foot's text when no control is pointed at or focused: what the list holds now, or the file
 function simulationHelp() {
-  const id = simDraft.kind === 'preset' ? 'explore-preset' : 'explore-load-simulation';
+  const id = simDraft.source === 'file' ? 'explore-load-simulation' : 'explore-preset';
   return document.getElementById(id)?.dataset.help ?? '';
 }
 
@@ -438,17 +448,6 @@ function openDesign({ note = null } = {}) {
  */
 export function openSeedEditor({ note = null } = {}) {
   openDesign({ note });
-}
-
-// Edit a copy…: the editor on the chosen preset's cells, which bring its rules, unlocked on Use
-function openCopy() {
-  const copy = presetCopy(simDraft.presetId);
-  openFromPopover({
-    places: copy.places,
-    rules: copy.rules,
-    rulesFrom: `${copy.name}'s rules`,
-    note: `A copy of ${copy.name}. Use makes it a Custom simulation with ${copy.name}'s rules, which you can then change; ${copy.name} itself stays as it is.`,
-  }, 'explore-change-simulation');
 }
 
 function lowerFirst(text) {
