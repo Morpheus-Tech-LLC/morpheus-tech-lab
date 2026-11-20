@@ -427,8 +427,7 @@ src/
 
 ## Known debt
 
-`console.log` runs on every frame in `updatePoints()` and on every generation. `time.js`
-still computes a clock history that nothing displays: a 128×128 bitmap per generation, 64 KB
+`time.js` still computes a clock history that nothing displays: a 128×128 bitmap per generation, 64 KB
 each, which `memoryAdvice.js` counts now that generations have no cap. `index.html` carries many inline styles.
 Each generation's `active` list is an array of `[x, y, z]` arrays, about 40 bytes of heap per
 live cell; with the GPU computing the steps, building and holding those lists, and

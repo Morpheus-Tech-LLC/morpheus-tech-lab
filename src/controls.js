@@ -219,8 +219,6 @@ export function initControls() {
     nextSection.classList.add('active');
 
     const newViewMode = nextSection.dataset.value;
-    console.log("View Mode Change");
-    console.log(newViewMode);
     state.viewMode = newViewMode;
     updateViewControlsDisplay();
     updatePoints();
@@ -267,7 +265,6 @@ export function initControls() {
     // isReversing = getPlaybackDirection
     isReversing = !isReversing; // toggle on/off
 
-    console.log("Reverse mode:", isReversing);
     // setPlaybackDirection(isReversing);
     state.isReversing = isReversing;
     updateArrows();
@@ -316,7 +313,6 @@ export function initControls() {
     const next = !state.isPlaying;
     state.isPlaying = next;
     playPauseIcon.className = next ? "pause" : "play";
-    console.log("Playback Direction:", next);
     updateStepButtonVisibility();
     updateStateDisplay();
   }

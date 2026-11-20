@@ -232,6 +232,9 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
 - The Morpheus Tech logo buttons beside the settings dialog's range hints; the logo at the top of
   the page still opens the company panel (#123).
 - The `good first issue` label: the `ready` label alone says what work can be picked up (#71).
+- The debug messages the lab printed to the browser console on every frame and every generation,
+  which slowed playback and buried real warnings. The console now stays quiet while a simulation
+  builds and plays, apart from warnings (#18).
 
 ### Fixed
 - The check pages (`hud-check.html`, `editor-check.html`, `contests-check.html`, dev pages) keep
