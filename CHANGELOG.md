@@ -235,6 +235,10 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
 - The debug messages the lab printed to the browser console on every frame and every generation,
   which slowed playback and buried real warnings. The console now stays quiet while a simulation
   builds and plays, apart from warnings (#18).
+- The clock animation every simulation drew in the background, one 128×128 picture per
+  generation, which nothing ever showed. Building a simulation no longer spends the time or
+  holds the 64 KB per generation it took, and the settings dialog's memory estimate no longer
+  counts it, so a long run's estimate is lower and Apply asks first less often (#19).
 
 ### Fixed
 - The check pages (`hud-check.html`, `editor-check.html`, `contests-check.html`, dev pages) keep

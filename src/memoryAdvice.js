@@ -12,8 +12,7 @@
 //   per generation (after the drop, at the threshold, after toppling);
 // - every generation's `active` list, about 40 bytes of JavaScript memory per live cell in Chrome
 //   (measured: 77-86 bytes in Node, which has no pointer compression);
-// - the point cloud's positions and colours, 24 bytes per cell of the grid (simulationModel.js);
-// - time.js's clock, one 128×128 bitmap per generation, which nothing displays (Known debt).
+// - the point cloud's positions and colours, 24 bytes per cell of the grid (simulationModel.js).
 //
 // Live cells aren't known before the run, so they are estimated per mode, from measurements of
 // generateSimulation() on the CPU (#123): exact for the sine wave; fitted for Rule 30 and the
@@ -33,7 +32,6 @@ export const CONFIRM_BYTES = 2 * GB;
 
 export const BYTES_PER_LIVE_CELL = 40;
 export const VIEW_BYTES_PER_CELL = 24;
-export const CLOCK_BYTES_PER_GENERATION = 128 * 128 * 4;
 export const SANDPILE_FRAMES_PER_GENERATION = 2.25;
 export const LIFE_GROWTH = 0.4;
 export const LIFE_FILL = 0.3;
@@ -142,8 +140,7 @@ export function estimateRun(run) {
   const cellBytes = cells * BYTES_PER_LIVE_CELL;
   const depth = mode === 'rule30' ? 1 : size; // simulationModel.js draws Rule 30 (1D) flat
   const view = size * size * depth * VIEW_BYTES_PER_CELL;
-  const clock = generations * CLOCK_BYTES_PER_GENERATION;
-  return { frames, grids, cells, cellBytes, view, clock, total: grids + cellBytes + view + clock };
+  return { frames, grids, cells, cellBytes, view, total: grids + cellBytes + view };
 }
 
 /** Whether Apply should ask before starting `run`. */
@@ -241,7 +238,7 @@ export function adviceFor(run, field) {
     estimate: `About ${formatBytes(est.total)} for this run, by estimate.`,
     parts: `Grids: ${count(run.size)}³ × ${count(est.frames)} = ${formatBytes(est.grids)}. `
       + `Live cells: about ${formatCount(est.cells)} in all generations, ${formatBytes(est.cellBytes)}. `
-      + `View and clock: ${formatBytes(est.view + est.clock)}.`,
+      + `View: ${formatBytes(est.view)}.`,
     cellsNote: run.mode === 'gameOfLife'
       ? 'Live cells are a guess before the run: under the default rules a pattern widens by about '
         + '0.4 cells a generation, with about 30% of it alive. Other rules can hold far fewer, or more.'

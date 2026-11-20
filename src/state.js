@@ -74,7 +74,6 @@ export const state = {
   autoRotateInitialAngle: null,
   simulationData: null,
   simulationModel: null,
-  clockData: null,
   controlsInitialized: false,
   shapeKey: "cube",
   simulationMode: "explore", // the lab opens in Explore (src/explore/)
@@ -164,7 +163,6 @@ export const state = {
     this.currentGen = 0;
     this.isPlaying = false;
     this.isReversing = false;
-    this.clockData = null;
     // Don't reset this - set up
     // this.scene = null;
     // this.renderer = null;
