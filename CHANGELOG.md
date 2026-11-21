@@ -7,6 +7,8 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
 
 ## [Unreleased]
 
+## [1.7.0] — 2026-11-21
+
 ### Added
 - An unbounded Game of Life 3D engine, `src/unbounded/`, which Explore shows: space is divided
   into chunks allocated only where the cells are, every generation is one lockstep over the
