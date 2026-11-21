@@ -247,6 +247,8 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
   banner, the list and each contest's page say. A Methuselah entry is a simulation file, loaded
   with Load simulation…; its section is shorter, and the panel's buttons look like buttons.
   Classic Methuselah has its own colour and logo, and the contest cards' names line up (#130).
+- The roadmap shows Season 0 of the contests, what comes next for them, and the engine as
+  built.
 
 ### Removed
 - The settings dialog, now that every setting is in the HUD; Edit a copy…, since a preset's
