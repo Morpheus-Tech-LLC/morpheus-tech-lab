@@ -249,6 +249,8 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
   Classic Methuselah has its own colour and logo, and the contest cards' names line up (#130).
 - The roadmap shows Season 0 of the contests, what comes next for them, and the engine as
   built.
+- The seed editor opens with a plane selected, across x through the cursor, instead of the
+  cursor's cell, which was easily hidden among live cells; 1 still selects the cell alone.
 
 ### Removed
 - The settings dialog, now that every setting is in the HUD; Edit a copy…, since a preset's

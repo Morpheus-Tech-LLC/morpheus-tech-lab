@@ -189,8 +189,12 @@
       ok(await drawsDuring(800) === 0, 'Then nothing again');
 
       section('The selection');
+      ok(doc.querySelector('#seed-editor [data-kind="plane"]').getAttribute('aria-pressed') === 'true'
+        && doc.querySelector('#seed-editor [data-kind="cell"]').getAttribute('aria-pressed') === 'false', 'The editor opens with Plane pressed, not Cell');
       panelButton('[data-view="front"]');
       key('ArrowLeft');
+      ok(/^Plane across x, at x 0: 100 cells, /.test(text('seed-editor-selection')), `It selects the plane across x through the cursor: "${text('seed-editor-selection')}"`);
+      key('1');
       ok(text('seed-editor-selection') === 'Cell at x 0, y 0, z 0: alive.', `1 Cell: "${text('seed-editor-selection')}"`);
       key('2');
       ok(text('seed-editor-selection') === 'Line along x, at y 0, z 0: 10 cells, 10 alive.', `2 Line: "${text('seed-editor-selection')}"`);
