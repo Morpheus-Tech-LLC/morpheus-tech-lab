@@ -1,0 +1,834 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!--
+  Not bundled: a dev page (/src/contests/contests-check.html under `npm run dev`) that clicks
+  through the Contests mode (#77) in a frame holding the lab, and marks each check ✔ or ✖: choosing
+  the mode, the list, Speed's page, two real 6-second runs (one to the end, one stopped), Export,
+  Submit by email (#79), Verify a result on the exported file, an edited copy and a file that
+  isn't a result, a staged Hall of Fame (#79), Methuselah (#94: its page, Design a seed in Explore and back, Load simulation… and its
+  refusals, runs that die, reach the edge and are stopped, Export, Verify, Watch, Submit and its
+  Hall of Fame), Classic Methuselah (#102: its page, a run whose ship leaves before it settles, its
+  departures on the results card, in Export, Submit, Watch and Verify), and leaving the mode. It changes only the lab in its frame; reload to run it again. The list under
+  the results is what to check by eye.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Contests check</title>
+  <style>
+    :root { color-scheme: dark; }
+    body { margin: 0; padding: 16px; background: #14181f; color: #d8e2ee; font: 14px/1.45 system-ui, sans-serif; }
+    h1 { font-size: 18px; margin: 0 0 4px; }
+    h2 { font-size: 15px; margin: 16px 0 4px; }
+    p { margin: 0 0 12px; color: #9fb0c4; }
+    .layout { display: flex; gap: 16px; align-items: flex-start; }
+    /* The frame stays whole and in view beside the results, scaled to fit (fitFrame) */
+    .frame-box { flex: none; position: sticky; top: 16px; }
+    iframe { display: block; border: 1px solid #33404f; border-radius: 6px; background: #000; transform-origin: 0 0; }
+    ol { margin: 0; padding: 0; min-width: 320px; max-width: 560px; list-style: none; }
+    li { margin: 2px 0; }
+    li.pass { color: #b9e8c6; }
+    li.fail { color: #ffb4ad; font-weight: 600; }
+    li.section { margin: 10px 0 2px; font-weight: 600; color: #9fc6ff; }
+    #summary { font-weight: 600; margin-bottom: 8px; }
+    button { font: inherit; padding: 4px 10px; }
+    ul.by-hand { max-width: 900px; padding-left: 20px; }
+  </style>
+</head>
+<body>
+  <h1>The Contests mode (#77)</h1>
+  <p>Runs on its own when the page opens, in the frame beside the results, which stays in view as they scroll; takes about a minute, two of them Speed runs. Keep this tab in front. <button id="again" type="button">Run again</button></p>
+  <div id="summary">Running…</div>
+  <div class="layout">
+    <div class="frame-box"><iframe id="lab" title="The lab" width="1280" height="800"></iframe></div>
+    <ol id="results"></ol>
+  </div>
+  <h2>By hand, in the lab itself</h2>
+  <ul class="by-hand">
+    <li>Settings → Contests → Apply: the panel sits in the middle, clear of the HUD and the control bar, and reads well.</li>
+    <li>Speed's page: Run stands out as the thing to press.</li>
+    <li>During a run, nothing is drawn behind the panel, the clock's arc empties smoothly over the 6 seconds, and the chart climbs and rescales its generations axis as the run passes each step.</li>
+    <li>Hovering the chart shows a crosshair and the time and generations of the nearest point; its labels never overlap or run off the edge, at full width and at phone width.</li>
+    <li>The results card looks good in a screenshot: the score leads, the chart follows, the rest is secondary.</li>
+    <li>Export result: Chrome and Edge ask where to save <code>speed-1-N.json</code> (<code>speed-1-1000-Tms.json</code> at the ceiling); Firefox and Safari download it. <code>node scripts/verify.mjs speed-1-N.json</code> says verified, with the score.</li>
+    <li>The results card's browser line is right in Chrome, Edge, Firefox and Safari.</li>
+    <li>At phone width (devtools), the panel sits above the control bar and scrolls if it must.</li>
+    <li>The GPU toggle's popover says contests run on the CPU.</li>
+    <li>Watch: the run plays back in 3D as in Explore, the camera follows the pattern as it grows, and past the render budget the chunks show as boxes. Dragging the scrub bar back and forth feels responsive, and the view settles on the generation let go at.</li>
+    <li>Watch's bar sits above the control bar, clear of it and of the HUD, at full width and at phone width.</li>
+    <li>Submit by email, in Chrome, Firefox and Safari with a mail app set up: the file downloads and a new email opens to lab@morpheustech.net, with the subject and the text filled in, line breaks kept.</li>
+    <li>The Copy buttons beside the address, the subject and the text each put it on the clipboard; pasted into a webmail compose window, the text keeps its lines.</li>
+    <li>The Submit section and the Hall of Fame (staged by the check above, or with real entries) read well at full width and at phone width: long names end in an ellipsis, and Watch stays on the row.</li>
+    <li>Methuselah's page: the seed's picture reads as cubes in a box, in Methuselah's violet, for one cell, a small design and a full 10³ box; the entry, the four endings and the facts read well at full width and at phone width.</li>
+    <li>A long Methuselah run (Explore's Spreading noise preset, saved with Save seed and loaded here): the ring fills towards 10,000, the live-cells chart grows and rescales, and Stop answers at once. A run that settles late shows the whole history on its results card.</li>
+    <li>Export a Methuselah result, then <code>node scripts/verify.mjs methuselah-1-N.json</code>: verified, "settled at generation N (period P)" or "died at generation N".</li>
+    <li>Classic Methuselah, in Watch: a ship visibly leaves through the arena's wall at the generation the scrub bar's tick marks, and the departures line changes as it does, scrubbing back and forth too.</li>
+    <li>Classic Methuselah's page reads well at full width and at phone width, its five endings and five facts included; its card on the list sits beside Methuselah's.</li>
+  </ul>
+  <script type="module">
+    const frame = document.getElementById('lab');
+    // A browser stops drawing a frame scrolled out of view, and the checks of what the lab draws
+    // then fail: the frame stays beside the results, held in view as they scroll, and is scaled
+    // down to fit the window. Its page keeps its own size, so what it lays out is unchanged.
+    function fitFrame() {
+      const [w, h] = [Number(frame.width) + 2, Number(frame.height) + 2]; // with its border
+      const scale = Math.min(1, (innerWidth - 32 - 16 - 320) / w, (innerHeight - 32) / h);
+      frame.style.transform = scale < 1 ? `scale(${scale})` : '';
+      frame.parentElement.style.width = `${w * scale}px`;
+      frame.parentElement.style.height = `${h * scale}px`;
+    }
+    addEventListener('resize', fitFrame);
+    const list = document.getElementById('results');
+    const summary = document.getElementById('summary');
+    document.getElementById('again').onclick = () => location.reload();
+    let passed = 0;
+    let failed = 0;
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    function section(name) {
+      const li = document.createElement('li');
+      li.className = 'section';
+      li.textContent = name;
+      list.append(li);
+    }
+    function ok(cond, what) {
+      const li = document.createElement('li');
+      li.className = cond ? 'pass' : 'fail';
+      li.textContent = `${cond ? '✔' : '✖'} ${what}`;
+      list.append(li);
+      if (cond) passed++; else failed++;
+    }
+
+    // ---- In the frame ----
+    let win;
+    let doc;
+    const el = (id) => doc.getElementById(id);
+    const text = (id) => el(id)?.textContent.trim() ?? '';
+    const visible = (id) => {
+      const e = el(id);
+      return Boolean(e) && e.getClientRects().length > 0 && win.getComputedStyle(e).visibility !== 'hidden';
+    };
+    const press = (id) => el(id).click();
+    const panelText = () => el('contests-panel').textContent;
+    async function until(fn, ms) {
+      const end = performance.now() + ms;
+      while (performance.now() < end) {
+        if (fn()) return true;
+        await sleep(100);
+      }
+      return Boolean(fn());
+    }
+    async function load(width, height) {
+      frame.width = width;
+      frame.height = height;
+      fitFrame();
+      frame.src = `/?check=${Date.now()}`;
+      await new Promise((r) => frame.addEventListener('load', r, { once: true }));
+      win = frame.contentWindow;
+      doc = frame.contentDocument;
+      await sleep(2500);
+      frame.focus();
+      win.focus();
+    }
+    /** How many frames the lab draws in half a second: none when its frame is out of view. */
+    async function framesDrawn() {
+      let frames = 0;
+      let counting = true;
+      const tick = () => { frames++; if (counting) win.requestAnimationFrame(tick); };
+      win.requestAnimationFrame(tick);
+      await sleep(500);
+      counting = false;
+      return frames;
+    }
+    /** The Mode popover (#130): its gear, then the mode in its list. */
+    async function chooseMode(mode) {
+      if (!el('mode-popover').classList.contains('is-open')) press('hud-change-mode');
+      await sleep(300);
+      el('mode-popover-list').querySelector(`[data-mode="${mode}"]`).click();
+      await sleep(100);
+    }
+    /** Contests opens from its banner beside the HUD, in one click. */
+    async function openContests() {
+      press('contests-banner');
+      await sleep(1200);
+    }
+    async function apply() {
+      el('mode-popover').requestSubmit();
+      await sleep(1200);
+    }
+    /** Hands one of the panel's hidden file inputs a file, as choosing one would. */
+    function chooseFile(name, contents, input = el('contests-verify-file')) {
+      const transfer = new win.DataTransfer();
+      transfer.items.add(new win.File([contents], name, { type: 'application/json' }));
+      input.files = transfer.files;
+      input.dispatchEvent(new win.Event('change', { bubbles: true }));
+    }
+
+    async function run() {
+      await load(1280, 800);
+
+      section('Choosing the mode');
+      ok(doc.body.classList.contains('mode-explore'), 'The lab opens in Explore');
+      ok(visible('contests-banner'), 'The landing page has a Contests banner');
+      const banner = el('contests-banner').getBoundingClientRect();
+      const brand = el('company-brand').getBoundingClientRect();
+      ok(banner.right <= brand.left && brand.left - banner.right >= 16 && brand.left - banner.right <= 40, `It sits left of the company logo, with room between (${Math.round(brand.left - banner.right)} px apart)`);
+      ok(Math.abs((banner.top + banner.bottom) / 2 - (brand.top + brand.bottom) / 2) <= 6, 'level with it');
+      ok(banner.height <= 44 && banner.width <= 260, `It is compact (${Math.round(banner.width)} × ${Math.round(banner.height)} px)`);
+      ok(text('contests-banner').replace(/\s+/g, ' ') === 'Contests Closes 31 Dec 2026', `It says only Contests and when entries close ("${text('contests-banner').replace(/\s+/g, ' ')}")`);
+      ok(win.getComputedStyle(el('contests-banner')).boxShadow.includes('rgba(242, 193, 78'), 'It glows gold');
+      ok(el('contests-banner').getAttribute('aria-pressed') === 'false', 'It is not pressed outside Contests');
+      section('The company panel');
+      const logo = el('company-logo-button-top');
+      const escape = () => doc.body.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+      const companyOpen = () => !el('company-modal').classList.contains('hidden');
+      logo.click();
+      await sleep(300);
+      const content = el('company-modal').querySelector('.modal-content').getBoundingClientRect();
+      const logoBox = logo.getBoundingClientRect();
+      ok(companyOpen(), 'The company logo opens the company panel');
+      ok(Math.abs(content.right - logoBox.right) <= 2 && content.top >= logoBox.bottom && content.top - logoBox.bottom <= 24, `It opens at the top right, under the logo, right edges in line (${Math.round(content.right)} and ${Math.round(logoBox.right)} px)`);
+      ok(visible('company-brand') && logo.getAttribute('aria-expanded') === 'true', 'The logo stays on screen');
+      ok(win.getComputedStyle(logo.querySelector('img')).filter.includes('drop-shadow'), 'lit');
+      ok(doc.elementFromPoint((logoBox.left + logoBox.right) / 2, (logoBox.top + logoBox.bottom) / 2)?.closest('#company-logo-button-top'), 'and on top of the panel, so it can be clicked');
+      ok(!visible('contests-banner'), 'The Contests banner hides meanwhile');
+      logo.click();
+      await sleep(300);
+      ok(!companyOpen() && logo.getAttribute('aria-expanded') === 'false', 'Clicking the logo again closes the panel');
+      ok(visible('contests-banner') && visible('glass-info-mode'), 'The banner and the HUD come back');
+      logo.click();
+      await sleep(300);
+      escape();
+      await sleep(300);
+      ok(!companyOpen(), 'Esc closes it too');
+      ok(doc.activeElement !== logo && !logo.matches(':focus-visible'), 'leaving no focus ring round the logo');
+
+      press('hud-change-mode');
+      await sleep(300);
+      const modeOptions = [...el('mode-popover-list').children];
+      ok(el('mode-popover').classList.contains('is-open') && modeOptions.length > 0 && !modeOptions.some((o) => o.dataset.mode === 'contests' || o.textContent.includes('Contests')), 'The Mode popover has no Contests option: the banner is the way in');
+      el('mode-popover').querySelector('[data-cancel]').click();
+      await sleep(300);
+      ok(!el('mode-popover').classList.contains('is-open'), 'Cancel closes the Mode popover');
+      await openContests();
+      ok(doc.body.classList.contains('mode-contests') && !doc.body.classList.contains('mode-explore'), 'Clicking the banner switches to Contests at once, and Explore ends');
+      ok(visible('contests-banner') && el('contests-banner').getAttribute('aria-pressed') === 'true', 'In Contests, the banner stays, pressed');
+      ok(win.getComputedStyle(el('contests-banner')).backgroundImage !== win.getComputedStyle(doc.body).backgroundImage && el('contests-banner').title.includes('Esc'), 'It looks pressed, and says Esc leaves');
+      ok(visible('contests-panel'), 'The panel shows');
+      ok(text('hud-mode-name') === 'Contests' && text('hud-mode-kind') === 'Season 0', `The HUD's title says Contests, Season 0 ("${text('hud-mode-name')}" / "${text('hud-mode-kind')}")`);
+      ok(visible('glass-info-contest') && text('contest-hud-status') === 'Choosing', 'The HUD shows the Contest section, choosing');
+      ok(!visible('glass-info-sim') && !visible('glass-info-simulation') && !visible('glass-info-explore'), "The other modes' sections, and Explore's, are hidden");
+      ok(win.getComputedStyle(el('playPauseButton')).pointerEvents === 'none', 'Play is off: a contest only runs from its panel');
+      el('company-logo-button-top').click();
+      await sleep(300);
+      ok(!visible('contests-panel') && !visible('contests-banner'), 'The company panel hides the Contests panel and banner while it is open');
+      doc.body.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+      await sleep(300);
+      ok(el('company-modal').classList.contains('hidden') && doc.body.classList.contains('mode-contests') && visible('contests-panel'), 'In Contests, Esc closes the company panel first, and stays in Contests');
+
+      section('The list');
+      ok(text('contests-panel-title') === 'Season 0', 'The panel opens on the list of contests, titled Season 0 (#130)');
+      ok(visible('contests-open-speed-1'), 'Speed has a card to open');
+      const tiles = [...el('contests-panel').querySelectorAll('.contests-tile')];
+      ok(tiles.length === 3 && tiles.every((t) => { const r = t.getBoundingClientRect(); return Math.abs(r.width - r.height) <= 2; }), `Speed, Methuselah and Classic Methuselah each have a square card (${tiles.map((t) => Math.round(t.getBoundingClientRect().width)).join(', ')} px)`);
+      ok(tiles.every((t) => t.querySelector('svg.contests-tile-logo path, svg.contests-tile-logo circle')), 'Each card has its logo');
+      const colours = tiles.map((t) => t.style.getPropertyValue('--contest-color'));
+      ok(new Set(colours).size === 3 && colours[1] === '#b39cff' && colours[2] === '#e29cf5', `Each has its own colour, Classic Methuselah a pinker violet than Methuselah's (${colours.join(', ')})`);
+      const logoOf = (t) => [...t.querySelectorAll('svg.contests-tile-logo > *')].length;
+      ok(logoOf(tiles[2]) > logoOf(tiles[1]), "Classic Methuselah's logo is Methuselah's hourglass with a ship leaving");
+      const nameTops = tiles.map((t) => Math.round(t.querySelector('.contests-tile-name').getBoundingClientRect().top));
+      ok(new Set(nameTops).size === 1, `The cards' names line up, however long the line under them (${nameTops.join(', ')})`);
+      ok(text('contests-closes') === 'Entries close 31 December 2026, 11:59 PM Central Time', `The list gives the closing date and time ("${text('contests-closes')}")`);
+      ok(text('contests-list-about').startsWith('Three contests') && text('contests-list-about').includes('on the CPU'), 'It speaks of three contests, all on the CPU (#116)');
+      ok(!/branch/i.test(panelText()) && (panelText().match(/same (engine|thing)/g) ?? []).length === 1, 'It never says branch, and says once that everyone runs the same thing');
+      ok(el('contests-verify').classList.contains('contests-verify-button') && el('contests-verify').querySelector('svg.contests-verify-glyph path'), 'Verify a result has its own button, with the scales');
+      const verifyBox = el('contests-verify').getBoundingClientRect();
+      const tilesBox = el('contests-panel').querySelector('.contests-tiles').getBoundingClientRect();
+      ok(verifyBox.top > tilesBox.bottom && Math.abs(verifyBox.width - tilesBox.width) <= 2 && verifyBox.height < 80, `It is a bar across the panel, under the cards (${Math.round(verifyBox.width)} × ${Math.round(verifyBox.height)} px)`);
+      ok(el('contests-verify').closest('.contests-judge')?.textContent.includes('For every contest'), 'under its own heading, For every contest');
+      ok(!panelText().includes('Contained chaos') && !panelText().includes('Coming'), 'Contained chaos, a later season\'s, is no longer listed as coming');
+      ok(visible('contests-open-methuselah-1') && el('contests-open-methuselah-1').textContent.includes('Open'), 'Methuselah has a card to open');
+      ok(visible('contests-open-classic-methuselah-1') && el('contests-open-classic-methuselah-1').textContent.includes('ships have left'), 'Classic Methuselah has a card to open, saying what it measures');
+
+      section("Speed's page");
+      press('contests-open-speed-1');
+      ok(text('contests-panel-title') === 'Speed', 'Open shows Speed');
+      ok(el('contests-panel').querySelector('.contests-page-logo path'), "Speed's page shows Speed's logo");
+      ok(panelText().includes('A Season 0 contest') && text('contests-panel').includes('Entries close 31 December 2026'), 'It says Speed is a Season 0 contest, and when entries close');
+      const areas = [...el('contests-panel').querySelectorAll('.contests-section-title')].map((t) => t.textContent);
+      ok(areas.join(' / ') === 'What everyone runs / Hall of Fame / How it runs / Fair play', `Its details are in titled areas (${areas.join(' / ')})`);
+      ok(visible('contests-hof-empty') && text('contests-hof-empty').startsWith('No entries yet.') && !el('contests-hof'), `With no entries, the Hall of Fame says so ("${text('contests-hof-empty')}")`);
+      ok(el('contests-panel').querySelectorAll('.contests-fact').length === 4, 'Seed, rules, time and ceiling each have a tile');
+      ok(panelText().includes('B9-10/S5-15') && panelText().includes('6 seconds') && panelText().includes('1,000 generations'), 'It gives the rules, the 6 seconds and the 1,000-generation ceiling');
+      ok(panelText().includes('self-reported'), 'It says the timing is self-reported');
+      ok(text('contest-hud-name') === 'Speed' && text('contest-hud-status') === 'Ready', 'The HUD names Speed, ready');
+      ok(doc.activeElement?.id === 'contests-run', 'Run has the focus');
+      const runBox = el('contests-run').getBoundingClientRect();
+      const pageVerifyBox = el('contests-verify').getBoundingClientRect();
+      ok(runBox.height >= 48 && runBox.width > 2 * pageVerifyBox.width && runBox.top < pageVerifyBox.top, `Run is the page's largest button, above the rest (${Math.round(runBox.width)} × ${Math.round(runBox.height)} px)`);
+
+      section('A run');
+      const drawing = await framesDrawn();
+      ok(drawing >= 5, `The lab's frame is drawing, as the countdown and Watch need (${drawing} frames in 0.5 s; keep it in view and this tab in front)`);
+      press('contests-run');
+      ok(visible('contests-countdown') && text('contests-countdown') === '6.0', 'The countdown starts at 6.0');
+      const arcOffset = () => Number(win.getComputedStyle(el('contests-clock-arc')).strokeDashoffset.replace('px', '')) || 0;
+      ok(visible('contests-stop'), 'Stop is offered');
+      await sleep(1500);
+      const left = Number(text('contests-countdown'));
+      ok(left < 5.6 && left > 3.5, `It counts down (${left} after 1.5 s)`);
+      const a1 = arcOffset();
+      ok(a1 > 10 && a1 < 45, `The clock's arc has emptied by about a quarter (${a1.toFixed(0)}%)`);
+      ok(text('contest-hud-status') === 'Running', 'The HUD says running');
+      const generation = () => Number(text('contests-stat-0').replace(/,/g, ''));
+      const g1 = generation();
+      await sleep(1000);
+      ok(generation() > g1 && g1 > 0, `The statistics follow the run (generation ${g1}, then ${generation()})`);
+      ok(arcOffset() > a1, `The arc keeps emptying (${arcOffset().toFixed(0)}%)`);
+      const chart = () => el('contests-panel').querySelector('.contests-chart');
+      const points = chart().querySelector('.contests-chart-line')?.getAttribute('points') ?? '';
+      const xy = points.split(' ').map((p) => p.split(',').map(Number));
+      ok(xy.length >= 3, `The chart has points (${xy.length})`);
+      ok(xy.every(([, y], i) => i === 0 || y <= xy[i - 1][1]), 'Its line climbs: generations completed over time');
+      const titles = [...chart().querySelectorAll('.contests-chart-axis-title')].map((t) => t.textContent);
+      ok(titles.includes('Time (seconds)') && titles.includes('Generations'), `Its axes are titled (${titles.join(', ')})`);
+      const xTicks = [...chart().querySelectorAll('.contests-chart-tick')].map((t) => t.textContent);
+      ok(['0', '1', '2', '3', '4', '5', '6'].every((t) => xTicks.includes(t)), 'Time runs from 0 to 6 seconds');
+      const top = Math.max(...xTicks.map((t) => Number(t.replace(/,/g, ''))));
+      ok(top >= generation(), `The generations axis fits the run (up to ${top})`);
+      ok(chart().getBoundingClientRect().height >= 200, `The chart is large (${Math.round(chart().getBoundingClientRect().height)} px tall)`);
+      ok(text('contests-stat-6').includes('×'), `The extent shows (${text('contests-stat-6')})`);
+      ok(await until(() => visible('contests-score'), 8000), 'The results card shows once the 6 seconds are up');
+      // Below the ceiling it leads with the generations; at the ceiling, where every run has 1,000, with the time
+      ok((/^[\d,]+$/.test(text('contests-score')) && text('contests-score-unit') === 'generations in 6 seconds')
+        || (/^\d\.\d{3}$/.test(text('contests-score')) && text('contests-score-unit') === 'seconds to reach the ceiling of 1,000 generations'),
+      `It leads with what ranks the score ("${text('contests-score')}", "${text('contests-score-unit')}")`);
+      ok(parseFloat(win.getComputedStyle(el('contests-score')).fontSize) >= 56, `in large type (${win.getComputedStyle(el('contests-score')).fontSize})`);
+      // The table is built when it is opened: a Methuselah run's has a row a generation
+      const tableBox = chart()?.querySelector('details');
+      if (tableBox) tableBox.open = true;
+      ok(chart()?.querySelector('.contests-chart-line') && await until(() => chart().querySelector('details table'), 2000), 'The results card keeps the chart, with its data as a table, built when opened');
+      const times = [...chart().querySelectorAll('details tbody tr td:first-child')].map((td) => Number(td.textContent));
+      ok(times.length > 2 && times.every((t) => t <= 6), `No point in the table is past 6 seconds (the last at ${times.at(-1)} s)`);
+      ok(panelText().includes('The 6 seconds ran out.') || panelText().includes('reached the ceiling'), 'It says how the run ended');
+      ok(panelText().includes('self-reported'), 'It says the timing is self-reported');
+      ok(await until(() => /^sha256:[0-9a-f]{64}$/.test(text('contests-hash')), 15000), 'The hash comes from the Worker');
+      const hashBox = el('contests-hash').getBoundingClientRect();
+      const copyBox = el('contests-copy-hash').getBoundingClientRect();
+      ok(copyBox.left >= hashBox.right - 1 && copyBox.top < hashBox.bottom && copyBox.bottom > hashBox.top, 'Copy is to the right of the hash');
+      ok(hashBox.height < 24, `The hash fits on one line (${Math.round(hashBox.height)} px tall)`);
+      ok(!text('contests-hero-meta').startsWith('Detecting'), `The browser is named under the score ("${text('contests-hero-meta')}")`);
+      ok(!el('contests-export').disabled, 'Export result is ready');
+      ok(text('contest-hud-status') === 'Finished', 'The HUD says finished');
+      // The generations, from the HUD: at the ceiling the card leads with the time instead
+      const score = Number(text('contest-hud-generation').replace(/,/g, ''));
+      const ceilingMs = text('contests-score-unit').includes('ceiling') ? Math.round(Number(text('contests-score')) * 1000) : null;
+      ok(ceilingMs === null ? score < 1000 : score === 1000 && ceilingMs >= 1 && ceilingMs <= 6000, `The HUD's generation agrees (${score}${ceilingMs === null ? '' : `, ${ceilingMs} ms`})`);
+      const fileName = ceilingMs === null ? `speed-1-${score}.json` : `speed-1-${score}-${ceilingMs}ms.json`;
+      const scoreWords = ceilingMs === null
+        ? `${score.toLocaleString('en')} generations`
+        : `${score.toLocaleString('en')} generations in ${(ceilingMs / 1000).toFixed(3)} s`;
+
+      section('Watch');
+      const watchGeneration = () => Number(text('contests-watch-generation').split('/')[0].replace(/,/g, ''));
+      const setSpeed = (value) => {
+        el('speed-control').value = String(value);
+        el('speed-control').dispatchEvent(new win.Event('input', { bubbles: true }));
+      };
+      ok(visible('contests-watch-run') && !el('contests-watch-run').disabled, 'The results card offers Watch');
+      ok(text('contests-self-verified').includes('checks the replay'), 'and says Watch checks the replay against the hash');
+      setSpeed(1); // 10 generations a second, to see it move
+      press('contests-watch-run');
+      await sleep(300);
+      ok(!visible('contests-panel') && visible('contests-watch') && doc.body.classList.contains('contests-watching'), 'Watch hides the panel and shows its bar');
+      ok(text('contests-watch-generation').endsWith(`/ ${score.toLocaleString('en')}`) && Number(el('contests-watch-scrub').max) === score, `The scrub bar runs to the scored generation (${text('contests-watch-generation')})`);
+      const bar = el('contests-watch').getBoundingClientRect();
+      const below = ['bottom-controls', 'bottom-controls-display', 'additional-controls-display']
+        .map((id) => el(id)).filter((e) => e && e.getClientRects().length).map((e) => e.getBoundingClientRect().top);
+      ok(bar.bottom <= Math.min(...below), `The bar sits above the control bar and its readouts (${Math.round(bar.bottom)} and ${Math.round(Math.min(...below))} px)`);
+      ok(win.getComputedStyle(el('playPauseButton')).pointerEvents !== 'none' && win.getComputedStyle(el('stepButton')).pointerEvents !== 'none', 'Play and step work again');
+      ok(win.getComputedStyle(el('reverseButton')).pointerEvents === 'none', 'Reverse stays off: a replay runs forward');
+      ok(text('contest-hud-status') === 'Watching', 'The HUD says watching');
+      ok(await until(() => watchGeneration() >= 5, 5000), `It plays (generation ${watchGeneration()})`);
+      ok(text('bottom-state-value') === 'play' && el('playPauseIcon').className === 'pause', 'The control bar says it is playing');
+      press('playPauseButton');
+      ok(await until(() => text('bottom-state-value') === 'pause', 2000), 'Pause pauses it');
+      const paused = watchGeneration();
+      await sleep(600);
+      ok(watchGeneration() === paused, `and it stays at generation ${paused}`);
+      press('stepButton');
+      ok(await until(() => watchGeneration() === paused + 1, 2000), `Step goes one generation on (${watchGeneration()})`);
+      // The lab's own state, from the frame: an import here would load a second copy of the module
+      const { state } = await win.eval("import('/src/state.js')");
+      const viewGroup = () => state.scene.children.find((c) => c.type === 'Group');
+      const cloud = () => viewGroup().children.find((c) => c.type === 'Points');
+      const drawn = () => cloud().geometry.drawRange.count;
+      const all = drawn();
+      press('wireframeGridToggle');
+      await sleep(300);
+      ok(viewGroup().children.some((c) => c.type === 'LineSegments' && c.visible), 'The grid toggle draws the chunk grid round the replay');
+      press('wireframeGridToggle');
+      press('flipOrientationToggle');
+      await sleep(300);
+      ok(viewGroup().scale.y === -1, 'The orientation toggle flips it');
+      press('flipOrientationToggle');
+      const cellSize = el('cellSizeSlider');
+      const sizeBefore = cloud().material.size;
+      cellSize.value = String(Number(cellSize.max));
+      cellSize.dispatchEvent(new win.Event('input', { bubbles: true }));
+      await sleep(300);
+      ok(cloud().material.size === Number(cellSize.max) && cloud().material.size !== sizeBefore, `The cell size slider sizes its cells (${cloud().material.size})`);
+      cellSize.value = String(sizeBefore);
+      cellSize.dispatchEvent(new win.Event('input', { bubbles: true }));
+      press('dualStateButton');
+      ok(await until(() => state.viewMode === 'slice' && drawn() < all, 3000), `2D draws one slice of it (${drawn()} of ${all} cells)`);
+      const sliceSlider = el('slice-index');
+      const middleSlice = drawn();
+      sliceSlider.value = sliceSlider.max;
+      sliceSlider.dispatchEvent(new win.Event('input', { bubbles: true }));
+      ok(await until(() => drawn() !== middleSlice, 3000), `The slice slider moves the slice (${drawn()} cells at ${sliceSlider.max})`);
+      press('dualStateButton');
+      ok(await until(() => state.viewMode === 'full' && drawn() === all, 3000), 'and 3D draws it all again');
+      const middle = Math.floor(score / 2);
+      el('contests-watch-scrub').value = String(middle);
+      el('contests-watch-scrub').dispatchEvent(new win.Event('input', { bubbles: true }));
+      ok(await until(() => watchGeneration() === middle && text('bottom-state-value') === 'pause', 30000), `Scrubbing goes to generation ${middle}, still paused`);
+      el('contests-watch-scrub').value = '3';
+      el('contests-watch-scrub').dispatchEvent(new win.Event('input', { bubbles: true }));
+      ok(await until(() => watchGeneration() === 3, 30000), 'and back to generation 3, from a keyframe');
+      ok(text('contests-watch-verified').startsWith('Not checked yet'), 'Before the end, the replay is not checked yet');
+      setSpeed(10); // flat out to the end
+      press('playPauseButton');
+      ok(await until(() => text('contests-watch-verified').startsWith('Self-verified'), 120000), `At the scored generation, the replay's hash matches ("${text('contests-watch-verified')}")`);
+      ok(watchGeneration() === score && text('bottom-state-value') === 'end', 'It stops at the scored generation');
+      ok(el('contests-watch-verified').dataset.verdict === 'verified' && win.getComputedStyle(el('contests-watch-verified')).color === 'rgb(155, 227, 176)', 'in green');
+      doc.body.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+      await sleep(300);
+      ok(visible('contests-panel') && !visible('contests-watch') && doc.body.classList.contains('mode-contests'), 'Esc closes Watch, back to the results card, still in Contests');
+      ok(doc.activeElement?.id === 'contests-watch-run', 'Watch has the focus again');
+      ok(text('contests-self-verified') === text('contests-watch-verified'), `The card says the run is self-verified ("${text('contests-self-verified')}")`);
+      ok(win.getComputedStyle(el('playPauseButton')).pointerEvents === 'none', 'Play is off again');
+      press('contests-watch-run');
+      await sleep(300);
+      press('contests-watch-close');
+      await sleep(300);
+      ok(visible('contests-panel') && !visible('contests-watch'), 'Close also brings the panel back');
+      setSpeed(2.6);
+
+      section('Export, then Verify a result');
+      let exported = null;
+      // Take the file as Export writes it: through a download, as in Firefox and Safari
+      delete win.showSaveFilePicker;
+      win.showSaveFilePicker = undefined;
+      const createObjectURL = win.URL.createObjectURL;
+      win.URL.createObjectURL = (blob) => { exported = blob; return createObjectURL.call(win.URL, blob); };
+      win.HTMLAnchorElement.prototype.click = function () {}; // no real download from the check
+      press('contests-export');
+      await until(() => exported, 3000);
+      ok(Boolean(exported), 'Export result writes a file');
+      ok(text('contests-panel-status').includes(`${fileName}`), `It is named for the contest and the score ("${text('contests-panel-status')}")`);
+      const file = exported ? await exported.text() : '{}';
+      const data = JSON.parse(file);
+      ok(data.run?.contest === 'speed-1' && data.score?.generations === score && data.generation === score, 'The file is a speed-1 result, with its score');
+      ok(data.cells === undefined, "It doesn't carry the cells");
+      ok(data.details?.browser?.name, `It names the browser (${data.details?.browser?.name} ${data.details?.browser?.version})`);
+
+      section('Submit by email');
+      const link = el('contests-submit-email');
+      ok(visible('contests-submit-email') && link.tagName === 'A', 'The results card offers Submit by email, as a link');
+      const mail = new URL(link.href);
+      const subject = mail.searchParams.get('subject');
+      const body = mail.searchParams.get('body') ?? '';
+      ok(mail.protocol === 'mailto:' && mail.pathname === 'lab@morpheustech.net', `It writes to lab@morpheustech.net (${mail.protocol}${mail.pathname})`);
+      ok(subject === `[Speed] ${scoreWords}`, `The subject names the contest and the score ("${subject}")`);
+      const browserWords = `${data.details?.browser?.name} ${data.details?.browser?.version}`;
+      ok(body.includes('Name to show: ') && body.includes(`Browser and version: ${browserWords}`) && body.includes('Hardware (optional): ') && body.includes(`Result file: ${fileName}`), 'The text is the template, with the browser and the file filled in');
+      ok(body.split('\n').includes('Hall of Fame: yes, show my name, picture, score, browser and date.'), 'It has the Hall of Fame line, on its own line, to keep or delete');
+      ok(/PNG or JPEG, square, at most 1 MB/.test(body) && /repo is public/.test(body) && /email address is used only to reply/.test(body) && /Speed's timing is self-reported/.test(body), 'It states the picture conditions, that the repo is public, how the address is used, and that Speed is self-reported');
+      ok(text('contests-submit-attach').includes("can't attach files") && text('contests-submit-attach').includes(`${fileName}`), `Beside it, the card says what to attach by hand ("${text('contests-submit-attach')}")`);
+      const attachBox = el('contests-submit-attach').getBoundingClientRect();
+      const linkBox = link.getBoundingClientRect();
+      ok(attachBox.left >= linkBox.right - 1 || attachBox.top >= linkBox.bottom - 1, 'next to the link, or just under it');
+      ok(text('contests-submit-to') === 'lab@morpheustech.net' && visible('contests-submit-to-copy'), 'It shows the address, with Copy');
+      ok(text('contests-submit-subject') === subject && visible('contests-submit-subject-copy'), 'and the subject, with Copy');
+      ok(visible('contests-submit-body') && el('contests-submit-body').value === body && el('contests-submit-body').readOnly && visible('contests-submit-body-copy'), 'and the text, the same as the link\'s, with Copy');
+      exported = null;
+      link.addEventListener('click', (event) => event.preventDefault(), { once: true }); // no mail app from the check
+      // A click event, not click(), which the Export check above turned off for anchors
+      link.dispatchEvent(new win.MouseEvent('click', { bubbles: true, cancelable: true }));
+      await until(() => exported, 3000);
+      ok(exported && (await exported.text()) === file, 'Clicking it downloads the result file, the same as Export\'s');
+      ok(text('contests-panel-status').includes(`Downloaded ${fileName}`) && text('contests-panel-status').includes('Attach it'), `and says to attach it ("${text('contests-panel-status')}")`);
+
+      chooseFile(`${fileName}`, file);
+      ok(await until(() => visible('contests-verdict'), 60000), 'Verify a result answers');
+      ok(text('contests-verdict') === 'Verified', `The exported file verifies ("${text('contests-verdict')}": ${text('contests-verdict-message')})`);
+      ok(panelText().includes('the time is self-reported'), 'The verdict notes the time is self-reported');
+      ok(visible('contests-watch-run'), 'A verified file can be watched');
+      setSpeed(10);
+      press('contests-watch-run');
+      await sleep(300);
+      ok(visible('contests-watch') && text('contests-watch-title') === `Watch: ${fileName}`, `Watch plays the file (${text('contests-watch-title')})`);
+      ok(await until(() => text('contests-watch-verified').startsWith('Self-verified'), 120000), 'and self-verifies it at its generation');
+      press('contests-watch-close');
+      await sleep(300);
+      ok(text('contests-self-verified').startsWith('Self-verified') && text('contests-verdict') === 'Verified', 'The verdict keeps what Watch found');
+      setSpeed(2.6);
+      const edited = file.replace(`"generations": ${score}`, `"generations": ${score + 1}`);
+      chooseFile('edited.json', edited);
+      ok(await until(() => visible('contests-verdict') && text('contests-verdict') !== 'Verified', 30000), 'A hand-edited copy is checked');
+      ok(text('contests-verdict') === "Doesn't match", `A hand-edited copy doesn't match ("${text('contests-verdict-message')}")`);
+      chooseFile('notes.json', '{"hello": "world"}');
+      ok(await until(() => text('contests-verdict') === 'Not a result file', 10000), 'A file that is not a result is refused');
+
+      section('The Hall of Fame');
+      // A staged board: two entries in the frame's copy of hall-of-fame.json, one whose result file
+      // is this run's export (served by a stand-in fetch), one whose file and picture don't exist
+      // Vite serves the panel's import of a JSON file with ?import: the same URL is the same module
+      const board = (await win.eval("import('/src/unbounded/hall-of-fame.json?import')")).default;
+      // Made in the frame's realm, as the panel's own JSON is: readHallOfFame() wants plain objects
+      // Two runs at the ceiling, 3 ms apart: the faster ranks first, though it arrived later, and
+      // each shows its own time
+      const staged = [
+        { contest: 'speed-1', name: 'Check, slower', picture: null, score: { generations: score - 1, ms: null }, browser: null, date: '2026-11-19', result: 'hall-of-fame/results/check-missing.json' },
+        { contest: 'speed-1', name: '<b>Check</b>, this run', picture: 'hall-of-fame/check-missing.png', score: data.score, browser: data.details.browser, date: '2026-11-20', result: 'hall-of-fame/results/check-run.json' },
+        { contest: 'speed-1', name: 'Check, ceiling at 3.874 s', picture: null, score: { generations: 1000, ms: 3874 }, browser: null, date: '2026-11-17', result: 'hall-of-fame/results/check-ceiling-b.json' },
+        { contest: 'speed-1', name: 'Check, ceiling at 3.871 s', picture: null, score: { generations: 1000, ms: 3871 }, browser: null, date: '2026-11-18', result: 'hall-of-fame/results/check-ceiling-a.json' },
+      ];
+      // Made in the frame's realm, as the panel's own JSON is: readHallOfFame() wants plain objects
+      board.entries.push(...win.JSON.parse(JSON.stringify(staged)));
+      const expected = staged.slice().sort((a, b) => (b.score.generations - a.score.generations)
+        || ((a.score.ms ?? Infinity) - (b.score.ms ?? Infinity)) || (a.date < b.date ? -1 : 1)).map((e) => e.name);
+      const realFetch = win.fetch;
+      win.fetch = (url, ...rest) => (String(url).endsWith('/hall-of-fame/results/check-run.json')
+        ? Promise.resolve(new win.Response(file))
+        : realFetch.call(win, url, ...rest));
+      press('contests-back');
+      ok(text('contests-panel-title') === 'Speed', 'Back goes to Speed');
+      const rows = [...(el('contests-hof')?.children ?? [])];
+      ok(rows.length === 4 && !visible('contests-hof-empty'), 'The Hall of Fame lists the entries');
+      const cell = (row, name) => row?.querySelector(`.contests-hof-${name}`);
+      const row = (name) => rows.find((r) => cell(r, 'name')?.textContent === name);
+      const shown = rows.map((r) => cell(r, 'name')?.textContent);
+      ok(shown.join(' | ') === expected.join(' | '), `Ranked as Speed ranks them: generations, then at the ceiling the time, then the date (${shown.join(' | ')})`);
+      ok(shown.indexOf('Check, ceiling at 3.871 s') + 1 === shown.indexOf('Check, ceiling at 3.874 s'), '3 ms faster ranks first at the ceiling, though it arrived a day later');
+      ok(!el('contests-hof').querySelector('b'), 'A name is shown as text, never as markup');
+      ok(rows.every((r, i) => cell(r, 'place')?.textContent === String(i + 1)), 'Each has its place');
+      const scoreOf = (name) => [cell(row(name), 'score-main')?.textContent, cell(row(name), 'score-detail')?.textContent];
+      ok(scoreOf('Check, ceiling at 3.871 s').join(' / ') === '3.871 s / 1,000 generations, the ceiling' && scoreOf('Check, ceiling at 3.874 s')[0] === '3.874 s',
+        `At the ceiling the time leads, to the millisecond ("${scoreOf('Check, ceiling at 3.871 s').join(' / ')}")`);
+      const ownScore = ceilingMs === null
+        ? `${scoreWords} / in 6 seconds`
+        : `${(ceilingMs / 1000).toFixed(3)} s / 1,000 generations, the ceiling`;
+      ok(scoreOf('<b>Check</b>, this run').join(' / ') === ownScore && scoreOf('Check, slower')[1] === 'in 6 seconds', `Below it the generations lead ("${scoreOf('<b>Check</b>, this run').join(' / ')}")`);
+      ok(cell(row('<b>Check</b>, this run'), 'meta')?.textContent === `${browserWords} · 20 Nov 2026` && cell(row('Check, slower'), 'meta')?.textContent === 'Browser not given · 19 Nov 2026', `its browser and date ("${cell(row('<b>Check</b>, this run'), 'meta')?.textContent}")`);
+      ok(cell(row('Check, slower'), 'picture')?.src.includes('morpheus-tech') && cell(row('Check, slower'), 'picture').classList.contains('contests-hof-picture--logo'), "An entry without a picture shows the lab's logo");
+      ok(await until(() => cell(row('<b>Check</b>, this run'), 'picture')?.src.includes('morpheus-tech'), 5000), "A picture that doesn't load gives way to the logo");
+      ok(rows.every((r) => r.querySelector('button')?.textContent === 'Watch'), 'Each entry has Watch');
+      const hofBox = el('contests-hof').getBoundingClientRect();
+      ok(rows.every((r) => r.getBoundingClientRect().right <= hofBox.right + 1 && r.scrollWidth <= r.clientWidth + 1), 'Every row fits the panel');
+      row('Check, slower').querySelector('button').click();
+      ok(await until(() => text('contests-panel-status').startsWith("It can't be watched"), 5000), `An entry whose file can't be read says so ("${text('contests-panel-status')}")`);
+      ok(!visible('contests-watch'), 'and Watch stays shut');
+      const ownWatch = row('<b>Check</b>, this run').querySelector('button');
+      ownWatch.click();
+      ok(await until(() => visible('contests-watch'), 5000), "Watch plays an entry's result file");
+      ok(text('contests-watch-title') === `Hall of Fame: <b>Check</b>, this run, ${scoreWords}` && Number(el('contests-watch-scrub').max) === score, `to its generation (${text('contests-watch-title')})`);
+      doc.body.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+      await sleep(300);
+      ok(visible('contests-panel') && text('contests-panel-title') === 'Speed' && doc.activeElement === ownWatch, "Esc goes back to Speed's page, to the entry's Watch");
+      ok(text('contest-hud-status') === 'Ready', 'The HUD says ready again');
+      board.entries.length = 0;
+      win.fetch = realFetch;
+
+      section("Methuselah's page");
+      // Seed files, as Explore's Save seed writes them; the cells are #93's test patterns
+      const seedFile = (rules, cells) => JSON.stringify({ format: 'morpheus-tech-lab/explore-seed', version: 1, rules, cells });
+      const DIES = { rules: { birth: [5, 7, 8], survival: [1, 4] }, cells: [[0, 0, 0], [2, 0, 0], [2, 2, 0], [0, 0, 1], [1, 0, 1], [1, 1, 1], [2, 1, 1], [2, 0, 2], [0, 1, 2], [2, 1, 2], [2, 2, 2]] };
+      const SHIP = { rules: { birth: [4], survival: [6] }, cells: [[1, 0, 0], [0, 1, 0], [2, 1, 0], [0, 0, 1], [2, 0, 1], [0, 1, 1], [2, 1, 1], [0, 2, 1], [1, 2, 1], [0, 0, 2], [2, 0, 2], [0, 1, 2], [1, 1, 2], [2, 1, 2], [0, 2, 2], [1, 2, 2], [2, 2, 2]] };
+      const loadSeed = async (name, contents) => {
+        chooseFile(name, contents, el('contests-seed-file'));
+        await sleep(400);
+      };
+      press('contests-back');
+      press('contests-open-methuselah-1');
+      ok(text('contests-panel-title') === 'Methuselah', 'Open shows Methuselah');
+      const mAreas = [...el('contests-panel').querySelectorAll('.contests-section-title')].map((t) => t.textContent);
+      ok(mAreas.join(' / ') === 'Your entry / What the contest fixes / How a run ends / Hall of Fame / How it runs / Fair play', `Its details are in titled areas (${mAreas.join(' / ')})`);
+      ok(el('contests-panel').querySelector('.contests-page-head').style.getPropertyValue('--contest-color') === '#b39cff', "It wears Methuselah's colour");
+      ok(text('contests-entry-none') === 'A simulation file: a seed and its rules.' && el('contests-run').disabled, 'With no entry yet, it says in one line what an entry is, and Run waits (#130)');
+      ok(doc.activeElement?.id === 'contests-load-seed' && text('contests-load-seed') === 'Load simulation…', 'Load simulation… has the focus');
+      const bg = win.getComputedStyle(el('contests-design-seed')).backgroundColor;
+      ok(bg !== 'rgba(0, 0, 0, 0)' && bg !== win.getComputedStyle(el('contests-panel')).backgroundColor && text('contests-design-seed') === 'Design a seed…', 'Design a seed… is a filled button, plainly one');
+      const facts = [...el('contests-panel').querySelectorAll('.contests-fact')].map((f) => f.textContent);
+      ok(facts.length === 4 && ['64³', '10³', '10,000 generations', '9,999'].every((v, i) => facts[i].includes(v)), `It gives the arena, the seed box, the budget and the top score (${facts.map((f) => f.slice(0, 24)).join(' | ')})`);
+      ok(panelText().includes('scores nothing'), 'and that a pattern unsettled at 10,000 scores nothing');
+      ok(text('contests-strict').includes("stricter methuselah than classic Life's") && text('contests-strict').includes('settle inside the arena') && text('contests-strict').includes('flies off'), 'It says this is stricter than classic Life');
+      const endings = [...(el('contests-endings')?.querySelectorAll('tbody tr') ?? [])].map((r) => r.firstChild.textContent);
+      ok(endings.join(' ') === 'Death Repeat Edge Budget', `It lists the four endings (${endings.join(', ')})`);
+      ok(panelText().includes('same score') && panelText().includes('a few minutes'), 'It says the score is the same on any machine, and a run can take a few minutes');
+      ok(visible('contests-hof-empty'), 'Its Hall of Fame is empty');
+
+      section('Design a seed in Explore');
+      ok(visible('contests-design-seed') && el('contests-design-seed').title.includes('Game of Life 3D (unbounded)'), 'The entry offers Design a seed…, in Explore, as its title says');
+      press('contests-design-seed');
+      await sleep(1500);
+      ok(doc.body.classList.contains('mode-explore') && !doc.body.classList.contains('mode-contests'), 'It leaves Contests for Explore');
+      ok(visible('seed-editor') && doc.body.classList.contains('seed-editor-open'), 'with the seed editor open');
+      ok(text('seed-editor-note').startsWith('For Methuselah: keep the seed in this 10³ box') && text('seed-editor-note').includes('Contests banner'), `Its note says how to come back ("${text('seed-editor-note').slice(0, 60)}…")`);
+      ok(state.explore.arena === 64 && /The arena in Game of Life 3D \(unbounded\) is (now on, at )?64³, as Methuselah's/.test(text('seed-editor-note')), `Explore's arena is the contest's, 64³, and the note says so (arena ${state.explore.arena})`);
+      el('seed-editor').querySelector('[data-action="cancel"]').click();
+      await sleep(300);
+      ok(!visible('seed-editor') && el('contests-banner').getAttribute('aria-pressed') === 'false', 'Cancel closes the editor, in Explore');
+      await openContests();
+      ok(doc.body.classList.contains('mode-contests') && text('contests-panel-title') === 'Methuselah', 'The banner brings it back to Methuselah\'s page, not the list');
+      press('contests-back');
+      ok(text('contests-panel-title') === 'Season 0', 'Back goes to the list, as before');
+      press('contests-open-methuselah-1');
+
+      section('Load simulation…');
+      await loadSeed('outside.json', seedFile(DIES.rules, [[0, 0, 0], [5, 0, 0], [6, 1, 1]]));
+      ok(visible('contests-entry-refused') && /outside the seed box/.test(text('contests-entry-refused')) && /2 of its 3 cells are outside/.test(text('contests-entry-refused')), `A seed outside the box is refused, saying so ("${text('contests-entry-refused')}")`);
+      ok(el('contests-run').disabled, 'and Run still waits');
+      await loadSeed('b0.json', seedFile({ birth: [0, 4], survival: [] }, [[0, 0, 0]]));
+      ok(/B0/.test(text('contests-entry-refused')), `A B0 rule is refused ("${text('contests-entry-refused').slice(0, 80)}…")`);
+      await loadSeed('empty.json', seedFile(DIES.rules, []));
+      ok(/empty/.test(text('contests-entry-refused')), `An empty seed is refused ("${text('contests-entry-refused')}")`);
+      await loadSeed(fileName, file);
+      ok(/result file, not a simulation file/.test(text('contests-entry-refused')), `A result file is refused, pointing to Verify a result ("${text('contests-entry-refused')}")`);
+      await loadSeed('cells.json', JSON.stringify({ format: 'morpheus-tech-lab/explore-seed', version: 1, cells: [[0, 0, 0]] }));
+      ok(/is a seed file: it holds cells, but no rules/.test(text('contests-entry-refused')), `A seed file, without rules, is refused (#130) ("${text('contests-entry-refused').slice(0, 70)}…")`);
+      await loadSeed('b1.json', seedFile({ birth: [1, 5], survival: [2] }, [[0, 0, 0]]));
+      ok(!visible('contests-entry-refused') && visible('contests-entry-warning') && /B1/.test(text('contests-entry-warning')) && !el('contests-run').disabled, `A B1 rule is loaded, with a warning before Run ("${text('contests-entry-warning').slice(0, 60)}…")`);
+      const full = [];
+      for (let z = -5; z <= 4; z++) for (let y = -5; y <= 4; y++) for (let x = -5; x <= 4; x++) full.push([x, y, z]);
+      await loadSeed('full.json', seedFile(DIES.rules, full));
+      ok(text('contests-entry-0') === '1,000 cells', 'A fully live 10³ seed is accepted');
+      const cubes = () => el('contests-seed-picture')?.querySelectorAll('.contests-seed-top').length ?? 0;
+      ok(cubes() === 1000 - 729, `Its picture draws only the cubes that can be seen (${cubes()})`);
+      await loadSeed('dies.json', seedFile(DIES.rules, DIES.cells));
+      ok(text('contests-entry-0') === '11 cells' && text('contests-entry-1') === 'B5,7-8/S1,4' && text('contests-entry-2') === 'dies.json', `The entry shows its cells, rules and file (${text('contests-entry-0')}, ${text('contests-entry-1')}, ${text('contests-entry-2')})`);
+      ok(cubes() === 11 && el('contests-seed-picture').getBoundingClientRect().width > 80, `and the seed's picture, a cube a cell (${cubes()})`);
+      ok(!visible('contests-entry-warning') && !visible('contests-entry-refused'), 'with no warning');
+      ok(!el('contests-run').disabled && doc.activeElement?.id === 'contests-run', 'Run is ready, with the focus');
+      ok(text('contests-panel-status') === 'Loaded dies.json.', 'The status says it loaded');
+
+      section('A Methuselah run that dies');
+      press('contests-run');
+      ok(await until(() => visible('contests-score'), 15000), 'The results card shows');
+      ok(text('contests-score') === '10' && text('contests-score-unit') === 'generations, until every cell had died', `It leads with the score ("${text('contests-score')}", "${text('contests-score-unit')}")`);
+      ok(text('contests-ending').startsWith('Died at generation 10: no live cells remain.'), `It says how it ended ("${text('contests-ending').slice(0, 50)}…")`);
+      ok(text('contests-result-entry-0') === '11 cells' && text('contests-result-entry-1') === 'B5,7-8/S1,4', 'It gives the seed\'s cells and the rules');
+      const mChart = () => el('contests-panel').querySelector('.contests-chart');
+      ok(await until(() => (mChart().querySelector('.contests-chart-line')?.getAttribute('points') ?? '').split(' ').length === 11, 3000), 'Its chart has every generation, 0 to 10');
+      const mTitles = [...mChart().querySelectorAll('.contests-chart-axis-title')].map((t) => t.textContent);
+      ok(mTitles.join(', ') === 'Generation, Live cells', `with live cells by generation (${mTitles.join(', ')})`);
+      ok(await until(() => /^sha256:[0-9a-f]{64}$/.test(text('contests-hash')), 15000) && !el('contests-export').disabled, 'The hash comes from the Worker, and Export is ready');
+      ok(text('contest-hud-status') === 'Finished' && text('contest-hud-generation') === '10', 'The HUD says finished, at generation 10');
+      ok(!panelText().includes('self-reported') && panelText().includes('same ending and the same score'), 'It says the score is the same on any machine, not self-reported');
+      exported = null;
+      press('contests-export');
+      await until(() => exported, 3000);
+      ok(text('contests-panel-status').includes('methuselah-1-10.json'), `Export names it for the contest and the score ("${text('contests-panel-status')}")`);
+      const mFile = exported ? await exported.text() : '{}';
+      const mData = JSON.parse(mFile);
+      ok(mData.run?.contest === 'methuselah-1' && mData.ending === 'died' && mData.generation === 10 && JSON.stringify(mData.score) === '{"generations":10,"period":1}', 'The file is a methuselah-1 result, died at 10, with its score');
+      const sorted = DIES.cells.slice().sort((a, b) => a[2] - b[2] || a[1] - b[1] || a[0] - b[0]);
+      ok(JSON.stringify(mData.run?.seed) === JSON.stringify(sorted) && JSON.stringify(mData.run?.rules) === JSON.stringify(DIES.rules), 'Its seed and rules are exactly the entry\'s');
+      const mLink = new URL(el('contests-submit-email').href);
+      const mBody = mLink.searchParams.get('body') ?? '';
+      ok(mLink.searchParams.get('subject') === '[Methuselah] died at generation 10', `Submit by email's subject gives the score ("${mLink.searchParams.get('subject')}")`);
+      ok(mBody.includes('Rules: B5,7-8/S1,4') && mBody.includes('Seed: 11 cells') && !mBody.includes('Hardware') && !mBody.includes('self-reported'), 'and its text the rules and the seed, with nothing on timing');
+      setSpeed(10);
+      press('contests-watch-run');
+      await sleep(300);
+      ok(visible('contests-watch') && Number(el('contests-watch-scrub').max) === 10 && text('contests-watch-title') === 'Methuselah: died at generation 10', `Watch plays it to generation 10 (${text('contests-watch-title')})`);
+      ok(await until(() => text('contests-watch-verified').startsWith('Self-verified'), 30000), 'and self-verifies it');
+      ok(!visible('contests-watch-departures') && !el('contests-watch-ticks').children.length, 'No ships: Watch has no departures line, and the scrub bar no ticks');
+      press('contests-watch-close');
+      await sleep(300);
+      chooseFile('methuselah-1-10.json', mFile);
+      ok(await until(() => visible('contests-verdict'), 30000) && text('contests-verdict') === 'Verified', `Verify a result verifies it ("${text('contests-verdict-message')}")`);
+      const verdictRows = [...el('contests-panel').querySelectorAll('.contests-facts dt')].map((dt) => `${dt.textContent}: ${dt.nextSibling.textContent}`);
+      ok(verdictRows.includes('Score: Died at generation 10') && verdictRows.includes('Rules: B5,7-8/S1,4') && verdictRows.includes('Seed: 11 cells'), `with its score, rules and seed (${verdictRows.join('; ')})`);
+      ok(!verdictRows.some((row) => row.startsWith('Ships left')), 'and no ships: Methuselah lists none');
+      ok(panelText().includes('Back to Methuselah'), 'and leads back to Methuselah');
+      // The score's generations and the file's generation, never the budget's (limits.generations, 10000)
+      const mEdited = mFile.replace('"generations": 10,', '"generations": 11,').replace('"generation": 10,', '"generation": 11,');
+      ok(mEdited !== mFile && JSON.parse(mEdited).run.limits.generations === 10000, 'The edit changes the score and generation only');
+      chooseFile('edited.json', mEdited);
+      ok(await until(() => visible('contests-verdict') && text('contests-verdict') === "Doesn't match", 30000) && /dies at generation 10/.test(text('contests-verdict-message')),
+        `A hand-edited copy, claiming a later death, doesn't match, by its replay ("${text('contests-verdict-message')}")`);
+
+      section('A Methuselah run that reaches the edge, and one stopped');
+      press('contests-back');
+      ok(text('contests-panel-title') === 'Methuselah' && text('contests-entry-2') === 'dies.json', 'Back on Methuselah, the entry is still there');
+      await loadSeed('ship.json', seedFile(SHIP.rules, SHIP.cells));
+      press('contests-run');
+      ok(await until(() => text('contests-panel-title') === 'Methuselah: no score', 15000), 'A ship reaches the edge, with no score');
+      ok(text('contests-ending').startsWith('Reached the edge at generation') && text('contests-ending').includes('64³ arena'), `It says why ("${text('contests-ending').slice(0, 70)}…")`);
+      ok(!el('contests-export') && text('contest-hud-status') === 'No score', 'There is nothing to export, and the HUD says no score');
+      const edgePoints = (mChart().querySelector('.contests-chart-line')?.getAttribute('points') ?? '').split(' ').length;
+      ok(edgePoints === Number(text('contest-hud-generation').replace(/,/g, '')) + 1, `Its chart has every generation (${edgePoints} points)`);
+      press('contests-again');
+      const noise = [];
+      for (let z = -5; z <= 4; z++) for (let y = -5; y <= 4; y++) for (let x = -5; x <= 4; x++) if (((x * 7 + y * 13 + z * 31) & 3) === 0) noise.push([x, y, z]);
+      await loadSeed('growing.json', seedFile({ birth: [5, 11, 12], survival: [0, 1, 4, 5, 10, 12, 13, 14] }, noise));
+      press('contests-run');
+      ok(visible('contests-stop') && visible('contests-countdown') && text('contests-budget') === 'of 10,000 generations', 'During the run: the generation, out of 10,000, and Stop');
+      press('contests-stop');
+      ok(await until(() => text('contests-panel-title') === 'Methuselah: no score', 5000) && panelText().includes('Stopped by hand'), 'Stop ends it without a score, and says so');
+      ok(text('contest-hud-status') === 'Stopped', 'The HUD says stopped');
+
+      section("Methuselah's Hall of Fame");
+      const mStaged = [
+        { contest: 'methuselah-1', name: 'Check, this run', picture: null, score: mData.score, rules: DIES.rules, seedCells: 11, browser: mData.details.browser, date: '2026-11-19', result: 'hall-of-fame/results/check-methuselah.json' },
+        { contest: 'methuselah-1', name: 'Check, leaner', picture: null, score: { generations: 10, period: 1 }, rules: { birth: [4], survival: [9] }, seedCells: 5, browser: null, date: '2026-11-20', result: 'hall-of-fame/results/check-lean.json' },
+        { contest: 'methuselah-1', name: 'Check, longer', picture: null, score: { generations: 400, period: 3 }, rules: { birth: [4], survival: [6] }, seedCells: 900, browser: null, date: '2026-11-21', result: 'hall-of-fame/results/check-long.json' },
+      ];
+      board.entries.push(...win.JSON.parse(JSON.stringify(mStaged)));
+      win.fetch = (url, ...rest) => (String(url).endsWith('/hall-of-fame/results/check-methuselah.json')
+        ? Promise.resolve(new win.Response(mFile))
+        : realFetch.call(win, url, ...rest));
+      press('contests-again'); // Run again: back to Methuselah's page
+      ok(text('contests-panel-title') === 'Methuselah', 'Run again goes back to Methuselah\'s page');
+      const mRows = [...(el('contests-hof')?.children ?? [])];
+      const mShown = mRows.map((r) => cell(r, 'name')?.textContent);
+      ok(mShown.join(' | ') === 'Check, longer | Check, leaner | Check, this run', `Ranked by generations, then fewer seed cells, before the date (${mShown.join(' | ')})`);
+      const mScore = (i) => [cell(mRows[i], 'score-main')?.textContent, cell(mRows[i], 'score-detail')?.textContent].join(' / ');
+      ok(mScore(0) === '400 generations / period 3 · B4/S6 · 900 seed cells' && mScore(2) === '10 generations / B5,7-8/S1,4 · 11 seed cells', `Each score has its rules and seed cells beside it ("${mScore(0)}")`);
+      mRows[2].querySelector('button').click();
+      ok(await until(() => visible('contests-watch'), 5000) && text('contests-watch-title') === 'Hall of Fame: Check, this run, settled at generation 10' && Number(el('contests-watch-scrub').max) === 10, `Watch plays an entry from the seed to its h (${text('contests-watch-title')})`);
+      press('contests-watch-close');
+      await sleep(300);
+      board.entries.length = 0;
+      win.fetch = realFetch;
+
+      section("Classic Methuselah's page");
+      press('contests-back');
+      press('contests-open-classic-methuselah-1');
+      ok(text('contests-panel-title') === 'Classic Methuselah', 'Open shows Classic Methuselah');
+      ok(el('contests-panel').querySelector('.contests-page-head').style.getPropertyValue('--contest-color') === '#e29cf5', 'It wears its own colour (#130)');
+      const cFacts = [...el('contests-panel').querySelectorAll('.contests-fact')].map((f) => f.textContent);
+      ok(cFacts.length === 5 && ['64³', '10³', '10,000 generations', '9,999', 'Period ≤ 32'].every((v, i) => cFacts[i].includes(v)), `It gives Methuselah's facts, and the ships' period (${cFacts.map((f) => f.slice(0, 24)).join(' | ')})`);
+      ok(text('contests-differs').startsWith('Unlike Methuselah, a ship may leave the arena here') && text('contests-differs').includes('period up to 32, the longest recognised') && !visible('contests-strict'),
+        `It says in one sentence how it differs, and the longest period (“${text('contests-differs').slice(0, 70)}…”)`);
+      const cEndings = [...(el('contests-endings')?.querySelectorAll('tbody tr') ?? [])].map((r) => r.firstChild.textContent);
+      ok(cEndings.join(' ') === 'Death Repeat Emits Edge Budget', `It lists five endings, Emits among them (${cEndings.join(', ')})`);
+      ok(visible('contests-hof-empty'), 'Its Hall of Fame is empty, apart from Methuselah\'s');
+      ok(visible('contests-design-seed'), 'Its entry offers Design a seed…');
+      press('contests-design-seed');
+      await sleep(1500);
+      ok(doc.body.classList.contains('mode-explore') && visible('seed-editor'), 'It opens the seed editor in Explore');
+      ok(state.explore.arena === 64 && state.explore.edge === 'ships' && text('explore-arena') === '64³, ships leave',
+        `with the 64³ arena and ships leaving at its edge (#103: arena ${state.explore.arena}, "${text('explore-arena')}")`);
+      ok(/ships (now leave|leaving) at (the|its) edge/i.test(text('seed-editor-note')) && text('seed-editor-note').includes("Classic Methuselah"), `and the note says so ("${text('seed-editor-note').slice(-140)}")`);
+      el('seed-editor').querySelector('[data-action="cancel"]').click();
+      await sleep(300);
+      await openContests();
+      ok(text('contests-panel-title') === 'Classic Methuselah', 'The banner brings it back to Classic Methuselah\'s page');
+
+      section('A Classic Methuselah run whose ship leaves');
+      // SHIP, which leaves at generation 35, and a period-2 oscillator in a corner of the seed box
+      const SHIP_REST = [[0, 0, 0], [1, 0, 0], [2, 0, 0], [0, 1, 0], [1, 1, 0], [2, 1, 0], [2, 2, 0], [0, 0, 1], [2, 0, 1],
+        [0, 1, 1], [1, 1, 1], [2, 1, 1], [1, 2, 1], [0, 0, 2], [0, 1, 2], [0, 2, 2], [2, 2, 2]].map(([x, y, z]) => [x - 5, y - 5, z - 5]);
+      await loadSeed('ship-and-rest.json', seedFile(SHIP.rules, [...SHIP.cells, ...SHIP_REST]));
+      ok(text('contests-entry-0') === '34 cells', `The entry loads (${text('contests-entry-0')})`);
+      press('contests-run');
+      ok(panelText().includes('Ships of period up to 32 leave at the edge'), 'The run says ships leave at the edge');
+      ok(await until(() => visible('contests-score'), 15000), 'The results card shows');
+      ok(text('contests-score') === '36' && text('contests-score-unit') === 'generations, until it settled into a cycle of period 2', `It scores where it settled, once the ship had gone ("${text('contests-score')}", "${text('contests-score-unit')}")`);
+      ok(text('contests-departures') === '1 ship left, at generation 35.', `It lists the departures ("${text('contests-departures')}")`);
+      const cStats = [...el('contests-panel').querySelectorAll('.contests-stat')].map((s) => s.textContent);
+      ok(cStats.includes('Ships left1'), `Its statistics count the ships (${cStats.at(-1)})`);
+      ok(await until(() => /^sha256:[0-9a-f]{64}$/.test(text('contests-hash')), 15000) && !el('contests-export').disabled, 'The hash comes, and Export is ready');
+      exported = null;
+      press('contests-export');
+      await until(() => exported, 3000);
+      ok(text('contests-panel-status').includes('classic-methuselah-1-36.json'), `Export names it for the contest and the score ("${text('contests-panel-status')}")`);
+      const cFile = exported ? await exported.text() : '{}';
+      const cData = JSON.parse(cFile);
+      ok(cData.run?.contest === 'classic-methuselah-1' && cData.departures?.length === 1 && cData.departures[0].generation === 35 && JSON.stringify(cData.departures[0].shift) === '[1,0,0]',
+        'The file is a classic-methuselah-1 result, with its departure');
+      const cLink = new URL(el('contests-submit-email').href);
+      ok(cLink.searchParams.get('subject') === '[Classic Methuselah] settled at generation 36: period 2' && (cLink.searchParams.get('body') ?? '').includes('Ships: 1 ship left, at generation 35'),
+        `Submit by email gives the score and the ships ("${cLink.searchParams.get('subject')}")`);
+      setSpeed(10);
+      press('contests-watch-run');
+      await sleep(300);
+      ok(visible('contests-watch') && Number(el('contests-watch-scrub').max) === 36, 'Watch plays it to generation 36');
+      ok(visible('contests-watch-departures') && el('contests-watch-ticks').children.length === 1 && el('contests-watch-ticks').children[0].value === '35',
+        `It marks where the ship left on the scrub bar, and says so ("${text('contests-watch-departures')}")`);
+      ok(await until(() => text('contests-watch-verified').startsWith('Self-verified'), 30000), 'The replay lets the ship leave too, and self-verifies');
+      ok(text('contests-watch-departures') === 'The ship has left, at generation 35, heading +x.', `Once past it, Watch says the ship has left ("${text('contests-watch-departures')}")`);
+      press('contests-watch-close');
+      await sleep(300);
+      chooseFile('classic-methuselah-1-36.json', cFile);
+      ok(await until(() => visible('contests-verdict'), 30000) && text('contests-verdict') === 'Verified', `Verify a result verifies it ("${text('contests-verdict-message')}")`);
+      const cRows = [...el('contests-panel').querySelectorAll('.contests-facts dt')].map((dt) => `${dt.textContent}: ${dt.nextSibling.textContent}`);
+      ok(cRows.includes('Ships left: 1 ship left, at generation 35, as the replay found'), `with its departures (${cRows.join('; ')})`);
+      const cDropped = JSON.stringify({ ...cData, departures: [] });
+      chooseFile('no-departures.json', cDropped);
+      ok(await until(() => visible('contests-verdict') && text('contests-verdict') === "Doesn't match", 30000), `A copy with its departure removed doesn't match ("${text('contests-verdict-message').slice(0, 90)}…")`);
+      setSpeed(2.6);
+      press('contests-list'); // from the verdict, back to the list
+      press('contests-open-speed-1');
+
+      section('Stopping a run');
+      press('contests-run');
+      await sleep(1200);
+      press('contests-stop');
+      ok(await until(() => text('contests-panel-title') === 'Speed: no score', 3000), 'Stop ends the run with no score');
+      ok(panelText().includes('Stopped by hand'), 'It says why');
+      ok(!el('contests-export'), 'There is nothing to export');
+      ok(text('contest-hud-status') === 'Stopped', 'The HUD says stopped');
+
+      section('Leaving the mode');
+      press('contests-again');
+      press('contests-run');
+      await sleep(800);
+      await chooseMode('explore');
+      await apply();
+      ok(doc.body.classList.contains('mode-explore') && !doc.body.classList.contains('mode-contests'), 'Choosing Explore mid-run leaves Contests');
+      ok(!visible('contests-panel') && !visible('glass-info-contest'), 'The panel and the Contest section are gone');
+      const g = Number(text('explore-generation').replace(/,/g, ''));
+      await sleep(1000);
+      ok(Number(text('explore-generation').replace(/,/g, '')) >= g && text('hud-mode-name') === 'Game of Life 3D' && text('hud-mode-kind') === 'Unbounded', 'The unbounded mode runs as before');
+      ok(el('contests-banner').getAttribute('aria-pressed') === 'false', 'Back in Explore, the banner is not pressed');
+      await openContests();
+      press('contests-banner');
+      await sleep(1200);
+      ok(doc.body.classList.contains('mode-explore') && !doc.body.classList.contains('mode-contests'), 'Clicking the pressed banner goes back to Explore');
+      await openContests();
+      doc.body.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      await sleep(1200);
+      ok(doc.body.classList.contains('mode-explore') && !doc.body.classList.contains('mode-contests'), 'So does Esc');
+      await openContests();
+      ok(visible('contests-panel') && text('contests-panel-title') === 'Season 0', 'Back in Contests, the panel is on the list again');
+      press('hud-change-mode');
+      await sleep(300);
+      ok(el('mode-popover').classList.contains('is-open') && ![...el('mode-popover-list').children].some((o) => o.getAttribute('aria-pressed') === 'true'), 'Opened from Contests, the Mode popover has no mode chosen');
+      ok(text('mode-popover-note').includes('leave the contests'), `and says choosing one leaves the contests ("${text('mode-popover-note')}")`);
+      await apply();
+      ok(doc.body.classList.contains('mode-contests') && visible('contests-panel'), 'Apply with no mode chosen stays in Contests');
+      await chooseMode('gameOfLife');
+      await apply();
+      await sleep(1500);
+      ok(!doc.body.classList.contains('mode-contests') && !visible('contests-panel'), 'Choosing Game of Life leaves Contests too');
+      ok(text('hud-mode-name') === 'Game of Life 3D' && text('hud-mode-kind') === 'Bounded' && visible('glass-info-sim'), 'The bounded mode shows its Grid section as before');
+      await openContests();
+      doc.body.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      await sleep(2500);
+      ok(text('hud-mode-kind') === 'Bounded' && !doc.body.classList.contains('mode-contests') && visible('glass-info-sim'), 'Opened from the bounded mode, Esc goes back to it');
+    }
+
+    run()
+      .catch((err) => ok(false, `The check stopped: ${err.message}`))
+      .finally(() => {
+        summary.textContent = `${passed} passed, ${failed} failed`;
+        summary.style.color = failed ? '#ffb4ad' : '#b9e8c6';
+      });
+  </script>
+</body>
+</html>

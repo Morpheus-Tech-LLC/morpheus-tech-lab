@@ -84,11 +84,20 @@ export function updateComputeControl() {
 
 // Why the next run can't use the GPU, in one or two sentences; null if it can
 function unavailableReason() {
+  if (state.simulationMode === 'contests') {
+    return 'The contests run on the CPU, in a background thread (a Web Worker), so every entrant runs the same engine: Season 0 is CPU-only. '
+      + 'GPU compute covers Game of Life 3D (bounded) and Rule 30.';
+  }
+  if (state.simulationMode === 'explore') {
+    return 'Game of Life 3D (unbounded) runs on the CPU, in a background thread (a Web Worker), so the page stays responsive however hard it works. '
+      + 'A GPU needs a world of fixed size, and this one grows with the pattern, so it has no GPU path yet. '
+      + 'For Game of Life 3D on the GPU, choose Game of Life 3D (bounded).';
+  }
   const hardware = REASONS[gpuStatus()];
   if (hardware) return hardware;
   if (!gpuModeOf(state)) {
     const mode = CPU_ONLY_MODES[state.simulationMode] ?? 'This mode';
-    return `${mode} runs on the CPU only. GPU compute covers Game of Life 3D and Rule 30.`;
+    return `${mode} runs on the CPU only. GPU compute covers Game of Life 3D (bounded) and Rule 30.`;
   }
   return null;
 }

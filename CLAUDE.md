@@ -2,8 +2,9 @@
 
 An open-source (Apache-2.0) cellular-automata, math-engine and simulator project by Morpheus
 Tech LLC, built with the community. Visitors use interactive 3D cellular automata: Game of
-Life 3D, Rule 30, an Abelian sandpile and a sine wave. They run in the browser: Game of Life 3D
-and Rule 30 on the GPU with WebGPU where it's available, everything else on the CPU. The
+Life 3D (bounded and unbounded), Rule 30, an Abelian sandpile and a sine wave. They run in the
+browser: Game of Life 3D (bounded) and Rule 30 on the GPU with WebGPU where it's available,
+everything else on the CPU, Game of Life 3D (unbounded) in a Web Worker. The
 live demos are at **https://lab.morpheustech.net**, linked from the company site.
 
 **Before writing any code, read [AGENTS.md](AGENTS.md).** It is the coding contract, including the
@@ -29,6 +30,7 @@ Everything committed here is published: the source on GitHub, the build on the o
 | `npm ci` | Install the locked dependencies (first run) |
 | `npm run dev` | Vite dev server, http://localhost:5180 |
 | `npm run build` | Check the brand pin, then build to `dist/` (not tracked) |
+| `npm test` | Run the tests (Node's built-in `node:test`, in `test/`) |
 | `npm run preview` | Serve the built `dist/` locally, also on 5180 |
 | `npm run deploy` | Build, then publish `dist/` to the `gh-pages` branch, which is live at once |
 | `npm run brand:check` | Fail if a pinned brand file no longer matches `brand.lock` |
@@ -43,7 +45,9 @@ release.
 - Vanilla JavaScript (ES modules), no framework, no TypeScript.
 - Three.js for rendering (`Points` cloud and `OrbitControls`).
 - Vite for build and dev. `gh-pages` for deploy.
-- No tests yet. CI (`.github/workflows/ci.yml`) runs the `build` and `DCO` checks on every pull request.
+- Tests use Node's built-in `node:test` and cover the unbounded engine (`src/unbounded/`). CI
+  (`.github/workflows/ci.yml`) runs the `build` check, which includes `npm test`, and the `DCO`
+  check on every pull request.
 
 ## Branches and versions
 
@@ -51,8 +55,8 @@ release.
 targets, and `gh-pages` the deployed build (never edited by hand). Contributors work from a fork,
 on a feature branch off `upstream/development`. A pull request resolves exactly one issue, and
 lists each issue with its relation (only `Resolves`, `Related to`, `Opens`), which GitHub
-doesn't act on in a pull request into `development`; the release pull request into `main`
-lists `Closes #N` for every issue a shipped pull request marked `Resolves`. Maintainers release
+doesn't act on in a pull request into `development`: the maintainer who merges it closes the
+issue marked `Resolves` as completed. Maintainers release
 from a clone of the lab itself. Edit only on `development` or a feature branch off it: check
 the branch before the first edit, switch away from `main` if a deploy left it checked out, and
 never finish on `main`. The annotated tag `vX.Y.Z` is the version; `package.json`, the lockfile
@@ -61,8 +65,14 @@ root and the README's Release line mirror it. The full rules are in [RELEASING.m
 ## Plans and process
 
 The roadmap is [ROADMAP.md](ROADMAP.md); plans also live in this repo's GitHub issues and
-Discussions. Work starts from an issue a maintainer has labelled `approved`, sized for one pull
-request, and claimed with a comment giving a date and a confidence; only a small fix, such as a
-typo or a broken link, comes without one. [CONTRIBUTING.md](CONTRIBUTING.md) has the details. The code of conduct is [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), and
+Discussions. Every issue goes idea → planning → ready → in progress → completed or cancelled:
+one stage label while open, the close reason once closed, and its type (Feature, Bug, Task)
+for its kind. Work starts from an issue labelled `ready`, sized for one pull request, and
+claimed with a comment giving a date and a confidence; only a small fix, such as a typo or a
+broken link, comes without one. [CONTRIBUTING.md](CONTRIBUTING.md) has the details. The code of conduct is [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), and
 vulnerabilities are reported privately, as [SECURITY.md](SECURITY.md) says. Agents edit
 files only and do no version control unless asked: maintainers commit, merge, tag and deploy.
+The lab's own agent, `morpheus-lab-agent`, is a maintainer: it claims, builds and opens pull
+requests from a clone of the lab, and reviews pull requests, but merges one into `development`,
+its own or anyone else's, only with a human maintainer's OK, and never releases, tags or
+deploys. The full rule is in [RELEASING.md](RELEASING.md#agents).

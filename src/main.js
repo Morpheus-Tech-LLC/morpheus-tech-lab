@@ -1,14 +1,19 @@
 // main.js
 
+import { state } from './state.js';
 import { initSimulation } from './simulationModel.js';
+import { initControls } from './controls.js';
+import { startFromSetup } from './explore/hud.js';
 import { animate } from './time.js';
 
+// The lab opens in Explore, which streams from a Worker, with the settings its HUD boxes hold
+// (state.explore); the other modes precompute
 (async () => {
-    await initSimulation();
+    if (state.simulationMode === 'explore') {
+        initControls();
+        startFromSetup();
+    } else {
+        await initSimulation();
+    }
     animate();
 })();
-
-// initSimulation();
-
-// // Start animation loop
-// animate();

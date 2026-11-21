@@ -34,6 +34,29 @@ request adds its lines under `## [Unreleased]`, in the right group (`Added`, `Ch
 `Deprecated`, `Removed`, `Fixed`, `Security`). At release, that heading becomes
 `## [X.Y.Z] — YYYY-MM-DD`, and a fresh, empty `## [Unreleased]` goes above it.
 
+## Merge commits
+
+Every pull request merges with a merge commit, never a squash or a rebase, and every merge commit
+has the same shape: the pull request's title and number as the subject, and its issues in the
+body. Commits on a branch follow [CONTRIBUTING.md](CONTRIBUTING.md#commit-messages).
+
+| Into | Subject | Body |
+|---|---|---|
+| `development`, a pull request | `<its title> (#123)` | Its issues, as in its description: `Resolves #45`, `Related to #46`, `Opens #47` |
+| `main`, a release | `Release X.Y.Z (#124)` | One `Shipped: #N` line per issue, as in its description |
+| `main`, a hotfix | `Hotfix X.Y.Z (#125)` | `Resolves #48`, the issue it fixes |
+| `development`, from `main` | `Merge main into development after X.Y.Z` | None: needed only when a fast-forward isn't possible |
+
+The release's prep commit on `development` is `Release prep X.Y.Z`.
+
+The repository's settings (Settings, General, Pull Requests) allow merge commits only, with
+**Pull request title** as the default message: GitHub fills in the subject, and the maintainer
+adds the body's issue lines before confirming the merge. From the command line:
+
+```sh
+gh pr merge 123 --merge --subject "<its title> (#123)" --body "Resolves #45"
+```
+
 ## Release steps (maintainers)
 
 Maintainers release from a clone of the lab itself, not a fork: in these steps and the hotfix
@@ -44,9 +67,10 @@ below, `origin` is the lab.
    and updates the mirrors (`package.json`, the lockfile root, the README's Release line).
    An agent may draft this commit's changes.
 3. **Open a pull request from `development` to `main`** titled `Release X.Y.Z`. Its description
-   lists `Closes #N`, one per line, for every issue that a pull request it ships marked
-   `Resolves`; merging it into `main` closes them. Wait for the DCO and build checks to pass,
-   then merge it **with a merge commit**, never a squash or rebase.
+   lists the issues it ships, one per line (`Shipped: #N`): each closed as completed when its
+   pull request merged into `development`. Wait for the DCO and build checks to pass, then
+   merge it **with a merge commit**, never a squash or rebase: `Release X.Y.Z (#N)`, with its
+   `Shipped:` lines ([Merge commits](#merge-commits)).
 4. **Tag the merge commit:**
    ```sh
    git fetch origin && git tag -a vX.Y.Z origin/main -m "Release X.Y.Z" && git push origin vX.Y.Z
@@ -62,7 +86,7 @@ below, `origin` is the lab.
    git switch development && git merge --ff-only main && git push
    ```
    If the fast-forward is refused, something landed on `development` during the release; merge
-   `main` into `development` instead.
+   `main` into `development` instead, as `Merge main into development after X.Y.Z`.
 7. Optionally, **publish a GitHub Release** from the tag, with that version's changelog section.
 
 ## Hotfix
@@ -71,9 +95,11 @@ For a fix that cannot wait for the next release from `development`:
 
 1. Branch `hotfix/X.Y.Z` from the tag being fixed, e.g. `git switch -c hotfix/1.5.1 v1.5.0`.
 2. Make the fix, bump the mirrors and add a `## [X.Y.Z] — YYYY-MM-DD` changelog section.
-3. Open a pull request from `hotfix/X.Y.Z` to `main`, and merge it with a merge commit.
+3. Open a pull request from `hotfix/X.Y.Z` to `main` titled `Hotfix X.Y.Z`, and merge it with a
+   merge commit: `Hotfix X.Y.Z (#N)` ([Merge commits](#merge-commits)).
 4. Tag and deploy as in steps 4 and 5 above.
-5. Merge `main` back into `development`, so the fix and its changelog entry are not lost.
+5. Merge `main` back into `development`, as `Merge main into development after X.Y.Z`, so the
+   fix and its changelog entry are not lost.
 
 ## A pull request against `main` (maintainers)
 
@@ -83,3 +109,18 @@ closed: a maintainer changes its base to `development` (**Edit**, next to the ti
 ## Agents
 
 Agents edit files only. Maintainers commit, merge, tag and deploy. A deploy is a public release.
+
+The one exception is the lab's own agent, the `morpheus-lab-agent` account, which is a
+maintainer. Like the other maintainers, it works from a clone of the lab itself, not a fork. It:
+
+- moves issues as [Moving an issue](CONTRIBUTING.md#moving-an-issue) says, and posts the
+  `Ready. Done when:` comment for a plan a human maintainer has accepted;
+- claims ready issues itself, with its own date and confidence;
+- for an issue it has claimed, branches off `development`, commits, pushes the branch to the lab
+  and opens the pull request, without being asked each time;
+- reviews pull requests, and merges them into `development` once a human maintainer has given
+  their OK.
+
+It never merges a pull request, its own or anyone else's, without a human maintainer's OK: an
+approval on GitHub, or the word of the maintainer running it. And it never releases, tags,
+merges into `main` or deploys: those stay with human maintainers.

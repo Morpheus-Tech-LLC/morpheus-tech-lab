@@ -1,0 +1,460 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!--
+  The memory page (#39): how much memory one tab can take, in the engine's slabs, in this
+  browser on this machine, and how many generations a Speed candidate reaches in a timed run here,
+  alone or two side by side, drawn as they grow. The results set Explore's default memory limit,
+  and help choose Speed's seed and ceiling.
+  Dev only: open http://localhost:5180/src/unbounded/memory.html under `npm run dev`. It is never
+  shipped or linked from the lab: reaching the browser's cap can close the tab.
+  `npm run build` doesn't include it (the build's only page is index.html).
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Engine memory</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #fff; --text: #1b1f24; --muted: #5b6470; --line: #d9dde3;
+    --accent: #3a6df0; --pass: #1f8a4c; --fail: #c0392b; --warn: #a86a00;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151a; --panel: #1b2027; --text: #e6e9ee; --muted: #9aa4b1; --line: #2c333d;
+      --accent: #7aa2ff; --pass: #4cc27f; --fail: #ff6b5b; --warn: #e0a84a;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 system-ui, sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 20px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 0 0 10px; }
+  p { margin: 0 0 10px; }
+  p.lead, .muted { color: var(--muted); }
+  .warning { border-left: 4px solid var(--warn); padding: 8px 12px; background: var(--panel); margin-bottom: 16px; }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+  button { font: inherit; padding: 6px 14px; border-radius: 7px; border: 1px solid var(--line); background: var(--bg); color: var(--text); cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  button:disabled { opacity: .5; cursor: default; }
+  input, select { font: inherit; padding: 4px 6px; border-radius: 6px; border: 1px solid var(--line); background: var(--bg); color: var(--text); width: 7em; }
+  label { display: inline-flex; gap: 6px; align-items: center; margin: 0 14px 8px 0; color: var(--muted); }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
+  .big { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .pass { color: var(--pass); } .fail { color: var(--fail); }
+  table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+  th, td { text-align: right; padding: 4px 8px; border-top: 1px solid var(--line); }
+  th:first-child, td:first-child { text-align: left; }
+  textarea { width: 100%; min-height: 160px; font: 12px/1.5 ui-monospace, monospace; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
+  dl { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; margin: 0; }
+  dt { color: var(--muted); } dd { margin: 0; overflow-wrap: anywhere; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 700px) { .pair { grid-template-columns: 1fr; } }
+  canvas { width: 100%; aspect-ratio: 1; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); display: block; }
+  .stats { display: grid; grid-template-columns: max-content 1fr; gap: 0 10px; font-variant-numeric: tabular-nums; margin-top: 8px; font-size: 14px; }
+  .stats dt { color: var(--muted); } .stats dd { margin: 0; text-align: right; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Engine memory</h1>
+  <p class="lead">How much one tab can take in the unbounded engine's slabs, and how far a Speed candidate gets in a
+    timed run, in this browser on this machine. For #39: run it in each browser, then copy the results into the pull request.</p>
+  <p class="warning"><strong>This can close the tab.</strong> Reaching the browser's limit may end the tab instead of
+    refusing politely; the page saves its progress after every slab, so reopening it shows how far it got. Close other
+    work first, and keep this tab in front.</p>
+
+  <section>
+    <h2>This browser</h2>
+    <dl id="browser"></dl>
+  </section>
+
+  <section>
+    <h2>1. Memory</h2>
+    <p class="muted">A Worker takes 64 MB slabs through the engine's own <code>World.addSlab()</code> and writes into every page of
+      each, until the browser refuses one or the cap is reached.</p>
+    <div class="row">
+      <label>Cap (MB) <input id="cap" type="number" min="64" step="64" value="16384"></label>
+      <button id="probe" class="primary">Start</button>
+      <button id="stop" disabled>Stop</button>
+      <button id="release" disabled>Release the memory</button>
+    </div>
+    <div class="big" id="total">–</div>
+    <p id="outcome" class="muted"></p>
+    <p id="last" class="muted"></p>
+  </section>
+
+  <section>
+    <h2>2. A Speed candidate, timed</h2>
+    <p class="muted">A timed run in the engine's Worker, through the same driver Explore uses: the generations completed before
+      the deadline. Runs one after another, each in a fresh Worker.</p>
+    <div class="row">
+      <label>Candidate <select id="candidate"></select></label>
+      <label>Chunk <select id="chunk"><option>8</option><option selected>16</option><option>32</option></select></label>
+      <label>Seconds <input id="seconds" type="number" min="1" max="60" value="6"></label>
+      <label>Runs <input id="runs" type="number" min="1" max="10" value="3"></label>
+      <button id="time" class="primary">Run</button>
+    </div>
+    <table>
+      <thead><tr><th>Run</th><th>Candidate</th><th>Chunk</th><th>Generations</th><th>Live cells</th><th>MB used</th></tr></thead>
+      <tbody id="speedRows"></tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>3. Two candidates side by side</h2>
+    <p class="muted">Each runs a timed run in its own Worker, drawn from the side as it grows (brighter where more cells
+      line up). Drawing asks the engine for its cells twice a second, which costs it a little speed: for the contest's
+      number, use section 2, or untick drawing.</p>
+    <div class="row">
+      <label>Seconds <input id="pairSeconds" type="number" min="1" max="120" value="6"></label>
+      <label>Chunk <select id="pairChunk"><option>8</option><option selected>16</option><option>32</option></select></label>
+      <label><input id="pairDraw" type="checkbox" checked style="width:auto"> draw while running</label>
+      <label><input id="pairOneAfter" type="checkbox" style="width:auto"> one after another (fairer: each gets the machine to itself)</label>
+      <button id="pairRun" class="primary">Run both</button>
+    </div>
+    <div class="row">
+      <span class="muted">To watch one in 3D, load it in Explore (Settings, Seed file, Load…):</span>
+      <button id="downloadA">Download A's seed file</button>
+      <button id="downloadB">Download B's seed file</button>
+    </div>
+    <div class="pair">
+      <div><label>A <select id="pairA"></select></label><canvas id="viewA" width="480" height="480"></canvas><dl class="stats" id="statsA"></dl></div>
+      <div><label>B <select id="pairB"></select></label><canvas id="viewB" width="480" height="480"></canvas><dl class="stats" id="statsB"></dl></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>4. Results to copy</h2>
+    <textarea id="results" readonly></textarea>
+    <div class="row" style="margin-top:8px"><button id="copy">Copy</button></div>
+  </section>
+</main>
+
+<script type="module">
+import { EngineDriver } from './driver.js';
+import { SHORTLIST, candidate, labelOf } from '/scripts/bench/candidates.mjs';
+import { ruleText } from '/scripts/bench/lib.mjs';
+import { toSeedFile } from '../explore/seed.js';
+
+const $ = (id) => document.getElementById(id);
+const STORE = 'lab-memory-probe';
+const results = { browser: null, memory: null, speed: [], sideBySide: [] };
+
+// Storage can be missing or refuse (a private window): the page works without it
+const store = {
+  get() { try { return JSON.parse(localStorage.getItem(STORE)); } catch { return null; } },
+  set(value) { try { localStorage.setItem(STORE, JSON.stringify(value)); } catch { /* not kept */ } },
+};
+
+// ---- This browser ----
+const heap = performance.memory?.jsHeapSizeLimit;
+results.browser = {
+  userAgent: navigator.userAgent,
+  threads: navigator.hardwareConcurrency ?? null,
+  deviceMemoryGB: navigator.deviceMemory ?? null, // Chrome only, and capped at 8
+  jsHeapLimitMB: heap ? Math.round(heap / 2 ** 20) : null, // Chrome only: the JavaScript heap, not slabs
+};
+$('browser').innerHTML = [
+  ['Browser', results.browser.userAgent],
+  ['Threads', results.browser.threads ?? 'not reported'],
+  ['Device memory', results.browser.deviceMemoryGB ? `${results.browser.deviceMemoryGB} GB or more (the browser caps this)` : 'not reported'],
+  ['JavaScript heap limit', results.browser.jsHeapLimitMB ? `${results.browser.jsHeapLimitMB.toLocaleString('en')} MB (slabs are outside it)` : 'not reported'],
+].map(([k, v]) => `<dt>${k}</dt><dd>${String(v).replace(/</g, '&lt;')}</dd>`).join('');
+
+// ---- Memory ----
+const last = store.get();
+if (last) {
+  const when = new Date(last.at).toLocaleString();
+  $('last').textContent = last.finished
+    ? `Last time in this browser (${when}): ${last.totalMB.toLocaleString('en')} MB, ${last.outcome}.`
+    : `The last probe in this browser (${when}) didn't finish: the tab closed at about ${last.totalMB.toLocaleString('en')} MB.`;
+  // Kept in the results to copy, so a reload (or a closed tab) doesn't lose the measurement
+  results.memory = last.finished
+    ? { totalMB: last.totalMB, outcome: last.outcome, measuredAt: new Date(last.at).toISOString() }
+    : { totalMB: last.totalMB, outcome: 'tab closed', measuredAt: new Date(last.at).toISOString() };
+}
+
+let worker = null;
+$('probe').onclick = () => {
+  worker?.terminate();
+  worker = new Worker(new URL('./memory.worker.js', import.meta.url), { type: 'module' });
+  const capMB = Math.max(64, Number($('cap').value) || 16384);
+  $('probe').disabled = true;
+  $('stop').disabled = false;
+  $('release').disabled = true;
+  $('outcome').textContent = 'Taking memory…';
+  $('outcome').className = 'muted';
+  store.set({ totalMB: 0, at: Date.now(), finished: false });
+  worker.onmessage = ({ data }) => {
+    if (data.type === 'slab') {
+      $('total').textContent = `${data.totalMB.toLocaleString('en')} MB`;
+      store.set({ totalMB: data.totalMB, at: Date.now(), finished: false });
+    } else if (data.type === 'done') {
+      $('total').textContent = `${data.totalMB.toLocaleString('en')} MB`;
+      const said = {
+        refused: 'the browser refused the next slab',
+        cap: `the cap (${capMB.toLocaleString('en')} MB) was reached first`,
+        stopped: 'stopped by hand',
+      }[data.outcome];
+      $('outcome').textContent = `${data.totalMB.toLocaleString('en')} MB: ${said}.${data.message ? ` (${data.message})` : ''}`;
+      $('outcome').className = data.outcome === 'refused' ? 'pass' : 'muted';
+      store.set({ totalMB: data.totalMB, at: Date.now(), finished: true, outcome: data.outcome });
+      results.memory = { totalMB: data.totalMB, outcome: data.outcome, capMB };
+      $('probe').disabled = false;
+      $('stop').disabled = true;
+      $('release').disabled = false;
+      showResults();
+    } else if (data.type === 'released') {
+      worker.terminate();
+      worker = null;
+      $('release').disabled = true;
+      $('outcome').textContent += ' Released.';
+    }
+  };
+  worker.onerror = (event) => {
+    $('outcome').textContent = `The Worker failed: ${event.message ?? 'no message'}`;
+    $('outcome').className = 'fail';
+    $('probe').disabled = false;
+    $('stop').disabled = true;
+  };
+  worker.postMessage({ type: 'probe', capMB });
+};
+$('stop').onclick = () => worker?.postMessage({ type: 'stop' });
+$('release').onclick = () => worker?.postMessage({ type: 'release' });
+
+// ---- A Speed candidate, timed ----
+for (const id of SHORTLIST) {
+  const option = document.createElement('option');
+  option.value = id;
+  option.textContent = `${labelOf(id)}: ${ruleText(candidate(id).rules)}`;
+  $('candidate').append(option);
+}
+
+function timedRun({ id, chunkSize, seconds }) {
+  const { rules, seed } = candidate(id);
+  return new Promise((resolve, reject) => {
+    const driver = new EngineDriver({
+      onState: (state, stats, reason) => {
+        if (state !== 'ended') return;
+        driver.close();
+        resolve({ stats, reason });
+      },
+      onError: (message) => {
+        driver.close();
+        reject(new Error(message));
+      },
+    });
+    driver.start({ world: { rules, chunkSize }, seed: Int32Array.from(seed.flat()), run: { kind: 'timed', seconds } });
+  });
+}
+
+$('time').onclick = async () => {
+  const id = $('candidate').value === 'cube' ? 'cube' : Number($('candidate').value);
+  const chunkSize = Number($('chunk').value);
+  const seconds = Math.min(60, Math.max(1, Number($('seconds').value) || 6));
+  const runs = Math.min(10, Math.max(1, Number($('runs').value) || 3));
+  $('time').disabled = true;
+  try {
+    for (let r = 1; r <= runs; r++) {
+      const { stats, reason } = await timedRun({ id, chunkSize, seconds });
+      const row = { candidate: id, chunkSize, seconds, generations: stats.generation, live: stats.live, usedMB: +(stats.usedBytes / 2 ** 20).toFixed(1), reason };
+      results.speed.push(row);
+      const tr = document.createElement('tr');
+      tr.innerHTML = [results.speed.length, id, chunkSize, row.generations.toLocaleString('en'), row.live.toLocaleString('en'), row.usedMB]
+        .map((v) => `<td>${v}</td>`).join('');
+      $('speedRows').append(tr);
+      showResults();
+    }
+  } catch (err) {
+    alert(`The run failed: ${err.message}`);
+  } finally {
+    $('time').disabled = false;
+  }
+};
+
+// ---- Two candidates side by side ----
+const RENDER_BUDGET = 300_000; // past this many live cells, a snapshot sends chunks instead
+for (const [select, chosen] of [[$('pairA'), 'cube'], [$('pairB'), 12345]]) {
+  for (const id of SHORTLIST) {
+    const option = document.createElement('option');
+    option.value = id;
+    option.textContent = `${labelOf(id)}: ${ruleText(candidate(id).rules)}`;
+    option.selected = id === chosen;
+    select.append(option);
+  }
+}
+const idOf = (select) => (select.value === 'cube' ? 'cube' : Number(select.value));
+
+/** Saves a candidate as an Explore seed file, which Explore's Seed file, Load… reads back. */
+function downloadSeed(id) {
+  const { rules, seed } = candidate(id);
+  const blob = new Blob([toSeedFile({ rules, cells: seed.flat() })], { type: 'application/json' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `speed-candidate-${id}.json`;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+}
+$('downloadA').onclick = () => downloadSeed(idOf($('pairA')));
+$('downloadB').onclick = () => downloadSeed(idOf($('pairB')));
+const sideOfExtent = (e) => (e ? Math.max(...e.max.map((hi, a) => hi - e.min[a] + 1)) : 0);
+
+function showStats(dl, stats, note) {
+  const rows = [
+    ['Generation', stats.generation.toLocaleString('en')],
+    ['Live cells', stats.live.toLocaleString('en')],
+    ['Side', sideOfExtent(stats.extent).toLocaleString('en')],
+    ['Generations/s', Math.round(stats.rate).toLocaleString('en')],
+    ['MB used', (stats.usedBytes / 2 ** 20).toFixed(1)],
+    ['Time', `${(stats.elapsedMs / 1000).toFixed(1)} s`],
+  ];
+  if (note) rows.push(['', note]);
+  dl.innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
+}
+
+/** One candidate's timed run, drawn and counted as it goes. Resolves with its final statistics. */
+function watchRun({ id, chunkSize, seconds, draw, canvas, dl }) {
+  const { rules, seed } = candidate(id);
+  return new Promise((resolve, reject) => {
+    let timer = null;
+    let asking = false;
+    const ask = async () => {
+      if (asking) return;
+      asking = true;
+      try {
+        drawSnapshot(canvas, await driver.snapshot({ budget: RENDER_BUDGET }));
+      } catch { /* the run ended while asking */ }
+      asking = false;
+    };
+    const driver = new EngineDriver({
+      onStats: (stats) => showStats(dl, stats),
+      onState: async (state, stats, reason) => {
+        showStats(dl, stats, state === 'ended' ? `ended: ${reason}` : state);
+        if (state !== 'ended') return;
+        clearInterval(timer);
+        await ask(); // the last generation, drawn whether or not drawing ran during the run
+        driver.close();
+        resolve(stats);
+      },
+      onError: (message) => {
+        clearInterval(timer);
+        driver.close();
+        reject(new Error(message));
+      },
+    });
+    canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+    driver.start({ world: { rules, chunkSize }, seed: Int32Array.from(seed.flat()), run: { kind: 'timed', seconds } });
+    if (draw) timer = setInterval(ask, 500);
+  });
+}
+
+$('pairRun').onclick = async () => {
+  const seconds = Math.min(120, Math.max(1, Number($('pairSeconds').value) || 6));
+  const chunkSize = Number($('pairChunk').value);
+  const draw = $('pairDraw').checked;
+  const oneAfter = $('pairOneAfter').checked;
+  const sides = [
+    { id: idOf($('pairA')), canvas: $('viewA'), dl: $('statsA') },
+    { id: idOf($('pairB')), canvas: $('viewB'), dl: $('statsB') },
+  ];
+  $('pairRun').disabled = true;
+  try {
+    let finals;
+    if (oneAfter) {
+      finals = [];
+      for (const side of sides) finals.push(await watchRun({ ...side, chunkSize, seconds, draw }));
+    } else {
+      finals = await Promise.all(sides.map((side) => watchRun({ ...side, chunkSize, seconds, draw })));
+    }
+    results.sideBySide.push({
+      seconds, chunkSize, drawn: draw, together: !oneAfter,
+      runs: sides.map((side, i) => ({
+        candidate: side.id, generations: finals[i].generation, live: finals[i].live,
+        side: sideOfExtent(finals[i].extent), usedMB: +(finals[i].usedBytes / 2 ** 20).toFixed(1),
+      })),
+    });
+    showResults();
+  } catch (err) {
+    alert(`A run failed: ${err.message}`);
+  } finally {
+    $('pairRun').disabled = false;
+  }
+};
+
+/**
+ * Draws a snapshot seen from the side, at an angle (x and z across, y up), each pixel brighter
+ * for more cells along the line of sight. Chunks (past the budget) are drawn as blocks.
+ */
+function drawSnapshot(canvas, snapshot) {
+  const ctx = canvas.getContext('2d');
+  const { width, height } = canvas;
+  const points = [];
+  if (snapshot.cells) {
+    const c = snapshot.cells;
+    for (let i = 0; i < c.length; i += 3) points.push(c[i], c[i + 1], c[i + 2], 1);
+  } else if (snapshot.chunks) {
+    const c = snapshot.chunks;
+    const half = snapshot.chunkSize / 2;
+    for (let i = 0; i < c.length; i += 4) points.push(c[i] + half, c[i + 1] + half, c[i + 2] + half, c[i + 3]);
+  }
+  ctx.clearRect(0, 0, width, height);
+  if (!points.length) return;
+  const cos = Math.cos(Math.PI / 6), sin = Math.sin(Math.PI / 6);
+  const project = (x, y, z) => [(x - z) * cos, (x + z) * sin * 0.6 - y];
+  let minU = Infinity, maxU = -Infinity, minV = Infinity, maxV = -Infinity;
+  for (let i = 0; i < points.length; i += 4) {
+    const [u, v] = project(points[i], points[i + 1], points[i + 2]);
+    if (u < minU) minU = u;
+    if (u > maxU) maxU = u;
+    if (v < minV) minV = v;
+    if (v > maxV) maxV = v;
+  }
+  const scale = (width - 20) / Math.max(maxU - minU + 1, maxV - minV + 1);
+  const counts = new Float32Array(width * height);
+  let most = 1;
+  const splat = snapshot.cells ? 0 : Math.max(0, Math.round((snapshot.chunkSize * scale) / 2));
+  for (let i = 0; i < points.length; i += 4) {
+    const [u, v] = project(points[i], points[i + 1], points[i + 2]);
+    const px = Math.floor(10 + (u - minU) * scale), py = Math.floor(10 + (v - minV) * scale);
+    for (let dy = -splat; dy <= splat; dy++) {
+      for (let dx = -splat; dx <= splat; dx++) {
+        const x = px + dx, y = py + dy;
+        if (x < 0 || y < 0 || x >= width || y >= height) continue;
+        const k = y * width + x;
+        counts[k] += points[i + 3];
+        if (counts[k] > most) most = counts[k];
+      }
+    }
+  }
+  const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(accent.slice(i, i + 2), 16));
+  const image = ctx.createImageData(width, height);
+  for (let k = 0; k < counts.length; k++) {
+    if (!counts[k]) continue;
+    const o = 4 * k;
+    image.data[o] = r;
+    image.data[o + 1] = g;
+    image.data[o + 2] = b;
+    image.data[o + 3] = 60 + Math.round(195 * Math.sqrt(counts[k] / most));
+  }
+  ctx.putImageData(image, 0, 0);
+}
+
+// ---- Results ----
+function showResults() {
+  $('results').value = JSON.stringify(results, null, 2);
+}
+$('copy').onclick = async () => {
+  try {
+    await navigator.clipboard.writeText($('results').value);
+    $('copy').textContent = 'Copied';
+  } catch {
+    $('results').select();
+    $('copy').textContent = 'Select and copy by hand';
+  }
+};
+showResults();
+</script>
+</body>
+</html>

@@ -1,0 +1,620 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// The unbounded Game of Life 3D world: its chunk store, its limits and its arena, which may wrap.
+// step.js advances it one generation at a time.
+//
+// Space is divided into chunks of chunkSize³ cells. A chunk exists only while it holds live
+// cells, or for the length of one step while a live neighbour might bring cells to life in it.
+// Each chunk is a slot in a large slab (an ArrayBuffer, 64 MB by default), not a typed array of
+// its own, so the cells' memory lives outside the JavaScript heap. The `chunks` Map holds only
+// chunk key -> slot. A new slab is the only point where the engine asks the browser for memory,
+// so a refusal is one catchable error in one place.
+//
+// A slot holds two copies of its chunk's cells, one byte per cell (0 or 1): the current
+// generation and the next. The world's `parity` says which copy is current, and it flips for
+// every chunk at once when a step completes. Every chunk is always at the same generation.
+//
+// Nothing here imports `state` or touches the page, so it runs in Node, in a Web Worker and in
+// the browser.
+
+import { validateRules, ruleTable, RuleError } from './rules.js';
+
+/**
+ * The neighbours a wall cell has inside an arena with walls (#119): a cell on one of the arena's
+ * faces has 17, on two (an edge) 11, on three (a corner) 7. Past a wall is empty.
+ */
+export const WALL_NEIGHBOURS = { face: 17, edge: 11, corner: 7 };
+
+/** Live cells lie in [-COORDINATE_LIMIT, COORDINATE_LIMIT - 1] on every axis. */
+export const COORDINATE_LIMIT = 2 ** 19;
+export const CHUNK_SIZES = [8, 16, 32];
+export const DEFAULT_SLAB_BYTES = 64 * 1024 * 1024;
+
+/** The reasons a run can end, besides being stopped by hand. */
+export const STOP_REASONS = [
+  'cell-limit', // more live cells than limits.cells
+  'extent-limit', // a side of the bounding box longer than limits.extent cells
+  'coordinate-limit', // a cell outside the representable space (COORDINATE_LIMIT)
+  'memory-limit', // another slab would take the engine past limits.memory bytes
+  'out-of-memory', // the browser refused a new slab
+  'arena-edge', // a cell would come to life outside the arena
+];
+
+// Chunk keys. A chunk coordinate is a cell coordinate divided by the chunk size, rounded down.
+// The key range covers the representable space plus one guard chunk on each side, so a step
+// that would bring a cell to life just past the limit can be computed, and then refused.
+const KEY_OFFSET = COORDINATE_LIMIT / Math.min(...CHUNK_SIZES) + 1;
+const KEY_SPAN = 2 * KEY_OFFSET + 1;
+
+function inKeyRange(c) {
+  return c >= -KEY_OFFSET && c <= KEY_OFFSET;
+}
+
+export function chunkKey(cx, cy, cz) {
+  return ((cx + KEY_OFFSET) * KEY_SPAN + (cy + KEY_OFFSET)) * KEY_SPAN + (cz + KEY_OFFSET);
+}
+
+/** Thrown inside the engine when a limit ends the run; step() turns it into a stop reason. */
+export class StopSignal extends Error {
+  constructor(reason) {
+    super(reason);
+    this.reason = reason;
+  }
+}
+
+/**
+ * A world that can't be built or seeded as asked. `reason` is set when a seed didn't fit in
+ * memory ('memory-limit' or 'out-of-memory'): the machine's limit, not the seed's fault.
+ */
+export class WorldError extends Error {
+  constructor(message, reason = null) {
+    super(message);
+    this.name = 'WorldError';
+    this.reason = reason;
+  }
+}
+
+export class World {
+  /**
+   * @param {object} options
+   * @param {{birth: number[], survival: number[]}} options.rules - B0 is refused
+   * @param {number} [options.chunkSize] - 8, 16 or 32 cells
+   * @param {number} [options.slabBytes] - bytes per slab; at least one chunk's slot
+   * @param {{cells?: number, extent?: number, memory?: number}} [options.limits] - all
+   *   unlimited by default; memory is in bytes of slabs
+   * @param {{min: number[], max: number[]}} [options.arena] - an optional box, inclusive: a
+   *   step that would bring a cell to life outside it ends the run, unless it wraps
+   * @param {boolean} [options.wrap] - the arena wraps (#114): it is a torus, whose opposite faces
+   *   are neighbours, so a cell next to one face counts the cells at the other, and no cell is
+   *   ever born outside it. Needs an arena at least 3 cells a side on every axis, and excludes
+   *   departures, as a ship can't leave a torus. Off by default
+   * @param {{corner: object, edge: object, face: object}} [options.walls] - the arena has walls
+   *   (#119): past them is empty, nothing is born outside the arena, and a cell on one of its
+   *   faces follows `face`, on two `edge`, on three `corner`, each {birth, survival} and counted
+   *   in real neighbours (WALL_NEIGHBOURS). Needs an arena at least 3 cells a side, and excludes
+   *   wrapping and departures
+   * @param {(bytes: number) => ArrayBuffer} [options.allocate] - how a slab is obtained. A
+   *   RangeError from it means the browser refused the memory. Tests replace it.
+   * @param {boolean} [options.fingerprint] - keep a fingerprint of the cells (fingerprint()),
+   *   for spotting a pattern that repeats. Off by default: it costs a little per live cell.
+   * @param {{period: number}} [options.departures] - ships leave at the arena's edge
+   *   (departures.js, #100): the longest ship period recognised. Needs an arena. The world
+   *   only keeps the rule and the departures so far (`departed`); departures.js's step applies it
+   */
+  constructor({
+    rules, chunkSize = 16, slabBytes = DEFAULT_SLAB_BYTES, limits = {}, arena = null, wrap = false, walls = null,
+    allocate = (bytes) => new ArrayBuffer(bytes), fingerprint = false, departures = null,
+  } = {}) {
+    if (!CHUNK_SIZES.includes(chunkSize)) {
+      throw new WorldError(`The chunk size must be one of ${CHUNK_SIZES.join(', ')}.`);
+    }
+    this.rules = validateRules(rules);
+    this.table = ruleTable(this.rules);
+
+    const n = chunkSize;
+    this.n = n;
+    this.shift = Math.log2(n);
+    this.mask = n - 1;
+    this.volume = n * n * n;
+    this.slotBytes = 2 * this.volume;
+    this.slotsPerSlab = Math.floor(slabBytes / this.slotBytes);
+    if (this.slotsPerSlab < 1) {
+      throw new WorldError(`A slab must hold at least one chunk (${this.slotBytes} bytes).`);
+    }
+    this.slabBytes = this.slotsPerSlab * this.slotBytes;
+
+    this.limits = {
+      cells: limits.cells ?? Infinity,
+      extent: limits.extent ?? Infinity,
+      memory: limits.memory ?? Infinity,
+    };
+    this.arena = arena && checkArena(arena);
+    this.departures = departures && checkDepartures(departures, this.arena);
+    this.wrap = checkWrap(wrap, this.arena, this.departures);
+    this.walls = checkWalls(walls, this.arena, this.wrap, this.departures);
+    // The rule tables by how many of the arena's faces a cell lies on: 0 (inside), 1, 2 or 3
+    this.tables = this.walls
+      ? [this.table, ruleTable(this.walls.face), ruleTable(this.walls.edge), ruleTable(this.walls.corner)]
+      : null;
+    /** The departures so far, oldest first: {generation, period, shift, cells}, as departures.js records them. */
+    this.departed = [];
+    this.allocate = allocate;
+    this.fingerprinting = fingerprint;
+
+    this.slabs = []; // Uint8Array views, one per slab
+    this.free = []; // free slots, the lowest last
+    this.chunks = new Map(); // chunk key -> slot
+    this.chunksCreated = 0; // chunks ever allocated, including a step's empty neighbours
+    this.chunksPeak = 0; // the most chunks allocated at once
+    this.parity = 0; // which copy in each slot is the current generation
+    this.generation = 0;
+    this.stopReason = null;
+
+    // Per-slot facts about the current generation, and the step's candidate for the next one.
+    // They grow with the slabs. `touch` has bit (dz+1)*9 + (dy+1)*3 + (dx+1) set when a live
+    // cell on the chunk's border touches the neighbouring chunk at (dx, dy, dz).
+    this.meta = newMeta(0);
+    this.next = newMeta(0);
+
+    // Scratch for one chunk's step: its cells with a one-cell border, and partial sums
+    const m = n + 2;
+    this.padded = new Uint8Array(m * m * m);
+    this.sumX = new Uint8Array(n * m * m);
+    this.sumXY = new Uint8Array(n * n * m);
+  }
+
+  get liveCells() {
+    let total = 0;
+    for (const slot of this.chunks.values()) total += this.meta.live[slot];
+    return total;
+  }
+
+  get chunkCount() {
+    return this.chunks.size;
+  }
+
+  /** Bytes of cell memory the engine holds: its slabs. Grows a whole slab at a time. */
+  get memoryBytes() {
+    return this.slabs.length * this.slabBytes;
+  }
+
+  /** Bytes of that memory the chunks use now: grows and shrinks with the pattern. */
+  get usedBytes() {
+    return this.chunks.size * this.slotBytes;
+  }
+
+  /**
+   * A 64-bit fingerprint of the live cells, as text: two independent 32-bit sums of a hash of
+   * each cell's coordinates. Equal cells, in place, give equal fingerprints whatever the chunk
+   * layout. Different cells rarely share one by chance, but a sum of per-cell hashes can be made
+   * to collide on purpose, so a fingerprint only proposes a repeat: settle.js confirms it by
+   * comparing the cells, and that is what keeps an ending right. Needs the `fingerprint` option.
+   */
+  fingerprint() {
+    let a = 0;
+    let b = 0;
+    for (const slot of this.chunks.values()) {
+      a = (a + this.meta.hashA[slot]) | 0;
+      b = (b + this.meta.hashB[slot]) | 0;
+    }
+    return `${(a >>> 0).toString(16)}:${(b >>> 0).toString(16)}`;
+  }
+
+  /** @returns {{min: number[], max: number[]} | null} the live cells' bounding box */
+  extent() {
+    return boxOf(this.meta, this.chunks.values(), this.n);
+  }
+
+  /**
+   * Brings cells to life before the first step. Throws a WorldError for a cell outside the
+   * representable space or the arena, or for a seed past a limit; the world is then unusable.
+   * @param {Iterable<number[]>} cells - [x, y, z] each
+   */
+  setCells(cells) {
+    if (this.generation !== 0) throw new WorldError('Cells can only be set before the first step.');
+    const touched = new Set();
+    try {
+      for (const [x, y, z] of cells) {
+        for (const c of [x, y, z]) {
+          if (!Number.isInteger(c) || c < -COORDINATE_LIMIT || c >= COORDINATE_LIMIT) {
+            throw new WorldError(`[${x}, ${y}, ${z}] is outside the representable space.`);
+          }
+        }
+        if (this.arena && !inBox(this.arena, x, y, z)) {
+          throw new WorldError(`[${x}, ${y}, ${z}] is outside the arena.`);
+        }
+        const slot = this.slotFor(x >> this.shift, y >> this.shift, z >> this.shift);
+        touched.add(slot);
+        const [slab, base] = this.current(slot);
+        slab[base + this.localIndex(x, y, z)] = 1;
+      }
+    } catch (err) {
+      if (err instanceof StopSignal) {
+        throw new WorldError(`The seed doesn't fit in memory (${err.reason}).`, err.reason);
+      }
+      throw err;
+    }
+    for (const slot of touched) this.scan(slot);
+
+    const box = this.extent();
+    if (this.liveCells > this.limits.cells) throw new WorldError('The seed has more cells than the cell limit.');
+    if (box && longestSide(box) > this.limits.extent) throw new WorldError('The seed is wider than the extent limit.');
+  }
+
+  /**
+   * Sets cells of the current generation alive (1) or dead (0), between steps, and recounts their
+   * chunks. departures.js deletes a ship this way, and puts it back if the step after fails. A
+   * chunk left empty is released by the next step, as any other is.
+   * @param {Int32Array} flat - x, y, z triples, each in the representable space
+   * @param {0 | 1} value
+   */
+  writeCells(flat, value) {
+    const touched = new Set();
+    for (let i = 0; i < flat.length; i += 3) {
+      const [x, y, z] = [flat[i], flat[i + 1], flat[i + 2]];
+      const slot = value ? this.slotFor(x >> this.shift, y >> this.shift, z >> this.shift)
+        : this.findSlot(x >> this.shift, y >> this.shift, z >> this.shift);
+      if (slot === undefined) continue;
+      const [slab, base] = this.current(slot);
+      slab[base + this.localIndex(x, y, z)] = value;
+      touched.add(slot);
+    }
+    for (const slot of touched) this.scan(slot);
+  }
+
+  /** @returns {boolean} whether the cell is alive in the current generation */
+  has(x, y, z) {
+    const slot = this.findSlot(x >> this.shift, y >> this.shift, z >> this.shift);
+    if (slot === undefined) return false;
+    const [slab, base] = this.current(slot);
+    return slab[base + this.localIndex(x, y, z)] === 1;
+  }
+
+  /** @returns {Int32Array} the live cells as x, y, z triples, in no particular order */
+  cells() {
+    const out = new Int32Array(3 * this.liveCells);
+    const { n } = this;
+    let k = 0;
+    for (const slot of this.chunks.values()) {
+      const [slab, base] = this.current(slot);
+      const ox = this.meta.cx[slot] * n, oy = this.meta.cy[slot] * n, oz = this.meta.cz[slot] * n;
+      for (let i = 0; i < this.volume; i++) {
+        if (slab[base + i]) {
+          out[k++] = ox + (i & this.mask);
+          out[k++] = oy + ((i >> this.shift) & this.mask);
+          out[k++] = oz + (i >> (2 * this.shift));
+        }
+      }
+    }
+    return out;
+  }
+
+  /**
+   * @param {{axis: number, index: number}} [plane] - only the chunks that cross the plane
+   *   where coordinate `axis` (0, 1, 2 for x, y, z) equals `index`
+   * @returns {Int32Array} the chunks that hold live cells, as x, y, z, live quadruples: each
+   *   chunk's lowest corner in cells, and how many of its cells are alive
+   */
+  chunkList(plane = null) {
+    const out = new Int32Array(4 * this.chunks.size);
+    const { n } = this;
+    const across = plane && [this.meta.cx, this.meta.cy, this.meta.cz][plane.axis];
+    let k = 0;
+    for (const slot of this.chunks.values()) {
+      const live = this.meta.live[slot];
+      if (!live) continue;
+      if (plane && across[slot] !== plane.index >> this.shift) continue;
+      out[k++] = this.meta.cx[slot] * n;
+      out[k++] = this.meta.cy[slot] * n;
+      out[k++] = this.meta.cz[slot] * n;
+      out[k++] = live;
+    }
+    return k === out.length ? out : out.slice(0, k);
+  }
+
+  /**
+   * @returns {Int32Array} the live cells in the plane where coordinate `axis` (0, 1, 2 for x, y,
+   *   z) equals `index`, as x, y, z triples. Reads only the chunks that cross the plane.
+   */
+  cellsInPlane(axis, index) {
+    const { n, shift } = this;
+    const across = [this.meta.cx, this.meta.cy, this.meta.cz][axis];
+    const chunk = index >> shift;
+    const local = index & this.mask;
+    const stride = [1, n, n * n];
+    // The other two axes, which the plane spans
+    const [u, v] = [0, 1, 2].filter((a) => a !== axis);
+    const found = [];
+    for (const slot of this.chunks.values()) {
+      if (!this.meta.live[slot] || across[slot] !== chunk) continue;
+      const [slab, base] = this.current(slot);
+      const origin = [this.meta.cx[slot] * n, this.meta.cy[slot] * n, this.meta.cz[slot] * n];
+      const start = base + local * stride[axis];
+      for (let j = 0; j < n; j++) {
+        for (let i = 0; i < n; i++) {
+          if (!slab[start + i * stride[u] + j * stride[v]]) continue;
+          const cell = [0, 0, 0];
+          cell[axis] = index;
+          cell[u] = origin[u] + i;
+          cell[v] = origin[v] + j;
+          found.push(cell[0], cell[1], cell[2]);
+        }
+      }
+    }
+    return Int32Array.from(found);
+  }
+
+  // ---- Internals, shared with step.js ----
+
+  localIndex(x, y, z) {
+    const { mask, shift } = this;
+    return (x & mask) + ((y & mask) << shift) + ((z & mask) << (2 * shift));
+  }
+
+  /** @returns {[Uint8Array, number]} a slot's slab and the offset of its current copy */
+  current(slot) {
+    return this.copy(slot, this.parity);
+  }
+
+  copy(slot, which) {
+    const slab = this.slabs[Math.floor(slot / this.slotsPerSlab)];
+    return [slab, (slot % this.slotsPerSlab) * this.slotBytes + which * this.volume];
+  }
+
+  /** The slot of the chunk at (cx, cy, cz), or undefined if it has none. */
+  findSlot(cx, cy, cz) {
+    if (!inKeyRange(cx) || !inKeyRange(cy) || !inKeyRange(cz)) return undefined;
+    return this.chunks.get(chunkKey(cx, cy, cz));
+  }
+
+  /** The slot of the chunk at (cx, cy, cz), allocating an empty one if there is none. */
+  slotFor(cx, cy, cz) {
+    const key = chunkKey(cx, cy, cz);
+    let slot = this.chunks.get(key);
+    if (slot === undefined) {
+      slot = this.allocateSlot();
+      this.meta.cx[slot] = cx;
+      this.meta.cy[slot] = cy;
+      this.meta.cz[slot] = cz;
+      this.meta.live[slot] = 0;
+      this.meta.touch[slot] = 0;
+      this.meta.hashA[slot] = 0;
+      this.meta.hashB[slot] = 0;
+      this.chunks.set(key, slot);
+      this.chunksCreated++;
+      if (this.chunks.size > this.chunksPeak) this.chunksPeak = this.chunks.size;
+    }
+    return slot;
+  }
+
+  allocateSlot() {
+    if (this.free.length === 0) this.addSlab();
+    const slot = this.free.pop();
+    const [slab, base] = this.copy(slot, 0);
+    slab.fill(0, base, base + this.slotBytes);
+    return slot;
+  }
+
+  addSlab() {
+    if (this.memoryBytes + this.slabBytes > this.limits.memory) throw new StopSignal('memory-limit');
+    let buffer;
+    try {
+      buffer = this.allocate(this.slabBytes);
+    } catch (err) {
+      if (err instanceof RangeError) throw new StopSignal('out-of-memory');
+      throw err;
+    }
+    const first = this.slabs.length * this.slotsPerSlab;
+    this.slabs.push(new Uint8Array(buffer, 0, this.slabBytes));
+    const slots = this.slabs.length * this.slotsPerSlab;
+    this.meta = growMeta(this.meta, slots);
+    this.next = growMeta(this.next, slots);
+    for (let s = slots - 1; s >= first; s--) this.free.push(s);
+  }
+
+  release(slot) {
+    const { cx, cy, cz } = this.meta;
+    this.chunks.delete(chunkKey(cx[slot], cy[slot], cz[slot]));
+    this.free.push(slot);
+  }
+
+  /** Recounts a slot's live cells, border contacts and bounding box from its current copy. */
+  scan(slot) {
+    const { n, shift, mask } = this;
+    const [slab, base] = this.current(slot);
+    const box = [n, n, n, -1, -1, -1];
+    let live = 0;
+    let classes = 0;
+    let hashA = 0;
+    let hashB = 0;
+    const ox = this.meta.cx[slot] * n, oy = this.meta.cy[slot] * n, oz = this.meta.cz[slot] * n;
+    for (let i = 0; i < this.volume; i++) {
+      if (!slab[base + i]) continue;
+      const x = i & mask, y = (i >> shift) & mask, z = i >> (2 * shift);
+      live++;
+      if (this.fingerprinting) {
+        hashA = (hashA + cellHashA(ox + x, oy + y, oz + z)) | 0;
+        hashB = (hashB + cellHashB(ox + x, oy + y, oz + z)) | 0;
+      }
+      classes |= 1 << (borderClass(x, n) + 3 * borderClass(y, n) + 9 * borderClass(z, n));
+      if (x < box[0]) box[0] = x;
+      if (y < box[1]) box[1] = y;
+      if (z < box[2]) box[2] = z;
+      if (x > box[3]) box[3] = x;
+      if (y > box[4]) box[4] = y;
+      if (z > box[5]) box[5] = z;
+    }
+    setFacts(this.meta, slot, live, classes, box, n);
+    this.meta.hashA[slot] = hashA;
+    this.meta.hashB[slot] = hashB;
+  }
+
+  stop(reason) {
+    this.stopReason = reason;
+    return reason;
+  }
+}
+
+// ---- Per-slot facts ----
+
+function newMeta(slots) {
+  const meta = { live: null, touch: null, cx: null, cy: null, cz: null, box: null, hashA: null, hashB: null };
+  return growMeta(meta, slots);
+}
+
+function growMeta(meta, slots) {
+  const grow = (old, length) => {
+    const next = new Int32Array(length);
+    if (old) next.set(old);
+    return next;
+  };
+  return {
+    live: grow(meta.live, slots),
+    touch: grow(meta.touch, slots),
+    cx: grow(meta.cx, slots),
+    cy: grow(meta.cy, slots),
+    cz: grow(meta.cz, slots),
+    box: grow(meta.box, 6 * slots), // min x, y, z, max x, y, z, local to the chunk
+    hashA: grow(meta.hashA, slots), // the chunk's share of the fingerprint
+    hashB: grow(meta.hashB, slots),
+  };
+}
+
+// Two independent hashes of a cell's coordinates, for the fingerprint: each mixes the three
+// coordinates with different odd constants, then scrambles the bits (a murmur-style finaliser)
+export function cellHashA(x, y, z) {
+  let h = Math.imul(x, 0x9e3779b1) ^ Math.imul(y, 0x85ebca77) ^ Math.imul(z, 0xc2b2ae3d);
+  h ^= h >>> 16;
+  h = Math.imul(h, 0x7feb352d);
+  h ^= h >>> 15;
+  h = Math.imul(h, 0x846ca68b);
+  return h ^ (h >>> 16);
+}
+
+export function cellHashB(x, y, z) {
+  let h = Math.imul(x, 0x27d4eb2f) ^ Math.imul(y, 0x165667b1) ^ Math.imul(z, 0xd3a2646c | 1);
+  h ^= h >>> 15;
+  h = Math.imul(h, 0x2c1b3c6d);
+  h ^= h >>> 12;
+  h = Math.imul(h, 0x297a2d39);
+  return h ^ (h >>> 15);
+}
+
+/**
+ * Where a coordinate sits in its chunk along one axis: 0 on the low face, 2 on the high face,
+ * 1 in between.
+ */
+export function borderClass(local, n) {
+  return local === 0 ? 0 : local === n - 1 ? 2 : 1;
+}
+
+// For each border class: the mask of neighbouring chunks a live cell of that class touches
+const TOUCH_OF_CLASS = (() => {
+  const reach = [[-1, 0], [0], [0, 1]];
+  const table = new Int32Array(27);
+  for (let c = 0; c < 27; c++) {
+    const [ax, ay, az] = [c % 3, Math.floor(c / 3) % 3, Math.floor(c / 9)];
+    for (const dz of reach[az]) {
+      for (const dy of reach[ay]) {
+        for (const dx of reach[ax]) {
+          if (dx || dy || dz) table[c] |= 1 << ((dz + 1) * 9 + (dy + 1) * 3 + (dx + 1));
+        }
+      }
+    }
+  }
+  return table;
+})();
+
+/** Turns a mask of the border classes present into a mask of the neighbours touched. */
+export function touchOf(classes) {
+  let touch = 0;
+  for (let c = 0; c < 27; c++) if (classes & (1 << c)) touch |= TOUCH_OF_CLASS[c];
+  return touch;
+}
+
+export function setFacts(meta, slot, live, classes, box, n) {
+  meta.live[slot] = live;
+  meta.touch[slot] = touchOf(classes);
+  meta.box.set(live ? box : [0, 0, 0, n - 1, n - 1, n - 1], 6 * slot);
+}
+
+/** The bounding box, in cells, of the given slots' live cells; null if there are none. */
+export function boxOf(meta, slots, n) {
+  let box = null;
+  for (const slot of slots) {
+    if (!meta.live[slot]) continue;
+    const b = 6 * slot;
+    const origin = [meta.cx[slot] * n, meta.cy[slot] * n, meta.cz[slot] * n];
+    if (!box) box = { min: [Infinity, Infinity, Infinity], max: [-Infinity, -Infinity, -Infinity] };
+    for (let a = 0; a < 3; a++) {
+      box.min[a] = Math.min(box.min[a], origin[a] + meta.box[b + a]);
+      box.max[a] = Math.max(box.max[a], origin[a] + meta.box[b + 3 + a]);
+    }
+  }
+  return box;
+}
+
+export function longestSide(box) {
+  return Math.max(...box.max.map((hi, a) => hi - box.min[a] + 1));
+}
+
+export function inBox(box, x, y, z) {
+  return x >= box.min[0] && x <= box.max[0] && y >= box.min[1] && y <= box.max[1]
+    && z >= box.min[2] && z <= box.max[2];
+}
+
+function checkDepartures(departures, arena) {
+  if (!(departures && Number.isSafeInteger(departures.period) && departures.period >= 1)) {
+    throw new WorldError('Departures are {period}, the longest ship period recognised: a whole number of at least 1.');
+  }
+  if (!arena) throw new WorldError('Ships leave at the edge of an arena, so departures need one.');
+  return { period: departures.period };
+}
+
+function checkWrap(wrap, arena, departures) {
+  if (wrap === false) return false;
+  if (wrap !== true) throw new WorldError('wrap is true or false.');
+  if (!arena) throw new WorldError("Wrapping joins the arena's opposite faces, so it needs an arena.");
+  if (departures) throw new WorldError("Ships can't leave an arena that wraps, so wrapping and departures don't go together.");
+  if (!arena.min.every((lo, a) => arena.max[a] - lo + 1 >= 3)) {
+    throw new WorldError('An arena that wraps must be at least 3 cells a side, so no cell is its own neighbour.');
+  }
+  return true;
+}
+
+function checkWalls(walls, arena, wrap, departures) {
+  if (walls === null || walls === undefined) return null;
+  if (typeof walls !== 'object') throw new WorldError('walls are {corner, edge, face}, each {birth, survival}.');
+  if (!arena) throw new WorldError('Walls are the arena\'s, so they need an arena.');
+  if (wrap) throw new WorldError("An arena that wraps has no walls, so wrapping and walls don't go together.");
+  if (departures) throw new WorldError("Ships can't leave through walls, so walls and departures don't go together.");
+  if (!arena.min.every((lo, a) => arena.max[a] - lo + 1 >= 3)) {
+    throw new WorldError('An arena with walls must be at least 3 cells a side, so its corners, edges and faces are apart.');
+  }
+  const checked = {};
+  for (const [kind, most] of Object.entries(WALL_NEIGHBOURS)) {
+    let rule;
+    try {
+      rule = validateRules(walls[kind]);
+    } catch (err) {
+      if (err instanceof RuleError) throw new RuleError(`The ${kind} rule: ${err.message}`);
+      throw err;
+    }
+    const past = [...rule.birth, ...rule.survival].find((count) => count > most);
+    if (past !== undefined) {
+      throw new RuleError(`${kind === 'edge' ? 'An' : 'A'} ${kind} cell has ${most} neighbours, so its counts go from 0 to ${most}; ${past} is past them.`);
+    }
+    checked[kind] = rule;
+  }
+  return checked;
+}
+
+function checkArena(arena) {
+  const ok = Array.isArray(arena.min) && Array.isArray(arena.max)
+    && arena.min.length === 3 && arena.max.length === 3
+    && [...arena.min, ...arena.max].every((c) => Number.isInteger(c)
+      && c >= -COORDINATE_LIMIT && c < COORDINATE_LIMIT)
+    && arena.min.every((lo, a) => lo <= arena.max[a]);
+  if (!ok) throw new WorldError('The arena must be {min: [x, y, z], max: [x, y, z]}, inside the representable space.');
+  return { min: [...arena.min], max: [...arena.max] };
+}

@@ -3,6 +3,7 @@ import { generateSimulation } from './matrixFunctions';
 import { state } from "./state.js";
 import { initControls } from './controls.js';
 import { initSpace } from './space.js';
+import { isOutOfMemory, outOfMemoryText } from './memoryAdvice.js';
 
 // Each rebuild gets a number. A GPU run awaits the GPU, so another rebuild can start while one
 // is computing; only the latest one may write its result.
@@ -13,6 +14,15 @@ export async function initSimulation() {
   // Show loading overlay
   const overlay = document.getElementById('loading-overlay');
   if (overlay) overlay.classList.remove('hidden');
+  memoryNote(null);
+  // What this run asks for, to say so if the browser refuses its memory (#123)
+  const asked = {
+    mode: state.useSandpile ? 'sandpile' : state.useSineWave ? 'sineWave'
+      : state.useRule30_2D ? 'rule30_2D' : state.useRule30 ? 'rule30' : 'gameOfLife',
+    size: state.sim_size,
+    generations: state.sim_generations,
+    initialSand: state.sandpileParams?.initialSand,
+  };
 
   try {
     // Yield to the browser so the overlay can paint before heavy work
@@ -35,8 +45,7 @@ export async function initSimulation() {
     state.sliceAxis = 'x';
     state.sliceIndex = Math.floor((simSize - 1) / 2); // Ensure valid index (0 to simSize - 1)
     // Generate Simulation Data - History (Game of Life, Rule 30, Sine Wave, or Sandpile)
-    console.log(`initSimulation: About to call generateSimulation with useRule30=${state.useRule30}, useRule30_2D=${state.useRule30_2D}, useSineWave=${state.useSineWave}, useSandpile=${state.useSandpile}`);
-    const [simulationData, clockData] = await generateSimulation(
+    const simulationData = await generateSimulation(
       simSize,
       simGenerations,
       simSeed,
@@ -46,10 +55,8 @@ export async function initSimulation() {
       state.useSandpile,
       state.useSandpile ? state.sandpileParams : null
     );
-    console.log(`initSimulation: generateSimulation completed, history length: ${simulationData.length}`);
     if (run !== latestRun) return; // a newer rebuild started; its result wins
     state.simulationData = simulationData;
-    state.clockData = clockData;
 
     const depth = state.useRule30 ? 1 : simSize;
     state.simulationModel =  await buildSimulationModel(simSize, depth);  // Simulation Model
@@ -94,7 +101,6 @@ export async function initSimulation() {
     points.visible = !state.showCellWireframe;
 
     updatePoints();
-    // drawClock();
     scene.add(points);
 
     // Start auto-rotation for first load only
@@ -110,11 +116,27 @@ export async function initSimulation() {
     }
   } catch (err) {
     console.error('Failed to initialize simulation:', err);
+    // The browser refused the memory (#123): what was built goes, the view stays empty, and the
+    // page says why; the settings dialog and the other modes keep working
+    if (isOutOfMemory(err) && run === latestRun) {
+      state.simulationData = null;
+      state.simulationModel = null;
+      state.isPlaying = false;
+      memoryNote(outOfMemoryText(asked));
+    }
   } finally {
     if (overlay && run === latestRun) overlay.classList.add('hidden');
   }
 }
 
+
+/** Shows `text` at the top of the page, or hides the note when it is null. */
+export function memoryNote(text) {
+  const el = document.getElementById('sim-memory-note');
+  if (!el) return;
+  el.hidden = !text;
+  el.textContent = text ?? '';
+}
 
 // Point Cloud
 async function buildSimulationModel(simSize, depth) {
@@ -151,8 +173,6 @@ async function buildSimulationModel(simSize, depth) {
 
 export function updatePoints() {
 
-  console.log("Update Points")
-
   if (!state.simulationModel || !state.simulationModel.geometry) {
     return; // Simulation model not yet initialized
   }
@@ -166,13 +186,7 @@ export function updatePoints() {
   const simulationData = state.simulationData;
   const gen = state.currentGen;
   const grid = simulationData[gen];
-  
-  console.log(`updatePoints: gen=${gen}, grid.active.length=${grid.active.length}`);
-  
-  if (grid.active.length > 0) {
-    console.log(`updatePoints: First few cells:`, grid.active.slice(0, 5));
-  }
-  
+
   let i = 0;
   const activeCells = [];
   const halfSpanXY = (matrixSize - 1) / 2;
@@ -283,8 +297,6 @@ export function updatePoints() {
     state.simulationModel.colors[3 * i + 2] = color.b;
 
     i++;
-
-    // drawClock();
   }
 
   geometry.setDrawRange(0, i);
@@ -458,10 +470,3 @@ function createWireframeGrid(cellCount, depth) {
   
   return group;
 }
-
-// function drawClock() {
-//   const ctx = document.getElementById("clockCanvas").getContext("2d");
-//   const frame = state.clockData[state.currentGen % state.clockData.length];
-//   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-//   ctx.drawImage(frame, 0, 0, ctx.canvas.width, ctx.canvas.height);
-// }

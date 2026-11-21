@@ -2,7 +2,7 @@
 //
 // Game of Life 3D: one generation per dispatch.
 //
-// The reference is convolve3D() in src/matrixFunctions.js: this must give exactly its grids,
+// The reference is convolve3D() in src/denseStep.js: this must give exactly its grids,
 // cell for cell. Cells are bytes packed four to a u32 word (byte k of word w is cell 4w + k),
 // the same layout as Grid3D.data, so a buffer copies straight into a Uint8Array. Cell i is at
 // x + y*size + z*size². Each invocation writes one whole word, so no two write the same memory.

@@ -1,13 +1,14 @@
 {
   "name": "morpheus-tech-lab",
   "private": true,
-  "version": "1.6.0",
+  "version": "1.7.0",
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "node scripts/brand.mjs check && vite build",
     "preview": "vite preview",
+    "test": "node --test",
     "deploy": "npm run build && gh-pages -d dist",
     "brand:sync": "node scripts/brand.mjs sync",
     "brand:check": "node scripts/brand.mjs check"
