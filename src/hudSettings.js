@@ -22,7 +22,7 @@ import { parseCounts } from './explore/seed.js';
 import { parseWalls } from './explore/setup.js';
 import { rule30Size, sandpileSize, needsConfirmation, confirmText, MAX_SAND } from './memoryAdvice.js';
 import { initAdvice, refreshAdvice, closeAdvice } from './adviceControl.js';
-import { perlinShape, worleyShape, cubeShape, tetrahedronShape, octahedronShape } from './shapeGenerators.js';
+import { boundedShape } from './shapeGenerators.js';
 
 /** The modes the Mode popover offers, in its order; Contest opens from its banner. */
 export const MODES = [
@@ -160,7 +160,7 @@ export async function startRun(run) {
     const { key, size, density, regionSize } = run.shape;
     const noise = shapeByKey(key).noise;
     const region = noise ? Math.min(run.size, regionSize) : null;
-    state.shapes[key] = makeShape(key, size, density, region);
+    state.shapes[key] = boundedShape(key, size, density, region);
     state.shapeKey = key;
     state.lifeShapeKey = key;
     state.shapeParams[key] = noise ? { size, density, regionSize: region } : { size, density };
@@ -176,16 +176,6 @@ export async function startRun(run) {
   await initSimulation();
   hooks.afterRun();
   showBoxes();
-}
-
-function makeShape(key, size, density, regionSize) {
-  switch (key) {
-    case 'perlin': return perlinShape(size, density, regionSize);
-    case 'worley': return worleyShape(size, density, regionSize);
-    case 'tetrahedron': return tetrahedronShape(size, density);
-    case 'octahedron': return octahedronShape(size, density);
-    default: return cubeShape(Math.max(1, Math.floor(size / 2)), density);
-  }
 }
 
 /** Isolation and overcrowding: the counts below and above every survival count. */

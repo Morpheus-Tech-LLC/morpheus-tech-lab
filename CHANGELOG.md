@@ -266,6 +266,9 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
   counts it, so a long run's estimate is lower and Apply asks first less often (#19).
 
 ### Fixed
+- In Game of Life 3D (bounded), a cube seed of size N is N×N×N cells: an odd size gave a cube
+  one cell narrower (size 3 gave 2×2×2), and size 1 one wider. Its memory estimate counts the
+  same cells (#49).
 - The check pages (`hud-check.html`, `editor-check.html`, `contests-check.html`, dev pages) keep
   the lab's frame in view beside their results, scaled to fit the window. Scrolled out of view, the
   frame stopped drawing, and the checks of the countdown and of Watch's view failed. The Contests

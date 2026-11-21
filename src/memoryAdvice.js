@@ -70,11 +70,10 @@ export function seedEstimate(seed, gridSize) {
   let side;
   let volume;
   switch (seed?.shape) {
-    case 'cube': {
-      side = 2 * Math.max(1, Math.floor(size / 2));
+    case 'cube': // N×N×N cells (#49)
+      side = size;
       volume = side ** 3;
       break;
-    }
     case 'tetrahedron':
       side = size;
       volume = (size * (size + 1) * (size + 2)) / 6;
