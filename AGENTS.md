@@ -47,7 +47,8 @@ test/                    `npm test` (Node's built-in node:test, no dependency): 
                          against convolve3D() (dense.test.js); an arena that wraps, against the reference
                          and convolve3D() with wrapping on, and the worlds refused (wrap.test.js); an arena
                          with walls, against the reference and by hand (walls.test.js);
-                         browser.test.js checks telling the browser; memoryAdvice.test.js checks the precomputed modes'
+                         browser.test.js checks telling the browser; shapeGenerators.test.js the bounded
+                         mode's seed shapes (#49); memoryAdvice.test.js checks the precomputed modes'
                          memory estimate against real runs, and that the old caps' runs don't ask; contests/ checks a Speed run and Verify a
                          result… on worker_threads (verifyNodeWorker.js stands in for verify.worker.js) and
                          Methuselah and Classic Methuselah runs on worker_threads (discovery.test.js),
@@ -70,7 +71,8 @@ src/
   denseStep.js           convolve3D(grid, {wrapping, rules, boundaryRules}): the dense Game of Life 3D (bounded) step, without
                          `state`, so Node can run it
   grid3D.js              Grid3D: a dense size³ Uint8Array plus an `active` list of live cells
-  shapeGenerators.js     Seed shapes: perlin, cube, tetrahedron, octahedron, worley, rule30
+  shapeGenerators.js     Seed shapes: perlin, cube, tetrahedron, octahedron, worley, rule30; boundedShape(),
+                         the one Game of Life 3D (bounded)'s Seed popover applies
   space.js               Scene, camera, renderer, OrbitControls (stored on `state`)
   time.js                The animation loop, playback speed, auto-rotate
   controls.js            The control bar's wiring: buttons, sliders, the company panel, mode switching

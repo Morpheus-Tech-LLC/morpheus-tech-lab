@@ -157,7 +157,7 @@ export function cubeShape(halfSize = 5, prob = 1) {
 
 /**
  * A cube `side` cells wide, centred like the other shapes. cubeShape() takes half a side and
- * fills twice that, so it can't make an odd side; Explore uses this one.
+ * fills twice that, so it can't make an odd side; both Game of Life 3D modes use this one (#49).
  */
 export function cubeOfSide(side, prob = 1) {
   return (grid, size) => {
@@ -320,4 +320,20 @@ export function voxelShape(voxelData, scale = 1) {
 
     return voxelData?.[vx]?.[vy]?.[vz] === 1 ? 1 : 0;
   };
+}
+
+/**
+ * The seed shape Game of Life 3D (bounded)'s Seed popover applies: `size` is the shape's own size
+ * field. A cube of size N is N×N×N cells (#49); for an even N, the same cells cubeShape(N / 2)
+ * fills.
+ * @param {'perlin' | 'worley' | 'tetrahedron' | 'octahedron' | 'cube'} key
+ */
+export function boundedShape(key, size, density, regionSize) {
+  switch (key) {
+    case 'perlin': return perlinShape(size, density, regionSize);
+    case 'worley': return worleyShape(size, density, regionSize);
+    case 'tetrahedron': return tetrahedronShape(size, density);
+    case 'octahedron': return octahedronShape(size, density);
+    default: return cubeOfSide(Math.max(1, size), density);
+  }
 }

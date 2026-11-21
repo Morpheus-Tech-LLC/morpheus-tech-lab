@@ -81,11 +81,13 @@ test("Rule 30's size follows its generations as the dialog always set it", () =>
 test("the seed's box and cells, per shape", () => {
   assert.deepEqual(seedEstimate(CUBE, 50), { side: 10, cells: 1000 });
   assert.deepEqual(seedEstimate({ shape: 'cube', size: 10, density: 0.5 }, 50), { side: 10, cells: 500 });
+  assert.deepEqual(seedEstimate({ shape: 'cube', size: 3, density: 1 }, 50), { side: 3, cells: 27 }, 'an odd size (#49)');
+  assert.deepEqual(seedEstimate({ shape: 'cube', size: 1, density: 1 }, 50), { side: 1, cells: 1 });
   assert.equal(seedEstimate({ shape: 'tetrahedron', size: 13, density: 1 }, 50).cells, 455);
   assert.equal(seedEstimate({ shape: 'octahedron', size: 8, density: 1 }, 50).cells, 833);
   assert.deepEqual(seedEstimate({ shape: 'perlin', size: 10, density: 0.3, regionSize: 300 }, 50), { side: 50, cells: 0.3 * 50 ** 3 },
     'a region larger than the grid is the grid');
-  assert.deepEqual(seedEstimate({ shape: 'cube', size: NaN, density: NaN }, 50), { side: 2, cells: 8 }, 'an empty field');
+  assert.deepEqual(seedEstimate({ shape: 'cube', size: NaN, density: NaN }, 50), { side: 1, cells: 1 }, 'an empty field');
 });
 
 test('every default run within the old caps runs without asking', () => {
