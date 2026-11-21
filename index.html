@@ -7,14 +7,20 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;600&display=swap" rel="stylesheet">
-  <script type="module" crossorigin src="/assets/index-BpV7e6hc.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-Syr6O03_.css">
+  <script type="module" crossorigin src="/assets/index-DShQ3K8T.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-BCRuCzpw.css">
 </head>
 <body>
-  <div id="simulation-mode-title" class="simulation-mode-title"></div>
+  <!-- Explore's notices (src/explore/explore.js): what the view draws, and why a run stopped -->
+  <div id="explore-notice" class="explore-notice" role="status" aria-live="polite">
+    <div id="explore-view-note" class="explore-note" hidden></div>
+    <div id="explore-end-note" class="explore-note explore-note--end" hidden></div>
+    <!-- A precomputed run whose memory the browser refused (src/simulationModel.js, #123) -->
+    <div id="sim-memory-note" class="explore-note explore-note--end" hidden></div>
+  </div>
   <!-- Company (top-right) -->
   <div id="company-brand" class="company-brand-top">
-    <a id="company-logo-button-top" href="https://morpheustech.net" target="_blank" rel="noopener noreferrer" aria-label="About Morpheus Tech">
+    <a id="company-logo-button-top" href="https://morpheustech.net" target="_blank" rel="noopener noreferrer" aria-label="About Morpheus Tech" aria-controls="company-modal" aria-expanded="false">
       <img src="/assets/morpheus-tech-4UhQpwQO.png" alt="Morpheus Tech" class="footer-icon" />
     </a>
     <!-- <span id="company-name">Morpheus Tech LLC</span> -->
@@ -28,7 +34,6 @@
       </div>
     </div>
   </div>
-  <!-- <canvas id="clockCanvas" width="150" height="150"></canvas> -->
   <!-- Loading Overlay -->
   <div id="loading-overlay" class="hidden">
     <div class="loading-panel glass-panel">
@@ -38,320 +43,573 @@
       </div>
     </div>
   </div>
-  <!-- Shape Settings Modal -->
-  <div id="shapeModal" class="modal hidden">
-    <div class="modal-backdrop"></div>
-    <div class="modal-content glass-panel">
-      <h3 class="modal-title">Configuration</h3>
-      <div class="modal-body modal-grid">
-        <div class="sim-col" style="grid-column: 1 / -1; margin-bottom: 0.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid rgba(140, 140, 150, 0.25);">
-          <div class="rules-title">Simulation Mode</div>
-          <div class="mode-selector">
-            <button class="mode-card" data-mode="gameOfLife" id="mode-gameOfLife">
-              <span class="mode-name">Game of Life</span>
-              <span class="mode-subtitle">3D</span>
-            </button>
-            <button class="mode-card" data-mode="rule30" id="mode-rule30">
-              <span class="mode-name">Rule 30</span>
-              <span class="mode-subtitle">Cellular</span>
-            </button>
-            <button class="mode-card" data-mode="sineWave" id="mode-sineWave">
-              <span class="mode-name">Sine Wave</span>
-              <span class="mode-subtitle">Continuous</span>
-            </button>
-            <button class="mode-card" data-mode="sandpile" id="mode-sandpile">
-              <span class="mode-name">Sandpile</span>
-              <span class="mode-subtitle">Abelian</span>
-            </button>
-        </div>
-          <div id="mode-description" class="mode-description">
-            <p>A classic cellular automaton extended to three dimensions. Cells evolve based on the number of living neighbors, creating complex patterns of growth, stability, and decay in 3D space.</p>
-          </div>
-        </div>
-        <div class="sim-col" style="grid-column: 1;">
-          <div class="rules-title">
-            <span data-tooltip="Core simulation settings including grid dimensions and number of evolution steps to compute.">Simulation Parameters</span>
-          </div>
-          <div id="sim-size-row" class="modal-field-row">
-            <div class="label-row">
-              <label id="sim-size-label" class="modal-label" for="sim-size">
-                <span data-tooltip="The dimensions of the 3D simulation grid (N×N×N). Larger sizes provide more detail but require more computation.">Size</span>
-              </label>
-              <span class="input-range-hint" id="sim-size-range" style="opacity: 1; display: flex; align-items: center; gap: 6px;">
-                <span style="color: rgb(0, 180, 200); font-size: 12px; font-weight: bold;">1 - 200</span>
-                <button id="company-logo-button-size" style="background: none; border: none; padding: 0; cursor: pointer; display: flex; align-items: center;">
-                  <img src="/assets/morpheus-tech-4UhQpwQO.png" alt="Morpheus Tech" style="width: 18px; height: 18px; opacity: 1;" />
-                </button>
-              </span>
-            </div>
-            <input type="number" id="sim-size" class="glass-input" min="1" max="200" step="1" />
-          </div>
-          <div class="modal-field-row">
-            <div class="label-row">
-              <label class="modal-label" for="sim-generations">
-                <span data-tooltip="The number of simulation steps to compute. Each generation represents one evolution cycle of the cellular automaton.">Generations</span>
-              </label>
-              <span class="input-range-hint" id="sim-generations-range" style="opacity: 1; display: flex; align-items: center; gap: 6px;">
-                <span id="sim-generations-range-text" style="color: rgb(0, 180, 200); font-size: 12px; font-weight: bold;">1 - 100</span>
-                <button id="company-logo-button" style="background: none; border: none; padding: 0; cursor: pointer; display: flex; align-items: center;">
-                  <img src="/assets/morpheus-tech-4UhQpwQO.png" alt="Morpheus Tech" style="width: 18px; height: 18px; opacity: 1;" />
-                </button>
-              </span>
-            </div>
-            <input type="number" id="sim-generations" class="glass-input" min="1" max="100" step="1" />
-          </div>
-          <div id="rule30-2d-toggle-row" class="modal-field-row" style="display: none;">
-            <label class="modal-label" for="rule30-2d-checkbox" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-              <input type="checkbox" id="rule30-2d-checkbox" style="width: auto; cursor: pointer;" />
-              <span data-tooltip="When checked, Rule 30 in 3D is toggled. When unchecked, uses 2D mode (original)">3D Mode</span>
-            </label>
-          </div>
-        </div>
-
-        <div id="seed-section" class="seed-col">
-          <div class="rules-title">
-            <span data-tooltip="Configuration for the initial state of the simulation. Choose a shape pattern and set its size and density to determine starting conditions.">Initial Seed</span>
-          </div>
-          <div class="modal-field-row">
-            <label class="modal-label" for="modal-shape-select">
-              <span data-tooltip="The geometric pattern used as the initial state. Options include procedural noise patterns (Perlin, Worley) and geometric shapes (Cube, Tetrahedron, Octahedron).">Shape</span>
-            </label>
-          <select id="modal-shape-select" class="glass-select">
-            <option value="perlin">Perlin</option>
-            <option value="worley">Worley</option>
-            <option value="cube">Cube</option>
-            <option value="tetrahedron">Tetrahedron</option>
-            <option value="octahedron">Octahedron</option>
-            <!-- <option value="rule30">Rule 30</option> -->
-          </select>
-          </div>
-          <div class="modal-field-row">
-            <div class="label-row">
-              <label id="shape-size-label" class="modal-label" for="shape-size">
-                <span id="shape-size-label-text" data-tooltip="The size of the initial seed shape within the simulation grid. Must be smaller than the simulation size.">Size</span>
-              </label>
-              <span class="input-range-hint" id="shape-size-range">min: 1</span>
-            </div>
-            <input type="number" id="shape-size" class="glass-input" min="1" step="1" />
-          </div>
-          <div class="modal-field-row">
-            <div class="label-row">
-              <label id="shape-density-label" class="modal-label" for="shape-density">
-                <span id="shape-density-label-text" data-tooltip="The probability (0.0 to 1.0) that a cell within the seed shape will be initially alive. Higher values create denser initial patterns.">Density</span>
-              </label>
-              <span class="input-range-hint" id="shape-density-range">0 - 1</span>
-            </div>
-            <input type="number" id="shape-density" class="glass-input" min="0" max="1" step="0.01" />
-          </div>
-          <div class="modal-field-row hidden" id="shape-region-size-row">
-            <div class="label-row">
-              <label id="shape-region-size-label" class="modal-label" for="shape-region-size">
-                <span id="shape-region-size-label-text" data-tooltip="Controls the scale of noise features for Perlin and Worley patterns. Larger values create smoother, larger-scale variations.">Region Size</span>
-              </label>
-              <span class="input-range-hint" id="shape-region-size-range">min: 1</span>
-            </div>
-            <input type="number" id="shape-region-size" class="glass-input" min="1" step="1" />
-          </div>
-        </div>
-
-        <div id="rules-section" class="rules-col">
-          <div class="rules-title">
-            <span data-tooltip="Rules that govern how cells evolve between generations. Birth rules determine when dead cells become alive, and survival rules determine when living cells stay alive. Enter values as list or range (e.g., 9,10 or 5-15). Isolation and overcrowding are calculated automatically.">Evolution Rules</span>
-          </div>
-          <div class="modal-field-row">
-            <div class="label-row">
-              <label class="modal-label" for="rule-birth">
-                <span data-tooltip="Neighbor counts that cause a dead cell to become alive. Enter as comma-separated list (e.g., 9,10) or range (e.g., 5-15).">Birth</span>
-              </label>
-              <span class="input-range-hint" id="rule-birth-range">0 - 26</span>
-            </div>
-            <input type="text" id="rule-birth" class="glass-input" placeholder="" />
-          </div>
-          <div class="modal-field-row">
-            <div class="label-row">
-              <label class="modal-label" for="rule-survival">
-                <span data-tooltip="Neighbor counts that allow a living cell to stay alive. Enter as comma-separated list (e.g., 5,6,7) or range (e.g., 5-15).">Survival</span>
-              </label>
-              <span class="input-range-hint" id="rule-survival-range">0 - 26</span>
-            </div>
-            <input type="text" id="rule-survival" class="glass-input" placeholder="" />
-          </div>
-        </div>
-
-        <div id="boundary-rules-section" class="boundary-col">
-          <div class="rules-title">
-            <span data-tooltip="Rules for cells at the grid boundaries. When grid wrapping is disabled, boundary cells (corner, edge, face) have fewer neighbors and can use different evolution rules than interior cells.">Boundary Rules</span>
-          </div>
-          <div class="modal-field-row" id="grid-wrapping-label">
-            <label class="modal-label" for="grid-wrapping-checkbox" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-            <input type="checkbox" id="grid-wrapping-checkbox" checked style="width: auto; cursor: pointer;" />
-              <span data-tooltip="When enabled, the grid edges wrap around (toroidal topology). When disabled, boundary cells have fewer neighbors and use different rules.">Grid Wrapping</span>
-          </label>
-          </div>
-          <div id="boundary-rules-inputs" style="display: none;">
-            <div style="margin-bottom: 15px;">
-              <div class="rules-title" style="font-size: 0.9em; margin-bottom: 10px;">Corner (7 neighbors)</div>
-              <div class="modal-field-row">
-                <label class="modal-label" for="boundary-corner-birth">
-                  <span data-tooltip="Neighbor counts that cause a dead corner cell to become alive. Corner cells have 7 neighbors.">Birth</span>
-                </label>
-              <input type="text" id="boundary-corner-birth" class="glass-input" placeholder="2,3" />
-              </div>
-              <div class="modal-field-row">
-                <label class="modal-label" for="boundary-corner-survival">
-                  <span data-tooltip="Neighbor counts that allow a living corner cell to stay alive. Corner cells have 7 neighbors.">Survival</span>
-                </label>
-              <input type="text" id="boundary-corner-survival" class="glass-input" placeholder="2-4" />
-              </div>
-            </div>
-            <div style="margin-bottom: 15px;">
-              <div class="rules-title" style="font-size: 0.9em; margin-bottom: 10px;">Edge (11 neighbors)</div>
-              <div class="modal-field-row">
-                <label class="modal-label" for="boundary-edge-birth">
-                  <span data-tooltip="Neighbor counts that cause a dead edge cell to become alive. Edge cells have 11 neighbors.">Birth</span>
-                </label>
-              <input type="text" id="boundary-edge-birth" class="glass-input" placeholder="4" />
-              </div>
-              <div class="modal-field-row">
-                <label class="modal-label" for="boundary-edge-survival">
-                  <span data-tooltip="Neighbor counts that allow a living edge cell to stay alive. Edge cells have 11 neighbors.">Survival</span>
-                </label>
-              <input type="text" id="boundary-edge-survival" class="glass-input" placeholder="2-6" />
-              </div>
-            </div>
-            <div style="margin-bottom: 15px;">
-              <div class="rules-title" style="font-size: 0.9em; margin-bottom: 10px;">Face (17 neighbors)</div>
-              <div class="modal-field-row">
-                <label class="modal-label" for="boundary-face-birth">
-                  <span data-tooltip="Neighbor counts that cause a dead face cell to become alive. Face cells have 17 neighbors.">Birth</span>
-                </label>
-              <input type="text" id="boundary-face-birth" class="glass-input" placeholder="6" />
-              </div>
-              <div class="modal-field-row">
-                <label class="modal-label" for="boundary-face-survival">
-                  <span data-tooltip="Neighbor counts that allow a living face cell to stay alive. Face cells have 17 neighbors.">Survival</span>
-                </label>
-              <input type="text" id="boundary-face-survival" class="glass-input" placeholder="3-9" />
-              </div>
-            </div>
-          </div>
-        </div>
-        <div id="sandpile-section" class="sandpile-col" style="display: none;">
-          <div class="rules-title">
-            <span data-tooltip="Configuration for the Abelian Sandpile Model. Controls the initial sand distribution and toppling behavior.">Sandpile Parameters</span>
-          </div>
-          <div class="modal-field-row">
-            <div class="label-row">
-              <label class="modal-label" for="sandpile-initial-sand">
-                <span data-tooltip="Optional initial amount of sand to place at the center before starting the simulation. Leave at 0 to start empty and add 1 grain per generation.">Initial Sand</span>
-              </label>
-              <span class="input-range-hint" id="sandpile-initial-sand-range" style="opacity: 1; display: flex; align-items: center; gap: 6px;">
-                <span style="color: rgb(0, 180, 200); font-size: 12px; font-weight: bold;">0 - 255</span>
-                <button id="company-logo-button-sand" style="background: none; border: none; padding: 0; cursor: pointer; display: flex; align-items: center;">
-                  <img src="/assets/morpheus-tech-4UhQpwQO.png" alt="Morpheus Tech" style="width: 18px; height: 18px; opacity: 1;" />
-                </button>
-              </span>
-            </div>
-            <input type="number" id="sandpile-initial-sand" class="glass-input" min="0" max="255" step="1" value="0" />
-          </div>
-        </div>
-      </div>
-      <div class="modal-actions">
-        <div id="tooltip-display" class="tooltip-display"></div>
-        <div class="modal-actions-buttons">
-        <button id="shapeCancel" class="glass-button">Cancel</button>
-        <button id="shapeConfirm" class="glass-button">Apply</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <!-- Company Info Modal -->
   <div id="company-modal" class="modal hidden">
-    <div class="modal-content" style="max-width: 275px; text-align: center; border: 2px solid rgba(255, 140, 0, 0.6); box-shadow: 0 0 20px rgba(255, 140, 0, 0.3), 0 8px 32px rgba(0, 0, 0, 0.5);">
-      <div style="margin-bottom: 15px;">
-        <div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 12px;">
-          <img src="/assets/morpheus-tech-4UhQpwQO.png" alt="Morpheus Tech" style="width: 80px; height: 80px; opacity: 1; flex-shrink: 0;" />
-          <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px;">
-            <h2 style="color: var(--color-info-display-text); margin: 0; font-size: 24px; font-weight: 600; font-family: 'Roboto Mono', monospace;">Morpheus Tech</h2>
-            <span style="color: #c0c8d0; margin: 0; font-size: 16px; font-weight: 400; letter-spacing: 0.5px;">Lab</span>
+    <div class="modal-content company-modal-content">
+      <div class="company-modal-details-container">
+        <div class="company-modal-header">
+          <img src="/assets/morpheus-tech-4UhQpwQO.png" alt="Morpheus Tech" class="company-modal-logo" />
+          <div class="company-modal-company-details">
+            <h2 class="company-modal-company-name">Morpheus Tech</h2>
+            <span class="company-modal-product-name">Lab</span>
           </div>
         </div>
-        <!-- <h2 style="color: var(--color-info-display-text); margin: 0; font-size: 24px; font-weight: 600;">Morpheus Tech LLC</h2> -->
-          <div style="margin: 15px 0; display: flex; flex-direction: column; align-items: center; gap: 12px;">
-          <p style="color: var(--color-info-display-text); margin: 0; font-size: 16px; line-height: 1.6; opacity: 0.9; text-align: left;">Exploring cellular automata and beyond with 3D matrix-based simulations</p>
-          
-          <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 8px;">
-            <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;">
-              <a href="https://morpheustech.net" target="_blank" rel="noopener noreferrer" class="glass-button" style="display: inline-flex; align-items: center; justify-content: center; padding: 12px 16px; min-width: auto; text-decoration: none;">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true" style="margin-right: 8px;">
+        <div class="company-modal-product-details">
+          <p class="company-modal-product-description">Exploring cellular automata and beyond with 3D matrix-based simulations</p>
+
+          <div class="company-modal-links-section">
+            <div class="company-modal-links">
+              <a href="https://morpheustech.net" target="_blank" rel="noopener noreferrer" class="glass-button company-modal-link">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true">
                   <circle cx="12" cy="12" r="10"/>
                   <path d="M2 12h20M12 2c2.8 2.9 4.2 6.2 4.2 10s-1.4 7.1-4.2 10c-2.8-2.9-4.2-6.2-4.2-10S9.2 4.9 12 2z"/>
                 </svg>
-                <span style="color: rgba(200, 220, 255, 0.95); font-weight: 500; font-size: 13px; letter-spacing: 0.2px;">morpheustech.net</span>
+                <span>morpheustech.net</span>
               </a>
-              <a href="https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab" target="_blank" rel="noopener noreferrer" class="glass-button" aria-label="Morpheus Tech Lab on GitHub" style="display: inline-flex; align-items: center; justify-content: center; padding: 12px 16px; min-width: auto; text-decoration: none;">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="margin-right: 8px;">
+              <a href="https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab" target="_blank" rel="noopener noreferrer" class="glass-button company-modal-link" aria-label="Morpheus Tech Lab on GitHub">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                   <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
                 </svg>
-                <span style="color: rgba(200, 220, 255, 0.95); font-weight: 500; font-size: 13px; letter-spacing: 0.2px;">GitHub</span>
+                <span>GitHub</span>
               </a>
             </div>
-            <p style="color: var(--color-info-display-text); margin: 0; font-size: 12px; opacity: 0.7; font-style: italic;">These links will navigate outside the website</p>
+            <p class="company-modal-links-alert">These links will navigate outside the website</p>
           </div>
         </div>
       </div>
-      <div style="border-top: 1px solid rgba(140, 140, 150, 0.25); padding-top: 12px; margin-top: 4px; background: 
-        repeating-linear-gradient(0deg, rgba(255,255,255,0.02) 0px, transparent 1px, transparent 2px, rgba(255,255,255,0.02) 3px),
-        repeating-linear-gradient(90deg, rgba(255,255,255,0.02) 0px, transparent 1px, transparent 2px, rgba(255,255,255,0.02) 3px),
-        radial-gradient(circle at 50% 50%, rgba(255,255,255,0.03) 0%, transparent 50%),
-        rgba(25, 25, 30, 0.4);
-        background-size: 4px 4px, 4px 4px, 100% 100%, 100% 100%;
-        border-radius: 4px;
-        padding: 12px 16px;
-        margin: 4px -16px -12px -16px;">
-        <div style="text-align: center; margin-bottom: 8px;">
-          <span style="color: var(--color-info-display-text); font-size: 18px; font-weight: 600; opacity: 0.9; font-family: 'Roboto Mono', monospace;">Morpheus Tech LLC</span>
+      <div class="company-modal-ownership-container">
+        <div class="company-modal-ownership-company">
+          <span>Morpheus Tech LLC</span>
         </div>
-        <p style="color: var(--color-info-display-text); margin: 0; font-size: 16px; line-height: 1.5; opacity: 0.7; text-align: center;">Weston Mauz</p>
+        <p class="company-modal-ownership-owner">Weston Mauz</p>
       </div>
-      <div class="modal-actions" style="justify-content: center;">
+      <div class="modal-actions company-modal-actions">
         <button id="company-modal-close" class="glass-button">Close</button>
       </div>
     </div>
   </div>
   <div class="glass-display-container" id="glass-display-container">
-    <div id="glass-info-sim" class="glass-display glass-display--compact">
-      <div class="box-title">Simulation</div>
-      <div class="info-line"><span class="label">Generations</span><span id="sim-generations-value" class="value">0</span></div>
-      <div class="info-line"><span class="label">Size</span><span id="sim-size-value" class="value">0</span></div>
-    </div>
-    <div id="glass-info-shape" class="glass-display glass-display--compact">
-      <div class="box-title">Seed</div>
-      <div class="info-line"><span class="label">Shape</span><span id="shape-name-value" class="value">cube</span></div>
-      <div class="info-line"><span class="label">Density</span><span id="shape-density-value" class="value">1</span></div>
-      <div class="info-line"><span class="label">Size</span><span id="shape-size-value" class="value">10</span></div>
-    </div>
-    <div id="glass-info-rules" class="glass-display glass-display--compact">
-      <div class="box-title">Rules</div>
-      <div class="info-line"><span class="label">Birth</span><span id="rules-birth" class="value">9,10</span></div>
-      <div class="info-line"><span class="label">Survival</span><span id="rules-survival" class="value">5-15</span></div>
-      <div class="info-line"><span class="label">Isolation</span><span id="rules-isolation" class="value">0-4</span></div>
-      <div class="info-line"><span class="label">Overcrowding</span><span id="rules-overcrowd" class="value">16-26</span></div>
-    </div>
+    <!-- The HUD panel, in every mode: the mode is its title, and its gear changes it (#130). The
+         other boxes belong to it, so they sit inside it; each box folds down to its title -->
+    <section id="glass-info-mode" class="glass-display glass-display--compact" aria-labelledby="hud-mode-name">
+      <!-- The panel is the mode (#130): its title names it, and its gear changes it -->
+      <div class="box-title"><span class="hud-mode-title"><span class="box-title-text hud-mode-name" id="hud-mode-name">Game of Life 3D</span><span id="hud-mode-kind" class="hud-mode-kind">Unbounded</span></span><span class="box-title-tools"><button type="button" id="hud-change-mode" class="hud-gear" aria-label="Change the mode" title="Change the mode" aria-haspopup="dialog" aria-expanded="false" aria-controls="mode-popover"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.14,12.94a7.43,7.43,0,0,0,.05-.94,7.43,7.43,0,0,0-.05-.94l2.11-1.65a.5.5,0,0,0,.12-.64l-2-3.46a.5.5,0,0,0-.6-.22l-2.49,1a7.28,7.28,0,0,0-1.63-.94l-.38-2.65A.5.5,0,0,0,13.64,2H10.36a.5.5,0,0,0-.5.42L9.48,5.07a7.28,7.28,0,0,0-1.63.94l-2.49-1a.5.5,0,0,0-.6.22l-2,3.46a.5.5,0,0,0,.12.64L4.91,11.06a7.43,7.43,0,0,0-.05.94,7.43,7.43,0,0,0,.05.94L2.8,14.59a.5.5,0,0,0-.12.64l2,3.46a.5.5,0,0,0,.6.22l2.49-1a7.28,7.28,0,0,0,1.63.94l.38,2.65a.5.5,0,0,0,.5.42h3.28a.5.5,0,0,0,.5-.42l.38-2.65a7.28,7.28,0,0,0,1.63-.94l2.49,1a.5.5,0,0,0,.6-.22l2-3.46a.5.5,0,0,0-.12-.64ZM12,15.5A3.5,3.5,0,1,1,15.5,12,3.5,3.5,0,0,1,12,15.5Z"/></svg></button><button type="button" class="hud-collapse" aria-expanded="true" aria-label="Collapse the HUD panel"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></span></div>
+      <!-- The mode (src/hudSettings.js, #130): each mode keeps its own settings -->
+      <form id="mode-popover" class="explore-popover" tabindex="-1" role="dialog" aria-label="Change the mode" novalidate>
+        <div id="mode-popover-list" class="mode-option-list" role="group" aria-label="Modes"></div>
+        <p id="mode-popover-about" class="explore-popover-text"></p>
+        <p id="mode-popover-note" class="explore-popover-text explore-popover-quiet"></p>
+        <p class="explore-error" role="alert" hidden></p>
+      <div class="explore-save-actions">
+        <button type="submit" class="glass-button explore-small-button">Apply</button>
+        <button type="button" class="glass-button explore-small-button" data-cancel>Cancel</button>
+      </div>
+      </form>
+      <div class="hud-mode-children">
+        <!-- The simulation (#130): a seed and its rules, its two parts. Each part changes on its
+             own, from its box; in Game of Life 3D (unbounded), the Simulation gear sets both together -->
+        <div id="glass-info-simulation" class="glass-display glass-display--compact">
+          <div class="box-title"><span class="box-title-text">Simulation</span><span class="box-title-tools"><button type="button" id="explore-save-simulation" class="hud-gear hud-gear--explore hud-save" aria-label="Save simulation" title="Save simulation" aria-haspopup="dialog" aria-expanded="false" aria-controls="explore-save-popover" disabled><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></button><button type="button" id="explore-change-simulation" class="hud-gear hud-gear--explore" aria-label="Change the simulation: its seed and rules together" title="Change the simulation: its seed and rules together" aria-haspopup="dialog" aria-expanded="false" aria-controls="explore-simulation-popover"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.14,12.94a7.43,7.43,0,0,0,.05-.94,7.43,7.43,0,0,0-.05-.94l2.11-1.65a.5.5,0,0,0,.12-.64l-2-3.46a.5.5,0,0,0-.6-.22l-2.49,1a7.28,7.28,0,0,0-1.63-.94l-.38-2.65A.5.5,0,0,0,13.64,2H10.36a.5.5,0,0,0-.5.42L9.48,5.07a7.28,7.28,0,0,0-1.63.94l-2.49-1a.5.5,0,0,0-.6.22l-2,3.46a.5.5,0,0,0,.12.64L4.91,11.06a7.43,7.43,0,0,0-.05.94,7.43,7.43,0,0,0,.05.94L2.8,14.59a.5.5,0,0,0-.12.64l2,3.46a.5.5,0,0,0,.6.22l2.49-1a7.28,7.28,0,0,0,1.63.94l.38,2.65a.5.5,0,0,0,.5.42h3.28a.5.5,0,0,0,.5-.42l.38-2.65a7.28,7.28,0,0,0,1.63-.94l2.49,1a.5.5,0,0,0,.6-.22l2-3.46a.5.5,0,0,0-.12-.64ZM12,15.5A3.5,3.5,0,1,1,15.5,12,3.5,3.5,0,0,1,12,15.5Z"/></svg></button><button type="button" class="hud-collapse" aria-expanded="true" aria-label="Collapse the Simulation box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></span></div>
+          <!-- Explore only (src/explore/hud.js, #130): the simulation in use, a seed and its rules
+               together, named for the preset or file it came from, or Custom; its gear sets both -->
+          <div id="hud-simulation" class="hud-simulation">
+            <div id="hud-simulation-name" class="hud-simulation-name">Cube10</div>
+          </div>
+          <form id="explore-simulation-popover" class="explore-popover" tabindex="-1" role="dialog" aria-label="Change the simulation" aria-describedby="explore-simulation-help" novalidate>
+            <label class="explore-field" for="explore-preset"><span class="explore-field-label">Preset</span></label>
+            <select id="explore-preset" class="glass-select"></select>
+            <div class="explore-popover-or" aria-hidden="true">or</div>
+            <button type="button" id="explore-load-simulation" class="glass-button explore-small-button">Load simulation…</button>
+            <input type="file" id="explore-simulation-file" accept=".json,application/json" hidden />
+            <p id="explore-simulation-status" class="explore-popover-text" role="status"></p>
+            <p id="explore-simulation-error" class="explore-error" role="alert" hidden></p>
+            <div class="explore-save-actions">
+              <button type="submit" id="explore-simulation-apply" class="glass-button explore-small-button">Apply</button>
+              <button type="button" class="glass-button explore-small-button" data-cancel>Cancel</button>
+            </div>
+            <!-- What the control pointed at or focused does (#130), as the old settings dialog's foot
+                 said it: the popover itself stays short -->
+            <p id="explore-simulation-help" class="popover-help" aria-live="polite"></p>
+          </form>
+          <div class="hud-simulation-parts" role="group" aria-label="The simulation's parts: its seed and its rules">
+            <div id="glass-info-shape" class="glass-display glass-display--compact">
+              <div class="box-title"><span class="box-title-text">Seed</span><span class="box-title-tools"><button type="button" id="explore-save-seed" class="hud-gear hud-gear--explore hud-save" aria-label="Save seed" title="Save seed" aria-haspopup="dialog" aria-expanded="false" aria-controls="explore-save-popover" disabled><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></button><button type="button" id="life-change-seed" class="hud-gear hud-gear--life" aria-label="Change the seed" title="Change the seed" aria-haspopup="dialog" aria-expanded="false" aria-controls="life-seed-popover"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.14,12.94a7.43,7.43,0,0,0,.05-.94,7.43,7.43,0,0,0-.05-.94l2.11-1.65a.5.5,0,0,0,.12-.64l-2-3.46a.5.5,0,0,0-.6-.22l-2.49,1a7.28,7.28,0,0,0-1.63-.94l-.38-2.65A.5.5,0,0,0,13.64,2H10.36a.5.5,0,0,0-.5.42L9.48,5.07a7.28,7.28,0,0,0-1.63.94l-2.49-1a.5.5,0,0,0-.6.22l-2,3.46a.5.5,0,0,0,.12.64L4.91,11.06a7.43,7.43,0,0,0-.05.94,7.43,7.43,0,0,0,.05.94L2.8,14.59a.5.5,0,0,0-.12.64l2,3.46a.5.5,0,0,0,.6.22l2.49-1a7.28,7.28,0,0,0,1.63.94l.38,2.65a.5.5,0,0,0,.5.42h3.28a.5.5,0,0,0,.5-.42l.38-2.65a7.28,7.28,0,0,0,1.63-.94l2.49,1a.5.5,0,0,0,.6-.22l2-3.46a.5.5,0,0,0-.12-.64ZM12,15.5A3.5,3.5,0,1,1,15.5,12,3.5,3.5,0,0,1,12,15.5Z"/></svg></button><button type="button" id="explore-change-seed" class="hud-gear hud-gear--explore" aria-label="Change the seed" title="Change the seed" aria-haspopup="dialog" aria-expanded="false" aria-controls="explore-seed-popover"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.14,12.94a7.43,7.43,0,0,0,.05-.94,7.43,7.43,0,0,0-.05-.94l2.11-1.65a.5.5,0,0,0,.12-.64l-2-3.46a.5.5,0,0,0-.6-.22l-2.49,1a7.28,7.28,0,0,0-1.63-.94l-.38-2.65A.5.5,0,0,0,13.64,2H10.36a.5.5,0,0,0-.5.42L9.48,5.07a7.28,7.28,0,0,0-1.63.94l-2.49-1a.5.5,0,0,0-.6.22l-2,3.46a.5.5,0,0,0,.12.64L4.91,11.06a7.43,7.43,0,0,0-.05.94,7.43,7.43,0,0,0,.05.94L2.8,14.59a.5.5,0,0,0-.12.64l2,3.46a.5.5,0,0,0,.6.22l2.49-1a7.28,7.28,0,0,0,1.63.94l.38,2.65a.5.5,0,0,0,.5.42h3.28a.5.5,0,0,0,.5-.42l.38-2.65a7.28,7.28,0,0,0,1.63-.94l2.49,1a.5.5,0,0,0,.6-.22l2-3.46a.5.5,0,0,0-.12-.64ZM12,15.5A3.5,3.5,0,1,1,15.5,12,3.5,3.5,0,0,1,12,15.5Z"/></svg></button><button type="button" class="hud-collapse" aria-expanded="true" aria-label="Collapse the Seed box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></span></div>
+              <div class="info-line hud-shape-line"><span class="label">Shape</span><span id="shape-name-value" class="value">cube</span></div>
+              <div class="info-line hud-shape-line"><span class="label">Density</span><span id="shape-density-value" class="value">1</span></div>
+              <div class="info-line hud-shape-line"><span class="label">Size</span><span id="shape-size-value" class="value">10</span></div>
+              <!-- Explore only (src/explore/hud.js): the seed the run started from, its cells alone, and
+                   Save seed (the save popover is shared, below); the gear in the title changes the seed -->
+              <!-- Game of Life 3D (bounded)'s seed (src/hudSettings.js, #130): a shape -->
+              <form id="life-seed-popover" class="explore-popover" tabindex="-1" role="dialog" aria-label="Change the seed" novalidate>
+                <label class="explore-field" for="life-shape"><span class="explore-field-label">Shape</span></label>
+                <select id="life-shape" class="glass-select"></select>
+                <div class="explore-field">
+                  <label class="explore-field-label" for="life-shape-size" id="life-shape-size-label">Size</label>
+                  <span class="explore-field-hint" id="life-shape-size-hint">1 - 50</span>
+                </div>
+                <input type="number" id="life-shape-size" class="glass-input" min="1" step="1" />
+                <div class="explore-field">
+                  <label class="explore-field-label" for="life-shape-density" id="life-shape-density-label">Density</label>
+                  <span class="explore-field-hint">0 - 1</span>
+                </div>
+                <input type="number" id="life-shape-density" class="glass-input" min="0" max="1" step="0.01" />
+                <div id="life-shape-region-row">
+                  <div class="explore-field">
+                    <label class="explore-field-label" for="life-shape-region">Region size</label>
+                    <span class="explore-field-hint" id="life-shape-region-hint">1 - 50</span>
+                  </div>
+                  <input type="number" id="life-shape-region" class="glass-input" min="1" step="1" />
+                </div>
+                <p id="life-shape-about" class="explore-popover-text explore-popover-quiet"></p>
+                <p id="life-seed-note" class="explore-popover-text explore-popover-quiet"></p>
+                <p class="explore-error" role="alert" hidden></p>
+              <div class="explore-save-actions">
+                <button type="submit" class="glass-button explore-small-button">Apply</button>
+                <button type="button" class="glass-button explore-small-button" data-cancel>Cancel</button>
+              </div>
+              </form>
+              <div id="explore-seed-label" class="explore-hud-name">Cube 10</div>
+              <form id="explore-seed-popover" class="explore-popover" tabindex="-1" role="dialog" aria-label="Change the seed" novalidate>
+                <div id="explore-seed-custom-part" class="explore-popover-part">
+                  <div class="explore-field-label explore-source-label" aria-hidden="true">Cells from</div>
+                  <div class="explore-seed-kind explore-seed-kind--source" role="group" aria-label="Where the cells come from">
+                    <button type="button" id="explore-source-shape" class="seed-kind-option" aria-pressed="true" title="Cells from one of the shapes, or a preset's cells">Shape</button>
+                    <button type="button" id="explore-source-file" class="seed-kind-option" aria-pressed="false" title="Cells from a seed file, or from a simulation file without its rules">File</button>
+                    <button type="button" id="explore-source-design" class="seed-kind-option" aria-pressed="false" title="Cells you place one by one, in the seed editor">Design</button>
+                  </div>
+                  <div id="explore-seed-shape-part" class="explore-popover-part">
+                    <label class="explore-field" for="explore-shape"><span class="explore-field-label">Shape</span></label>
+                    <select id="explore-shape" class="glass-select"></select>
+                    <div id="explore-shape-params">
+                      <div class="explore-field">
+                        <label class="explore-field-label" for="explore-shape-size" id="explore-shape-size-label">Size</label>
+                        <span class="explore-field-hint" id="explore-shape-size-hint">1 - 100</span>
+                      </div>
+                      <input type="number" id="explore-shape-size" class="glass-input" min="1" max="100" step="1" />
+                      <div class="explore-field">
+                        <label class="explore-field-label" for="explore-shape-density" id="explore-shape-density-label">Density</label>
+                        <span class="explore-field-hint">0 - 1</span>
+                      </div>
+                      <input type="number" id="explore-shape-density" class="glass-input" min="0" max="1" step="0.01" />
+                      <div id="explore-shape-region-row">
+                        <div class="explore-field">
+                          <label class="explore-field-label" for="explore-shape-region">Region size</label>
+                          <span class="explore-field-hint">0 - 200</span>
+                        </div>
+                        <input type="number" id="explore-shape-region" class="glass-input" min="0" max="200" step="1" />
+                      </div>
+                      <p id="explore-shape-about" class="explore-popover-text explore-popover-quiet"></p>
+                    </div>
+                  </div>
+                  <div id="explore-seed-file-part" class="explore-popover-part" hidden>
+                    <button type="button" id="explore-load-seed" class="glass-button explore-small-button">Load seed…</button>
+                    <input type="file" id="explore-seed-file" accept=".json,application/json" hidden />
+                    <p id="explore-seed-status" class="explore-popover-text" role="status"></p>
+                  </div>
+                  <div id="explore-seed-design-part" class="explore-popover-part" hidden>
+                    <button type="button" id="explore-design" class="glass-button explore-small-button">Design…</button>
+                    <p id="explore-design-status" class="explore-popover-text"></p>
+                  </div>
+                </div>
+                <p id="explore-seed-note" class="explore-popover-text explore-popover-quiet"></p>
+                <p id="explore-seed-error" class="explore-error" role="alert" hidden></p>
+                <div class="explore-save-actions">
+                  <button type="submit" class="glass-button explore-small-button">Apply</button>
+                  <button type="button" class="glass-button explore-small-button" data-cancel>Cancel</button>
+                </div>
+              </form>
+            </div>
+            <div id="glass-info-rules" class="glass-display glass-display--compact">
+              <div class="box-title"><span class="box-title-text">Rules</span><span class="box-title-tools"><button type="button" id="life-change-rules" class="hud-gear hud-gear--life" aria-label="Change the rules" title="Change the rules" aria-haspopup="dialog" aria-expanded="false" aria-controls="life-rules-popover"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.14,12.94a7.43,7.43,0,0,0,.05-.94,7.43,7.43,0,0,0-.05-.94l2.11-1.65a.5.5,0,0,0,.12-.64l-2-3.46a.5.5,0,0,0-.6-.22l-2.49,1a7.28,7.28,0,0,0-1.63-.94l-.38-2.65A.5.5,0,0,0,13.64,2H10.36a.5.5,0,0,0-.5.42L9.48,5.07a7.28,7.28,0,0,0-1.63.94l-2.49-1a.5.5,0,0,0-.6.22l-2,3.46a.5.5,0,0,0,.12.64L4.91,11.06a7.43,7.43,0,0,0-.05.94,7.43,7.43,0,0,0,.05.94L2.8,14.59a.5.5,0,0,0-.12.64l2,3.46a.5.5,0,0,0,.6.22l2.49-1a7.28,7.28,0,0,0,1.63.94l.38,2.65a.5.5,0,0,0,.5.42h3.28a.5.5,0,0,0,.5-.42l.38-2.65a7.28,7.28,0,0,0,1.63-.94l2.49,1a.5.5,0,0,0,.6-.22l2-3.46a.5.5,0,0,0-.12-.64ZM12,15.5A3.5,3.5,0,1,1,15.5,12,3.5,3.5,0,0,1,12,15.5Z"/></svg></button><button type="button" id="explore-change-rules" class="hud-gear hud-gear--explore" aria-label="Change the rules" title="Change the rules" aria-haspopup="dialog" aria-expanded="false" aria-controls="explore-rules-popover"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.14,12.94a7.43,7.43,0,0,0,.05-.94,7.43,7.43,0,0,0-.05-.94l2.11-1.65a.5.5,0,0,0,.12-.64l-2-3.46a.5.5,0,0,0-.6-.22l-2.49,1a7.28,7.28,0,0,0-1.63-.94l-.38-2.65A.5.5,0,0,0,13.64,2H10.36a.5.5,0,0,0-.5.42L9.48,5.07a7.28,7.28,0,0,0-1.63.94l-2.49-1a.5.5,0,0,0-.6.22l-2,3.46a.5.5,0,0,0,.12.64L4.91,11.06a7.43,7.43,0,0,0-.05.94,7.43,7.43,0,0,0,.05.94L2.8,14.59a.5.5,0,0,0-.12.64l2,3.46a.5.5,0,0,0,.6.22l2.49-1a7.28,7.28,0,0,0,1.63.94l.38,2.65a.5.5,0,0,0,.5.42h3.28a.5.5,0,0,0,.5-.42l.38-2.65a7.28,7.28,0,0,0,1.63-.94l2.49,1a.5.5,0,0,0,.6-.22l2-3.46a.5.5,0,0,0-.12-.64ZM12,15.5A3.5,3.5,0,1,1,15.5,12,3.5,3.5,0,0,1,12,15.5Z"/></svg></button><button type="button" class="hud-collapse" aria-expanded="true" aria-label="Collapse the Rules box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></span></div>
+              <div class="info-line"><span class="label">Birth</span><span id="rules-birth" class="value">9,10</span></div>
+              <div class="info-line"><span class="label">Survival</span><span id="rules-survival" class="value">5-15</span></div>
+              <div class="info-line hud-derived-line"><span class="label">Isolation</span><span id="rules-isolation" class="value">0-4</span></div>
+              <div class="info-line hud-derived-line"><span class="label">Overcrowding</span><span id="rules-overcrowd" class="value">16-26</span></div>
+              <!-- Game of Life 3D (bounded)'s rules (src/hudSettings.js, #130); its walls' are the Grid's -->
+              <form id="life-rules-popover" class="explore-popover" tabindex="-1" role="dialog" aria-label="Change the rules" novalidate>
+                <div class="explore-field">
+                  <label class="explore-field-label" for="life-rule-birth">Birth</label>
+                  <span class="explore-field-hint">0 - 26</span>
+                </div>
+                <input type="text" id="life-rule-birth" class="glass-input" placeholder="9,10" />
+                <div class="explore-field">
+                  <label class="explore-field-label" for="life-rule-survival">Survival</label>
+                  <span class="explore-field-hint">0 - 26</span>
+                </div>
+                <input type="text" id="life-rule-survival" class="glass-input" placeholder="5-15" />
+                <div class="info-line"><span class="label">Isolation</span><span id="life-rules-isolation" class="value"></span></div>
+                <div class="info-line"><span class="label">Overcrowding</span><span id="life-rules-overcrowding" class="value"></span></div>
+                <p class="explore-popover-text explore-popover-quiet">Counts of the 26 neighbours, as a list or ranges, such as 9,10 or 5-15. A live cell dies below and above every survival count.</p>
+                <p id="life-rules-note" class="explore-popover-text explore-popover-quiet"></p>
+                <p class="explore-error" role="alert" hidden></p>
+              <div class="explore-save-actions">
+                <button type="submit" class="glass-button explore-small-button">Apply</button>
+                <button type="button" class="glass-button explore-small-button" data-cancel>Cancel</button>
+              </div>
+              </form>
+              <!-- Explore only (src/explore/hud.js): what locks the rules, if anything; the gear in the
+                   title changes them -->
+              <form id="explore-rules-popover" class="explore-popover" tabindex="-1" role="dialog" aria-label="Change the rules" novalidate>
+                <div id="explore-rules-locked" class="explore-popover-locked" hidden>
+                  <p id="explore-rules-locked-text" class="explore-popover-text"></p>
+                  <button type="button" id="explore-rules-own" class="glass-button explore-small-button">Use your own rules</button>
+                </div>
+                <div class="explore-field">
+                  <label class="explore-field-label" for="explore-rule-birth">Birth</label>
+                  <span class="explore-field-hint">1 - 26</span>
+                </div>
+                <input type="text" id="explore-rule-birth" class="glass-input" autocomplete="off" spellcheck="false" aria-describedby="explore-rule-birth-hint" />
+                <p id="explore-rule-birth-hint" class="explore-popover-text explore-popover-quiet">The neighbour counts that bring a dead cell to life, as a list or ranges, such as 9,10 or 5-15. A count of 0 isn't allowed: it would fill all of space at once.</p>
+                <div class="explore-field">
+                  <label class="explore-field-label" for="explore-rule-survival">Survival</label>
+                  <span class="explore-field-hint">0 - 26</span>
+                </div>
+                <input type="text" id="explore-rule-survival" class="glass-input" autocomplete="off" spellcheck="false" aria-describedby="explore-rule-survival-hint" />
+                <p id="explore-rule-survival-hint" class="explore-popover-text explore-popover-quiet">The neighbour counts that keep a live cell alive. A live cell dies with any other count:</p>
+                <div id="explore-rules-derived" class="explore-rules-derived" aria-live="polite">
+                  <div class="explore-derived-line"><span>Isolation</span><span id="explore-rules-isolation">–</span></div>
+                  <div class="explore-derived-line"><span>Overcrowding</span><span id="explore-rules-overcrowding">–</span></div>
+                  <div class="explore-derived-line" id="explore-rules-gaps-line" hidden><span>Also dies at</span><span id="explore-rules-gaps">–</span></div>
+                </div>
+                <p id="explore-rules-note" class="explore-popover-text explore-popover-quiet"></p>
+                <p id="explore-rules-error" class="explore-error" role="alert" hidden></p>
+                <div class="explore-save-actions">
+                  <button type="submit" class="glass-button explore-small-button">Apply</button>
+                  <button type="button" class="glass-button explore-small-button" data-cancel>Cancel</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+        <div id="glass-info-sim" class="glass-display glass-display--compact">
+          <div class="box-title"><span class="box-title-text">Grid</span><span class="box-title-tools"><button type="button" id="grid-change" class="hud-gear hud-gear--precomputed" aria-label="Change the grid: its size, generations and edge" title="Change the grid: its size, generations and edge" aria-haspopup="dialog" aria-expanded="false" aria-controls="grid-popover"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.14,12.94a7.43,7.43,0,0,0,.05-.94,7.43,7.43,0,0,0-.05-.94l2.11-1.65a.5.5,0,0,0,.12-.64l-2-3.46a.5.5,0,0,0-.6-.22l-2.49,1a7.28,7.28,0,0,0-1.63-.94l-.38-2.65A.5.5,0,0,0,13.64,2H10.36a.5.5,0,0,0-.5.42L9.48,5.07a7.28,7.28,0,0,0-1.63.94l-2.49-1a.5.5,0,0,0-.6.22l-2,3.46a.5.5,0,0,0,.12.64L4.91,11.06a7.43,7.43,0,0,0-.05.94,7.43,7.43,0,0,0,.05.94L2.8,14.59a.5.5,0,0,0-.12.64l2,3.46a.5.5,0,0,0,.6.22l2.49-1a7.28,7.28,0,0,0,1.63.94l.38,2.65a.5.5,0,0,0,.5.42h3.28a.5.5,0,0,0,.5-.42l.38-2.65a7.28,7.28,0,0,0,1.63-.94l2.49,1a.5.5,0,0,0,.6-.22l2-3.46a.5.5,0,0,0-.12-.64ZM12,15.5A3.5,3.5,0,1,1,15.5,12,3.5,3.5,0,0,1,12,15.5Z"/></svg></button><button type="button" class="hud-collapse" aria-expanded="true" aria-label="Collapse the Grid box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></span></div>
+          <div class="info-line"><span class="label">Generations</span><span id="sim-generations-value" class="value">0</span></div>
+          <div class="info-line"><span class="label">Size</span><span id="sim-size-value" class="value">0</span></div>
+          <div class="info-line grid-line grid-line--gameOfLife"><span class="label">Edge</span><span id="grid-edge-value" class="value">wraps around</span></div>
+          <div class="info-line grid-line grid-line--rule30"><span class="label">3D</span><span id="grid-3d-value" class="value">off</span></div>
+          <div class="info-line grid-line grid-line--sandpile"><span class="label">Initial sand</span><span id="grid-sand-value" class="value">0</span></div>
+          <!-- The precomputed modes' grid (src/hudSettings.js, #130); the advice hints are adviceControl.js's -->
+          <form id="grid-popover" class="explore-popover" tabindex="-1" role="dialog" aria-label="Change the grid" novalidate>
+            <div class="explore-field">
+              <label class="explore-field-label" for="sim-generations">Generations</label>
+              <button type="button" class="input-range-hint advice-hint" id="sim-generations-range" popovertarget="sim-generations-advice">
+                <span class="visually-hidden">Generations advice, suggested range </span><span id="sim-generations-range-text">1 - 100</span><span class="advice-hint-icon" aria-hidden="true">?</span>
+              </button>
+              <div id="sim-generations-advice" class="advice-popover" popover role="note" aria-label="Generations advice"></div>
+            </div>
+            <input type="number" id="sim-generations" class="glass-input" min="1" step="1" />
+            <div id="grid-size-row">
+              <div class="explore-field">
+                <label class="explore-field-label" for="sim-size">Size, in cells a side</label>
+                <button type="button" class="input-range-hint advice-hint" id="sim-size-range" popovertarget="sim-size-advice">
+                  <span class="visually-hidden">Size advice, suggested range </span><span id="sim-size-range-text">1 - 200</span><span class="advice-hint-icon" aria-hidden="true">?</span>
+                </button>
+                <div id="sim-size-advice" class="advice-popover" popover role="note" aria-label="Size advice"></div>
+              </div>
+              <input type="number" id="sim-size" class="glass-input" min="1" step="1" />
+              <p id="grid-size-about" class="explore-popover-text explore-popover-quiet"></p>
+            </div>
+            <div id="grid-rule30-row">
+              <label class="explore-check" for="rule30-3d"><input type="checkbox" id="rule30-3d" /> 3D mode</label>
+              <p id="grid-rule30-about" class="explore-popover-text explore-popover-quiet"></p>
+            </div>
+            <div id="grid-sand-row">
+              <div class="explore-field">
+                <label class="explore-field-label" for="sandpile-initial-sand">Initial sand, at the centre</label>
+                <button type="button" class="input-range-hint advice-hint" id="sandpile-initial-sand-range" popovertarget="sandpile-sand-advice">
+                  <span class="visually-hidden">Initial sand, allowed range </span><span>0 - 255</span><span class="advice-hint-icon" aria-hidden="true">?</span>
+                </button>
+                <div id="sandpile-sand-advice" class="advice-popover" popover role="note" aria-label="Initial sand advice"></div>
+              </div>
+              <input type="number" id="sandpile-initial-sand" class="glass-input" min="0" max="255" step="1" />
+            </div>
+            <div id="grid-edge-row" role="radiogroup" aria-label="At the grid's edge">
+              <div class="explore-field-label">At the edge</div>
+              <label class="explore-check" for="grid-edge-wrap"><input type="radio" name="grid-edge" id="grid-edge-wrap" /> It wraps around</label>
+              <label class="explore-check" for="grid-edge-walls"><input type="radio" name="grid-edge" id="grid-edge-walls" /> Walls, with their own rules</label>
+              <div id="grid-walls" class="explore-walls-rules">
+                <div class="explore-wall-kind">Corner <span class="explore-popover-quiet">(7 neighbours)</span></div>
+                <div class="explore-wall-row">
+                  <label class="explore-field-label" for="wall-corner-birth">Birth</label>
+                  <input type="text" id="wall-corner-birth" class="glass-input" />
+                  <label class="explore-field-label" for="wall-corner-survival">Survival</label>
+                  <input type="text" id="wall-corner-survival" class="glass-input" />
+                </div>
+                <div class="explore-wall-kind">Edge <span class="explore-popover-quiet">(11 neighbours)</span></div>
+                <div class="explore-wall-row">
+                  <label class="explore-field-label" for="wall-edge-birth">Birth</label>
+                  <input type="text" id="wall-edge-birth" class="glass-input" />
+                  <label class="explore-field-label" for="wall-edge-survival">Survival</label>
+                  <input type="text" id="wall-edge-survival" class="glass-input" />
+                </div>
+                <div class="explore-wall-kind">Face <span class="explore-popover-quiet">(17 neighbours)</span></div>
+                <div class="explore-wall-row">
+                  <label class="explore-field-label" for="wall-face-birth">Birth</label>
+                  <input type="text" id="wall-face-birth" class="glass-input" />
+                  <label class="explore-field-label" for="wall-face-survival">Survival</label>
+                  <input type="text" id="wall-face-survival" class="glass-input" />
+                </div>
+              </div>
+            </div>
+            <p id="grid-note" class="explore-popover-text explore-popover-quiet"></p>
+            <p class="explore-error" role="alert" hidden></p>
+          <div class="explore-save-actions">
+            <button type="submit" class="glass-button explore-small-button">Apply</button>
+            <button type="button" class="glass-button explore-small-button" data-cancel>Cancel</button>
+          </div>
+          </form>
+        </div>
+        <!-- Explore only (src/explore/hud.js): what limits a run, the arena and the memory limit -->
+        <div id="glass-info-limits" class="glass-display glass-display--compact">
+          <div class="box-title"><span class="box-title-text">Limits</span><span class="box-title-tools"><button type="button" id="explore-change-limits" class="hud-gear" aria-label="Change the limits" title="Change the limits" aria-haspopup="dialog" aria-expanded="false" aria-controls="explore-limits-popover"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.14,12.94a7.43,7.43,0,0,0,.05-.94,7.43,7.43,0,0,0-.05-.94l2.11-1.65a.5.5,0,0,0,.12-.64l-2-3.46a.5.5,0,0,0-.6-.22l-2.49,1a7.28,7.28,0,0,0-1.63-.94l-.38-2.65A.5.5,0,0,0,13.64,2H10.36a.5.5,0,0,0-.5.42L9.48,5.07a7.28,7.28,0,0,0-1.63.94l-2.49-1a.5.5,0,0,0-.6.22l-2,3.46a.5.5,0,0,0,.12.64L4.91,11.06a7.43,7.43,0,0,0-.05.94,7.43,7.43,0,0,0,.05.94L2.8,14.59a.5.5,0,0,0-.12.64l2,3.46a.5.5,0,0,0,.6.22l2.49-1a7.28,7.28,0,0,0,1.63.94l.38,2.65a.5.5,0,0,0,.5.42h3.28a.5.5,0,0,0,.5-.42l.38-2.65a7.28,7.28,0,0,0,1.63-.94l2.49,1a.5.5,0,0,0,.6-.22l2-3.46a.5.5,0,0,0-.12-.64ZM12,15.5A3.5,3.5,0,1,1,15.5,12,3.5,3.5,0,0,1,12,15.5Z"/></svg></button><button type="button" class="hud-collapse" aria-expanded="true" aria-label="Collapse the Limits box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></span></div>
+          <div class="info-line"><span class="label">Arena</span><span id="explore-arena" class="value">off</span></div>
+          <div class="info-line"><span class="label">Memory limit</span><span id="explore-memory-limit" class="value">1,024 MB</span></div>
+          <form id="explore-limits-popover" class="explore-popover" tabindex="-1" role="dialog" aria-label="Change the limits" novalidate>
+            <div id="explore-arena-locked" class="explore-popover-locked" hidden>
+              <p class="explore-popover-text">The saved generation carries on in its own arena, under its own rules. Use your own rules starts its cells again from generation 0, with this arena and its rules yours to change.</p>
+              <button type="button" id="explore-arena-own" class="glass-button explore-small-button">Use your own rules</button>
+            </div>
+            <div class="explore-popover-section">Arena</div>
+            <label class="explore-check" for="explore-arena-on"><input type="checkbox" id="explore-arena-on" /> An arena</label>
+            <p class="explore-popover-text explore-popover-quiet">A box around the centre, as in the Discovery contests.</p>
+            <div class="explore-field">
+              <label class="explore-field-label" for="explore-arena-side">Side, in cells</label>
+              <span class="explore-field-hint">8 - 1024</span>
+            </div>
+            <input type="number" id="explore-arena-side" class="glass-input" min="8" max="1024" step="1" />
+            <!-- What happens at the edge (#115): the run ends; ships leave, Classic Methuselah's rule (#103); or it wraps around -->
+            <fieldset id="explore-edge" class="explore-edge">
+              <legend class="explore-field-label">At the edge</legend>
+              <label class="explore-check" for="explore-edge-end"><input type="radio" name="explore-edge" id="explore-edge-end" value="end" /> The run ends</label>
+              <p class="explore-popover-text explore-popover-quiet">A step that would bring a cell to life outside the arena ends the run, as in Methuselah.</p>
+              <label class="explore-check" for="explore-edge-ships"><input type="radio" name="explore-edge" id="explore-edge-ships" value="ships" /> Ships leave</label>
+              <p class="explore-popover-text explore-popover-quiet">As in Classic Methuselah: a ship of period up to 32 heading out through a wall leaves the arena, and the run goes on; anything else at the edge still ends it.</p>
+              <label class="explore-check" for="explore-edge-wrap"><input type="radio" name="explore-edge" id="explore-edge-wrap" value="wrap" /> It wraps around</label>
+              <p class="explore-popover-text explore-popover-quiet">Opposite walls meet: a pattern that crosses one comes back in through the other, and the run never reaches the edge. No contest wraps, so Save this generation is off while it does; Save simulation still works.</p>
+              <!-- Walls (#119): the old Game of Life 3D mode's corner, edge and face rules -->
+              <label class="explore-check" for="explore-edge-walls"><input type="radio" name="explore-edge" id="explore-edge-walls" value="walls" /> Walls</label>
+              <p class="explore-popover-text explore-popover-quiet">The arena is closed: past its walls is empty, so a cell on a wall counts only the neighbours inside, and follows its own rules, here. Nothing is born outside, so the run never reaches the edge. No contest has walls, so Save this generation is off with them; Save simulation still works.</p>
+              <div id="explore-walls-rules" class="explore-walls-rules" hidden>
+                <div class="explore-wall-kind">Corner <span class="explore-popover-quiet">(7 neighbours)</span></div>
+                <div class="explore-wall-row">
+                  <label class="explore-field-label" for="explore-wall-corner-birth">Birth</label>
+                  <input type="text" id="explore-wall-corner-birth" class="glass-input" autocomplete="off" spellcheck="false" placeholder="2,3" />
+                  <label class="explore-field-label" for="explore-wall-corner-survival">Survival</label>
+                  <input type="text" id="explore-wall-corner-survival" class="glass-input" autocomplete="off" spellcheck="false" placeholder="2-4" />
+                </div>
+                <div class="explore-wall-kind">Edge <span class="explore-popover-quiet">(11 neighbours)</span></div>
+                <div class="explore-wall-row">
+                  <label class="explore-field-label" for="explore-wall-edge-birth">Birth</label>
+                  <input type="text" id="explore-wall-edge-birth" class="glass-input" autocomplete="off" spellcheck="false" placeholder="4" />
+                  <label class="explore-field-label" for="explore-wall-edge-survival">Survival</label>
+                  <input type="text" id="explore-wall-edge-survival" class="glass-input" autocomplete="off" spellcheck="false" placeholder="2-6" />
+                </div>
+                <div class="explore-wall-kind">Face <span class="explore-popover-quiet">(17 neighbours)</span></div>
+                <div class="explore-wall-row">
+                  <label class="explore-field-label" for="explore-wall-face-birth">Birth</label>
+                  <input type="text" id="explore-wall-face-birth" class="glass-input" autocomplete="off" spellcheck="false" placeholder="6" />
+                  <label class="explore-field-label" for="explore-wall-face-survival">Survival</label>
+                  <input type="text" id="explore-wall-face-survival" class="glass-input" autocomplete="off" spellcheck="false" placeholder="3-9" />
+                </div>
+                <p class="explore-popover-text explore-popover-quiet">Counts as a list or ranges, such as 2,3 or 3-9, up to the cell's neighbours. A birth count of 0 isn't allowed; no birth count at all means no cell is ever born on that kind of wall. Every other cell follows the Rules box.</p>
+              </div>
+            </fieldset>
+            <div class="explore-popover-section">Memory limit</div>
+            <div class="explore-field">
+              <label class="explore-field-label" for="explore-memory-input">Limit, in MB</label>
+              <span class="explore-field-hint">64 - 16384</span>
+            </div>
+            <input type="number" id="explore-memory-input" class="glass-input" min="64" max="16384" step="64" />
+            <p class="explore-popover-text explore-popover-quiet">How much memory the engine may use for cells. Your browser caps each tab's memory, whatever your computer has, and a page can't find out that cap in advance. If the browser refuses memory, the run stops cleanly and keeps its last generation; if the system closes the tab first, which is likelier with little memory, the run is lost. This limit stops the run before that. Try about 1024 on a typical laptop and 2048 to 4096 on a strong desktop; 512 is cautious, for phones and small machines.</p>
+            <p id="explore-limits-note" class="explore-popover-text explore-popover-quiet"></p>
+            <p id="explore-limits-error" class="explore-error" role="alert" hidden></p>
+            <div class="explore-save-actions">
+              <button type="submit" class="glass-button explore-small-button">Apply</button>
+              <button type="button" class="glass-button explore-small-button" data-cancel>Cancel</button>
+            </div>
+          </form>
+        </div>
+        <div id="glass-info-explore" class="glass-display glass-display--compact">
+          <div class="box-title"><span class="box-title-text">Run</span><span class="box-title-tools"><button type="button" id="explore-save-generation" class="hud-gear hud-gear--explore hud-save" aria-label="Save this generation" title="Save this generation" aria-haspopup="dialog" aria-expanded="false" aria-controls="explore-save-popover" disabled><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></button><button type="button" class="hud-collapse" aria-expanded="true" aria-label="Collapse the Run box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></span></div>
+          <div class="info-line"><span class="label">Generation</span><span id="explore-generation" class="value">0</span></div>
+          <div class="info-line"><span class="label">Gen/s</span><span id="explore-rate" class="value">0</span></div>
+          <div class="info-line"><span class="label">Live cells</span><span id="explore-live" class="value">0</span></div>
+          <div class="info-line"><span class="label">Peak</span><span id="explore-live-peak" class="value">0</span></div>
+          <div class="info-line"><span class="label">Extent</span><span id="explore-extent" class="value">–</span></div>
+          <div class="info-line"><span class="label">Chunks</span><span id="explore-chunks" class="value">0</span></div>
+          <div class="info-line"><span class="label">Settled</span><span id="explore-settled" class="value">no</span></div>
+          <!-- Only with Ships leave at the edge (#103): how many have left, and the last one -->
+          <div id="explore-departed-line" class="info-line" hidden><span class="label">Ships left</span><span id="explore-departed" class="value">0</span></div>
+          <!-- The engine's cell memory, apart from the browser's own: what its chunks use, and what it
+               has reserved, of the limit in the Limits box -->
+          <div class="info-line"><span class="label">Memory in use</span><span id="explore-memory-live" class="value">0 KB</span></div>
+          <div class="info-line"><span class="label">Reserved</span><span id="explore-memory-used" class="value">0 MB</span></div>
+          <!-- Save this generation, the save icon in the Run box's title, opens the save popover, which
+               Save simulation and Save seed share: it moves beside the box whose icon opened it, and
+               says what the file holds and where it goes -->
+          <div id="explore-save-popover" class="explore-popover explore-save-popover" role="dialog" aria-labelledby="explore-save-title" tabindex="-1">
+            <div id="explore-save-title" class="explore-popover-title"></div>
+            <p id="explore-save-what" class="explore-save-text"></p>
+            <div id="explore-save-hashes" class="explore-save-hashes" hidden></div>
+            <p id="explore-save-where" class="explore-save-text explore-save-where" hidden></p>
+            <p id="explore-save-status" class="explore-save-text explore-save-status" role="status" hidden></p>
+            <div class="explore-save-actions">
+              <button type="button" id="explore-save-confirm" class="glass-button explore-small-button" hidden>Save</button>
+              <button type="button" id="explore-save-cancel" class="glass-button explore-small-button">Cancel</button>
+            </div>
+          </div>
+        </div>
+        <!-- The Contests mode (src/contests/, #77): which contest is open and how its run stands;
+             the panel in the middle of the screen does the rest -->
+        <div id="glass-info-contest" class="glass-display glass-display--compact">
+          <div class="box-title"><span class="box-title-text">Contest</span><button type="button" class="hud-collapse" aria-expanded="true" aria-label="Collapse the Contest box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></div>
+          <div class="info-line"><span class="label">Contest</span><span id="contest-hud-name" class="value">–</span></div>
+          <div class="info-line"><span class="label">Status</span><span id="contest-hud-status" class="value">Choosing</span></div>
+          <div class="info-line"><span class="label">Generation</span><span id="contest-hud-generation" class="value">–</span></div>
+        </div>
+      </div>
+    </section>
   </div>
+  <!-- The Contests banner (#77), left of the company logo in every mode: one click opens the
+       Contests mode, and in it, shown as pressed, one click (or Esc) goes back. controls.js fills in
+       the date entries close, from src/unbounded/contests.js -->
+  <button type="button" id="contests-banner" class="contests-banner" aria-pressed="false" title="Open the contests">
+    <svg class="contests-banner-trophy" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M7 3.5 H17 V9 A5 5 0 0 1 7 9 Z"></path>
+      <path d="M7 5.5 H4.5 A2.5 2.5 0 0 0 7.2 10.5 M17 5.5 H19.5 A2.5 2.5 0 0 1 16.8 10.5"></path>
+      <path d="M12 14 V17 M9.5 17 H14.5 V20.5 H9.5 Z"></path>
+    </svg>
+    <span class="contests-banner-name">Contests</span>
+    <span id="contests-banner-closes" class="contests-banner-closes">Closes TBD</span>
+  </button>
+  <!-- The Contests mode's panel (src/contests/panel.js, #77): the list of contests, a contest's
+       page, its run, its results and Verify a result. panel.js fills it; nothing is drawn in 3D
+       behind it -->
+  <section id="contests-panel" class="contests-panel" aria-labelledby="contests-panel-title" hidden>
+    <h2 id="contests-panel-title" class="contests-panel-title">Season 0</h2>
+    <div id="contests-panel-body" class="contests-panel-body"></div>
+    <p id="contests-panel-status" class="contests-panel-status" role="status" aria-live="polite"></p>
+  </section>
+  <input type="file" id="contests-verify-file" accept=".json,application/json" hidden>
+  <!-- Load simulation… on a Discovery contest's page (#94): a simulation file from Explore's Save
+       simulation (#130) -->
+  <input type="file" id="contests-seed-file" accept=".json,application/json" hidden>
+  <!-- Watch (src/contests/watch.js, #78): a result played back in 3D, in place of the panel. The
+       control bar plays, pauses, steps and sets the speed; this bar, above it, scrubs to any
+       generation up to the result's, marks where ships left (Classic Methuselah, #102), says
+       whether the replay matched, and closes -->
+  <section id="contests-watch" class="contests-watch" aria-label="Watch" hidden>
+    <div class="contests-watch-top">
+      <span id="contests-watch-title" class="contests-watch-title">Watch</span>
+      <button type="button" id="contests-watch-close" class="glass-button contests-button" title="Back to the panel (Esc)">Close</button>
+    </div>
+    <div class="contests-watch-scrub">
+      <input type="range" id="contests-watch-scrub" class="glass-slider" min="0" max="0" step="1" value="0" aria-label="Generation" list="contests-watch-ticks">
+      <datalist id="contests-watch-ticks"></datalist>
+      <span id="contests-watch-generation" class="contests-watch-generation">0 / 0</span>
+    </div>
+    <p id="contests-watch-departures" class="contests-watch-departures" aria-live="polite" hidden></p>
+    <p id="contests-watch-verified" class="contests-self-verified" role="status" aria-live="polite" data-verdict="pending"></p>
+  </section>
+  <!-- The seed editor (src/explore/editor.js, #70): its panel, beside the 3D view it takes over.
+       Every button has a key; ? lists them -->
+  <aside id="seed-editor" class="seed-editor" role="dialog" aria-labelledby="seed-editor-title" hidden>
+    <div class="seed-editor-head">
+      <h2 id="seed-editor-title" class="seed-editor-title">Seed editor</h2>
+      <button type="button" id="seed-editor-help-button" class="glass-button explore-small-button" data-action="help" aria-expanded="false" aria-controls="seed-editor-help" title="Every key (?)">?</button>
+    </div>
+    <p id="seed-editor-note" class="seed-editor-note" hidden></p>
+    <div id="seed-editor-help" class="seed-editor-help" hidden>
+      <dl>
+        <dt>Arrows</dt><dd>Move the cursor across the screen</dd>
+        <dt>Page Up / Down</dt><dd>Move it away from you, or toward you</dd>
+        <dt>Click</dt><dd>Move the cursor to a cell; drag to turn the view</dd>
+        <dt>1 2 3 4 5</dt><dd>Select a cell, a line, a plane, a box or all</dd>
+        <dt>Shift+click</dt><dd>Set a box's corner (4 sets it at the cursor)</dd>
+        <dt>X Y Z</dt><dd>The axis a line runs along, or a plane lies across</dd>
+        <dt>Space, Enter</dt><dd>Switch the selection: clear it if it is all alive, fill it if not</dd>
+        <dt>R</dt><dd>Fill the selection at random, at the density</dd>
+        <dt>F</dt><dd>Fade the rest: dim every cell outside the plane or box</dd>
+        <dt>Ctrl+Z</dt><dd>Undo; Ctrl+Shift+Z or Ctrl+Y redoes</dd>
+        <dt>Esc</dt><dd>Close this list, or the editor, without using the design</dd>
+      </dl>
+    </div>
+    <div class="seed-editor-count">Live cells <span><strong id="seed-editor-count">0</strong> / 1,000</span></div>
+    <div class="seed-editor-line">Cursor <span id="seed-editor-cursor"></span></div>
+
+    <div class="explore-popover-section">Select</div>
+    <div class="explore-seed-kind seed-editor-switch" role="group" aria-label="What the selection covers">
+      <button type="button" class="seed-kind-option" data-kind="cell" aria-pressed="false" title="The cursor's cell (1)">1 Cell</button>
+      <button type="button" class="seed-kind-option" data-kind="line" aria-pressed="false" title="The 10 cells through the cursor along the axis (2)">2 Line</button>
+      <button type="button" class="seed-kind-option" data-kind="plane" aria-pressed="true" title="The 100 cells through the cursor across the axis (3)">3 Plane</button>
+      <button type="button" class="seed-kind-option" data-kind="box" aria-pressed="false" title="Every cell from a corner set here to the cursor (4)">4 Box</button>
+      <button type="button" class="seed-kind-option" data-kind="all" aria-pressed="false" title="The whole box (5)">5 All</button>
+    </div>
+    <div id="seed-editor-axes" class="explore-seed-kind seed-editor-switch seed-editor-axes" role="group" aria-label="The axis a line runs along, or a plane lies across">
+      <button type="button" class="seed-kind-option seed-editor-axis-x" data-axis="0" aria-pressed="true" title="Along or across x (X)">X</button>
+      <button type="button" class="seed-kind-option seed-editor-axis-y" data-axis="1" aria-pressed="false" title="Along or across y (Y)">Y</button>
+      <button type="button" class="seed-kind-option seed-editor-axis-z" data-axis="2" aria-pressed="false" title="Along or across z (Z)">Z</button>
+    </div>
+    <p id="seed-editor-selection" class="seed-editor-selection" aria-live="polite"></p>
+
+    <div class="explore-popover-section">Change</div>
+    <div class="seed-editor-row">
+      <button type="button" class="glass-button explore-small-button" data-action="switch" title="Clear the selection if it is all alive, fill it if not (Space or Enter)">Switch</button>
+      <button type="button" class="glass-button explore-small-button" data-action="random" title="Fill the selection at random, at the density (R)">Random fill</button>
+      <label class="seed-editor-density" for="seed-editor-density">Density <input type="number" id="seed-editor-density" class="glass-input" min="0" max="1" step="0.05" value="0.3" /></label>
+    </div>
+    <div class="seed-editor-row">
+      <button type="button" id="seed-editor-undo" class="glass-button explore-small-button" data-action="undo" title="Undo (Ctrl+Z)">Undo</button>
+      <button type="button" id="seed-editor-redo" class="glass-button explore-small-button" data-action="redo" title="Redo (Ctrl+Shift+Z or Ctrl+Y)">Redo</button>
+      <button type="button" id="seed-editor-fade" class="glass-button explore-small-button seed-editor-toggle" data-action="fade" aria-pressed="false" title="Dim every cell outside the plane or box (F)">Fade the rest</button>
+    </div>
+
+    <div class="explore-popover-section">Move the cursor</div>
+    <div class="seed-editor-pad" role="group" aria-label="Move the cursor">
+      <button type="button" class="glass-button explore-small-button seed-editor-pad-up" data-move="ArrowUp" aria-label="Up (Arrow Up)" title="Up (Arrow Up)">↑</button>
+      <button type="button" class="glass-button explore-small-button seed-editor-pad-left" data-move="ArrowLeft" aria-label="Left (Arrow Left)" title="Left (Arrow Left)">←</button>
+      <button type="button" class="glass-button explore-small-button seed-editor-pad-right" data-move="ArrowRight" aria-label="Right (Arrow Right)" title="Right (Arrow Right)">→</button>
+      <button type="button" class="glass-button explore-small-button seed-editor-pad-down" data-move="ArrowDown" aria-label="Down (Arrow Down)" title="Down (Arrow Down)">↓</button>
+      <button type="button" class="glass-button explore-small-button seed-editor-pad-away" data-move="PageUp" title="Away from you (Page Up)">Away</button>
+      <button type="button" class="glass-button explore-small-button seed-editor-pad-near" data-move="PageDown" title="Toward you (Page Down)">Near</button>
+    </div>
+
+    <div class="explore-popover-section">View</div>
+    <div class="seed-editor-row">
+      <button type="button" class="glass-button explore-small-button" data-view="front">Front</button>
+      <button type="button" class="glass-button explore-small-button" data-view="top">Top</button>
+      <button type="button" class="glass-button explore-small-button" data-view="side">Side</button>
+      <button type="button" class="glass-button explore-small-button" data-view="angled">Angled</button>
+    </div>
+
+    <div class="explore-popover-section">File</div>
+    <div class="seed-editor-row">
+      <button type="button" class="glass-button explore-small-button" data-action="load" title="Open a seed file that fits the 10³ box">Load…</button>
+      <button type="button" class="glass-button explore-small-button" data-action="export" title="Save the design as a seed file: its cells, without rules">Export</button>
+      <input type="file" id="seed-editor-file" accept=".json,application/json" hidden />
+    </div>
+    <p class="explore-popover-text explore-popover-quiet">Load takes seed files only: a saved generation brings its own rules and arena, so it can't open as a design.</p>
+    <p id="seed-editor-status" class="explore-popover-text seed-editor-status" role="status" hidden></p>
+
+    <p id="seed-editor-rules" class="explore-popover-text explore-popover-quiet"></p>
+    <p id="seed-editor-error" class="explore-error" role="alert" hidden></p>
+    <div class="explore-save-actions seed-editor-actions">
+      <button type="button" class="glass-button explore-small-button" data-action="use" title="Make the design the seed, and run it from generation 0">Use</button>
+      <button type="button" class="glass-button explore-small-button" data-action="cancel" title="Close without using the design (Esc)">Cancel</button>
+    </div>
+  </aside>
   <!-- === FOOTER ICONS === -->
   <div id="footer-icons">
     <!-- Bottom Controls Container -->
     <div id="bottom-controls-container" class="footer-center">
       <!-- Configuration Button Panel -->
       <div id="config-controls-panel" class="bottom-controls-panel">
-        <button id="seedConfigButton" class="glass-button" aria-label="Configure seed" style="pointer-events:auto;">
+        <button id="seedConfigButton" class="glass-button" aria-label="Change the mode" title="Change the mode">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
             <path d="M19.14,12.94a7.43,7.43,0,0,0,.05-.94,7.43,7.43,0,0,0-.05-.94l2.11-1.65a.5.5,0,0,0,.12-.64l-2-3.46a.5.5,0,0,0-.6-.22l-2.49,1a7.28,7.28,0,0,0-1.63-.94l-.38-2.65A.5.5,0,0,0,13.64,2H10.36a.5.5,0,0,0-.5.42L9.48,5.07a7.28,7.28,0,0,0-1.63.94l-2.49-1a.5.5,0,0,0-.6.22l-2,3.46a.5.5,0,0,0,.12.64L4.91,11.06a7.43,7.43,0,0,0-.05.94,7.43,7.43,0,0,0,.05.94L2.8,14.59a.5.5,0,0,0-.12.64l2,3.46a.5.5,0,0,0,.6.22l2.49-1a7.28,7.28,0,0,0,1.63.94l.38,2.65a.5.5,0,0,0,.5.42h3.28a.5.5,0,0,0,.5-.42l.38-2.65a7.28,7.28,0,0,0,1.63-.94l2.49,1a.5.5,0,0,0,.6-.22l2-3.46a.5.5,0,0,0-.12-.64ZM12,15.5A3.5,3.5,0,1,1,15.5,12,3.5,3.5,0,0,1,12,15.5Z"/>
           </svg>
         </button>
-        <button id="hudToggleButton" class="glass-button" aria-label="Toggle HUD display" style="pointer-events:auto;">
+        <button id="hudToggleButton" class="glass-button" aria-label="Toggle HUD display">
           <svg id="hudToggleIcon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
             <!-- HUD icon - represents information overlay -->
             <rect x="3" y="3" width="18" height="18" rx="2" />
@@ -363,7 +621,7 @@
         </button>
         <!-- GPU compute toggle (src/gpu/computeControl.js). The badge says where the next run computes. -->
         <div id="gpu-compute-control" class="gpu-compute-control">
-          <button id="gpuComputeToggle" class="glass-button" aria-label="GPU compute" aria-pressed="false" aria-disabled="false" aria-describedby="gpu-compute-status gpu-compute-popover" style="pointer-events:auto;">
+          <button id="gpuComputeToggle" class="glass-button" aria-label="GPU compute" aria-pressed="false" aria-disabled="false" aria-describedby="gpu-compute-status gpu-compute-popover">
             <svg id="gpuComputeIcon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
               <!-- A chip: the die, and three pins on each side -->
               <rect x="6" y="6" width="12" height="12" rx="1.5" />
@@ -424,6 +682,13 @@
             <circle id="rightStepCircle" cx="45" cy="8" r="9" fill="currentColor" class="step-circle"/>
           </svg>
         </button>
+        <!-- Explore only: start again from the same seed and rules -->
+        <button id="restartButton" class="glass-button" aria-label="Restart from the seed" title="Restart from the seed">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <path d="M4 12a8 8 0 1 0 2.4-5.7" />
+            <path d="M4 3v5h5" />
+          </svg>
+        </button>
       </div>
     </div>
       <!-- View Controls Panel (to the right of play/pause) -->
@@ -448,7 +713,7 @@
           </div>
         </div>
         <div id="additional-controls-panel" class="bottom-controls-panel">
-        <button id="wireframeGridToggle" class="glass-button" aria-label="Toggle wireframe grid" style="pointer-events:auto;">
+        <button id="wireframeGridToggle" class="glass-button" aria-label="Toggle wireframe grid">
           <svg id="wireframeGridIcon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
             <!-- Isometric 3D grid cube -->
             <!-- Top face -->
@@ -470,7 +735,7 @@
             <line x1="3" y1="16" x2="21" y2="16" />
           </svg>
         </button>
-        <button id="flipOrientationToggle" class="glass-button" aria-label="Flip simulation orientation" style="pointer-events:auto;">
+        <button id="flipOrientationToggle" class="glass-button" aria-label="Flip simulation orientation">
           <svg id="flipOrientationIcon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
             <path id="flipOrientationLine" d="M12 3 L12 21" stroke-width="3" />
             <path id="flipOrientationUp" class="flip-arrow" d="M7 8 L12 2 L17 8" stroke-width="3" />
@@ -508,27 +773,6 @@
     overflow: hidden;
     background-color: var(--color-background);
     font-family: sans-serif;
-  }
-
-  #simulation-mode-title {
-    position: fixed;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 100;
-    background: transparent;
-    border: none;
-    border-radius: 0;
-    padding: 0;
-    pointer-events: none;
-    color: rgba(200, 220, 255, 0.9);
-    font-size: 24px;
-    font-weight: 500;
-    letter-spacing: 1px;
-    text-align: center;
-    white-space: nowrap;
-    box-shadow: none;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   }
 
   .arrow {
@@ -809,7 +1053,12 @@
   /* Compact single info box overrides */
   #glass-info-shape.glass-display--compact,
   #glass-info-rules.glass-display--compact,
-  #glass-info-sim.glass-display--compact {
+  #glass-info-sim.glass-display--compact,
+  #glass-info-explore.glass-display--compact,
+  #glass-info-contest.glass-display--compact,
+  #glass-info-limits.glass-display--compact,
+  #glass-info-simulation.glass-display--compact,
+  #glass-info-mode.glass-display--compact {
     padding: 10px 12px;
     border-radius: 12px;
     margin: 5px;
@@ -822,7 +1071,10 @@
 
   #glass-info-shape .info-line,
   #glass-info-rules .info-line,
-  #glass-info-sim .info-line {
+  #glass-info-sim .info-line,
+  #glass-info-explore .info-line,
+  #glass-info-contest .info-line,
+  #glass-info-limits .info-line {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
@@ -830,10 +1082,17 @@
     min-width: 180px;
     margin: 4px 0;
   }
+  /* A line shown only sometimes, such as the Run box's Ships left (#103) */
+  #glass-info-explore .info-line[hidden] {
+    display: none;
+  }
 
   #glass-info-shape .label,
   #glass-info-rules .label,
-  #glass-info-sim .label {
+  #glass-info-sim .label,
+  #glass-info-explore .label,
+  #glass-info-contest .label,
+  #glass-info-limits .label {
     color: var(--color-info-display-text);
     font-weight: 600;
     font-size: 12px;
@@ -841,7 +1100,10 @@
 
   #glass-info-shape .value,
   #glass-info-rules .value,
-  #glass-info-sim .value {
+  #glass-info-sim .value,
+  #glass-info-explore .value,
+  #glass-info-contest .value,
+  #glass-info-limits .value {
     font-size: 16px;
     color: var(--color-control-font); /* blue-ish theme accent */
     font-weight: 600;
@@ -1063,15 +1325,6 @@
 .bottom-row {
   display: flex;
   justify-content: center;
-}
-
-#clockCanvas {
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  width: 150px;
-  height: 150px;
-  pointer-events: none; /* let clicks go through to 3D scene */
 }
 
 #speed-display {
@@ -1732,42 +1985,37 @@
     transition: background 0.2s ease, box-shadow 0.2s ease;
   }
   .glass-select:hover { box-shadow: 0 6px 14px var(--color-control-hover); }
+  /* The open list is drawn by the browser: ask for its dark style, and colour the options to
+     match the dialog (a translucent background would show as white there) */
+  .glass-select { color-scheme: dark; }
+  .glass-select option {
+    background-color: #1c2430;
+    color: rgba(200, 220, 255, 0.95);
+  }
+  /* A group's heading in the open list (Explore's Ships, #105): the options' dark background,
+     quieter text, and upright, where a browser's own heading is often black or italic */
+  .glass-select optgroup {
+    background-color: #1c2430;
+    color: rgba(200, 220, 255, 0.6);
+    font-style: normal;
+    font-weight: 600;
+  }
 
   /* Modal */
   .modal.hidden { display: none; }
   .modal { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: flex-start; justify-content: center; padding-top: 40px; }
-  /* The company panel is small: centre it in the viewport */
-  #company-modal { align-items: center; padding-top: 0; }
-  .modal-backdrop { 
-    position: absolute; 
-    inset: 0; 
-    background: rgba(0,0,0,0.98);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+  /* The company panel opens at the top right, under the logo that opened it, its right edge in
+     line with the logo's. The logo stays above it, lit, so a second click on it closes the panel */
+  #company-modal { align-items: flex-start; justify-content: flex-end; padding: 72px 10px 0 0; }
+  #company-modal .modal-content { max-height: calc(100vh - 82px); overflow-y: auto; }
+  body.company-modal-open #company-brand { z-index: 1001; }
+  body.company-modal-open #company-brand .footer-icon {
+    opacity: 1;
+    filter: drop-shadow(0 0 6px rgba(255, 140, 0, 0.9)) drop-shadow(0 0 14px rgba(255, 140, 0, 0.5));
   }
-  .modal-backdrop::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-image: 
-      repeating-linear-gradient(0deg, rgba(255,255,255,0.03) 0px, transparent 1px, transparent 2px, rgba(255,255,255,0.03) 3px),
-      repeating-linear-gradient(90deg, rgba(255,255,255,0.03) 0px, transparent 1px, transparent 2px, rgba(255,255,255,0.03) 3px);
-    background-size: 4px 4px;
-    opacity: 0.4;
-    pointer-events: none;
-  }
-  .modal-backdrop::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: 
-      radial-gradient(circle at 20% 50%, rgba(255,255,255,0.02) 0%, transparent 50%),
-      radial-gradient(circle at 80% 80%, rgba(255,255,255,0.02) 0%, transparent 50%),
-      radial-gradient(circle at 40% 20%, rgba(255,255,255,0.02) 0%, transparent 50%);
-    opacity: 0.5;
-    pointer-events: none;
-    mix-blend-mode: overlay;
-  }
+  /* With the panel open, the Contests banner and panel make way */
+  body.company-modal-open .contests-banner,
+  body.company-modal-open .contests-panel { display: none; }
   .glass-panel { 
     background: rgba(30, 30, 35, 0.98); 
     border: 1px solid rgba(120, 120, 130, 0.3); 
@@ -1801,61 +2049,9 @@
     overflow: hidden;
     background: rgba(30, 30, 35, 0.98);
   }
-  .modal-title { 
-    margin: 0 0 10px; 
-    color: rgba(240, 240, 245, 0.98); 
-    border-bottom: 1px solid rgba(140, 140, 150, 0.3); 
-    padding-bottom: 6px; 
-    font-weight: 600; 
-    font-size: 20px;
-    letter-spacing: 0.3px;
-  }
-  .modal-body { 
-    display: flex; 
-    flex-direction: column; 
-    gap: 2px; 
-    overflow-y: auto;
-    overflow-x: hidden;
-    flex: 1;
-    min-height: 0;
-    padding-right: 4px;
-  }
-  .modal-body::-webkit-scrollbar {
-    width: 8px;
-  }
-  .modal-body::-webkit-scrollbar-track {
-    background: rgba(25, 25, 30, 0.6);
-    border-radius: 4px;
-  }
-  .modal-body::-webkit-scrollbar-thumb {
-    background: rgba(140, 140, 150, 0.4);
-    border-radius: 4px;
-  }
-  .modal-body::-webkit-scrollbar-thumb:hover {
-    background: rgba(160, 160, 170, 0.6);
-  }
-  .modal-grid { 
-    display: grid; 
-    grid-template-columns: repeat(4, 1fr); 
-    gap: 4px 12px; 
-    align-items: start; 
-    position: relative; 
-    min-width: 0;
-  }
   @media (max-width: 900px) {
     .modal-content {
       min-width: 90vw;
-    }
-    .modal-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
-    .modal-grid .rules-col,
-    .modal-grid .boundary-col {
-      border-left: none;
-      border-top: 1px solid rgba(140, 140, 150, 0.25);
-      padding-left: 0;
-      padding-top: 10px;
-      margin-top: 6px;
     }
   }
   @media (max-width: 600px) {
@@ -1865,282 +2061,6 @@
     }
     /* The company panel keeps its own narrow width, with a gutter on each side */
     #company-modal .modal-content { min-width: min(300px, calc(100vw - 64px)); }
-    .modal-grid {
-      grid-template-columns: 1fr;
-    }
-    .modal-grid .seed-col,
-    .modal-grid .rules-col,
-    .modal-grid .boundary-col {
-      border-left: none;
-      border-top: 1px solid rgba(140, 140, 150, 0.25);
-      padding-left: 0;
-      padding-top: 10px;
-      margin-top: 6px;
-      width: 100%;
-    }
-    .modal-field-row .glass-input,
-    .modal-field-row .glass-select {
-      max-width: 100%;
-    }
-  }
-  .modal-grid .sim-col { 
-    grid-column: 1 / -1; 
-    display: flex; 
-    flex-direction: column; 
-    gap: 3px; 
-    margin-bottom: 2px;
-  }
-  .modal-grid .sim-col:not(:first-child) {
-    grid-column: 1;
-    margin-bottom: 0;
-    border-left: none;
-    padding-left: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-    width: 100%;
-    box-sizing: border-box;
-  }
-  .modal-grid .seed-col { 
-    grid-column: 2; 
-    display: flex; 
-    flex-direction: column; 
-    gap: 2px; 
-    border-left: 1px solid rgba(140, 140, 150, 0.25); 
-    padding-left: 12px; 
-    min-width: 0;
-    width: 100%;
-    box-sizing: border-box;
-  }
-  .modal-grid .rules-col { 
-    grid-column: 3; 
-    display: flex; 
-    flex-direction: column; 
-    gap: 2px; 
-    border-left: 1px solid rgba(140, 140, 150, 0.25); 
-    padding-left: 12px; 
-    min-width: 0;
-    width: 100%;
-    box-sizing: border-box;
-  }
-  .modal-grid .boundary-col { 
-    grid-column: 4; 
-    display: flex; 
-    flex-direction: column; 
-    gap: 2px; 
-    border-left: 1px solid rgba(140, 140, 150, 0.25); 
-    padding-left: 12px; 
-    padding-right: 0;
-    min-width: 0;
-    width: 100%;
-    box-sizing: border-box;
-  }
-  @media (max-width: 1200px) {
-    .modal-grid .sim-col:not(:first-child) { grid-column: 1; }
-    .modal-grid .seed-col { grid-column: 1; }
-    .modal-grid .rules-col { grid-column: 2; }
-    .modal-grid .boundary-col { grid-column: 1 / -1; }
-  }
-  @media (max-width: 768px) {
-    .modal-grid .sim-col:not(:first-child),
-    .modal-grid .seed-col,
-    .modal-grid .rules-col,
-    .modal-grid .boundary-col {
-      grid-column: 1;
-    }
-  }
-  .rules-title { 
-    color: var(--color-title); 
-    font-weight: 700; 
-    font-size: 16px; 
-    margin-bottom: 4px; 
-    border-bottom: 1px solid rgba(140, 140, 150, 0.25); 
-    padding-bottom: 2px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    letter-spacing: 0.3px;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-  }
-  .mode-selector {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin-top: 4px;
-  }
-  .mode-card {
-    flex: 1;
-    padding: 8px 10px;
-    border-radius: 6px;
-    border: 1px solid rgba(140, 140, 150, 0.3);
-    background: rgba(40, 40, 45, 0.5);
-    color: rgba(230, 230, 235, 0.95);
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 3px;
-    outline: none;
-  }
-  .mode-card:hover {
-    transform: translateY(-1px);
-    border-color: rgba(120, 180, 255, 0.4);
-    background: rgba(35, 45, 60, 0.6);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  }
-  .mode-card.active {
-    border-color: rgba(120, 180, 255, 0.6);
-    background: rgba(40, 60, 90, 0.7);
-    box-shadow: 
-      0 4px 16px rgba(0, 0, 0, 0.4),
-      inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    color: rgba(220, 235, 255, 1);
-  }
-  .mode-card[data-mode="gameOfLife"] {
-    border-left: 3px solid rgba(100, 180, 255, 0.6);
-  }
-  .mode-card[data-mode="gameOfLife"].active {
-    border-left: 3px solid rgba(120, 200, 255, 0.9);
-    background: rgba(40, 70, 110, 0.7);
-  }
-  .mode-card[data-mode="rule30"] {
-    border-left: 3px solid rgba(100, 200, 150, 0.6);
-  }
-  .mode-card[data-mode="rule30"].active {
-    border-left: 3px solid rgba(120, 220, 170, 0.9);
-    background: rgba(40, 90, 70, 0.7);
-  }
-  .mode-card[data-mode="sineWave"] {
-    border-left: 3px solid rgba(180, 140, 220, 0.6);
-  }
-  .mode-card[data-mode="sineWave"].active {
-    border-left: 3px solid rgba(200, 160, 240, 0.9);
-    background: rgba(80, 60, 100, 0.7);
-  }
-  .mode-card[data-mode="sandpile"] {
-    border-left: 3px solid rgba(220, 160, 100, 0.6);
-  }
-  .mode-card[data-mode="sandpile"].active {
-    border-left: 3px solid rgba(240, 180, 120, 0.9);
-    background: rgba(100, 70, 50, 0.7);
-  }
-  .mode-name {
-    font-weight: 600;
-    font-size: 15px;
-    letter-spacing: 0.2px;
-  }
-  .mode-description {
-    margin-top: 6px;
-    padding: 10px 14px;
-    background: rgba(40, 40, 45, 0.5);
-    border: 1px solid rgba(140, 140, 150, 0.25);
-    border-radius: 6px;
-    color: rgba(230, 230, 235, 0.95);
-    font-size: 16px;
-    line-height: 1.7;
-    letter-spacing: 0.3px;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    white-space: normal;
-  }
-  .mode-description p {
-    margin: 0;
-  }
-  .mode-subtitle {
-    font-size: 12px;
-    opacity: 0.75;
-    font-weight: 400;
-    letter-spacing: 0.2px;
-  }
-  .modal-field-row {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-    margin-bottom: 3px;
-    min-width: 0;
-    padding: 0;
-    border-radius: 0;
-    background: transparent;
-    border: none;
-    transition: none;
-  }
-  
-  .modal-field-row:hover {
-    background: transparent;
-    border-color: transparent;
-  }
-  .modal-field-row .modal-label {
-    min-width: 0;
-    flex-shrink: 0;
-    white-space: nowrap;
-    font-size: 14px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding-right: 2px;
-    margin-top: 0;
-    padding-top: 0;
-    width: auto;
-  }
-  .modal-field-row .glass-input,
-  .modal-field-row .glass-select {
-    width: 100%;
-    min-width: 0;
-    max-width: 100%;
-    flex-shrink: 0;
-    margin-left: 0;
-    box-sizing: border-box;
-    position: relative;
-    z-index: 1;
-  }
-  .modal-field-row > div[style*="flex-direction: column"] {
-    margin-left: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
-    width: 100%;
-    min-width: 0;
-    max-width: 100%;
-    margin-top: 0;
-    padding-top: 0;
-  }
-  
-  .modal-field-row .label-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    gap: 8px;
-    pointer-events: none;
-  }
-  
-  .modal-field-row .label-row * {
-    pointer-events: auto;
-  }
-  
-  .modal-field-row .input-range-hint {
-    margin-left: auto;
-    flex-shrink: 0;
-  }
-  .modal-field-row > div[style*="flex-direction: column"] .glass-input {
-    width: 100%;
-    margin-left: 0;
-    margin-top: 0;
-    margin-bottom: 0;
-    align-self: stretch;
-  }
-  .modal-label { 
-    color: rgba(230, 230, 235, 0.95); 
-    font-weight: 600; 
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 14px;
-    letter-spacing: 0.3px;
   }
   .input-range-hint {
     font-size: 11px;
@@ -2148,6 +2068,101 @@
     font-weight: 400;
     line-height: 1.2;
     letter-spacing: 0.2px;
+  }
+  /* A range hint is a button that opens its advice (#123) */
+  .advice-hint {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 4px;
+    margin-right: -4px;
+    border: none;
+    border-radius: 6px;
+    background: none;
+    font-family: inherit;
+    color: rgb(0, 180, 200);
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  .advice-hint:hover,
+  .advice-hint:focus-visible {
+    background: rgba(0, 180, 200, 0.12);
+  }
+  .advice-hint:focus-visible {
+    outline: 2px solid rgba(0, 180, 200, 0.8);
+    outline-offset: 1px;
+  }
+  .advice-hint-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+    font-size: 10px;
+    line-height: 1;
+  }
+  /* Its popover, in the top layer under the hint; adviceControl.js places it */
+  .advice-popover {
+    position: fixed;
+    inset: auto;
+    margin: 0;
+    width: 300px;
+    max-width: calc(100vw - 32px);
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    background: rgba(35, 45, 60, 0.97);
+    border: 1px solid rgba(120, 180, 255, 0.4);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    color: rgba(200, 220, 255, 0.95);
+    font-size: 13px;
+    line-height: 1.4;
+    text-align: left;
+  }
+  .advice-popover p {
+    margin: 0 0 8px;
+  }
+  .advice-popover p:last-child {
+    margin-bottom: 0;
+  }
+  .advice-popover .advice-estimate {
+    font-weight: 600;
+    color: rgba(230, 240, 255, 1);
+  }
+  .advice-popover .advice-detail {
+    color: rgba(180, 195, 220, 0.9);
+    font-size: 12px;
+  }
+  .advice-popover dl {
+    margin: 0 0 8px;
+  }
+  .advice-popover dt {
+    font-weight: 600;
+  }
+  .advice-popover dd {
+    margin: 0 0 4px;
+  }
+  /* Apply's question above a high estimate, under the dialog's buttons */
+  .memory-confirm {
+    margin-top: 12px;
+    padding: 10px 12px;
+    border: 1px solid rgba(255, 170, 90, 0.7);
+    border-radius: 8px;
+    background: rgba(60, 45, 35, 0.6);
+    color: rgba(240, 225, 210, 0.95);
+    font-size: 13px;
+    line-height: 1.4;
+  }
+  .memory-confirm[hidden] {
+    display: none;
+  }
+  .memory-confirm p {
+    margin: 0 0 10px;
   }
   /* Tooltip styles for elements with data-tooltip attribute */
   [data-tooltip] {
@@ -2181,11 +2196,6 @@
   .tooltip-display:empty {
     opacity: 0;
   }
-  
-  .modal-actions-buttons {
-    display: flex;
-    gap: 12px;
-  }
   .glass-input { 
     padding: 6px 8px; 
     border-radius: 8px; 
@@ -2195,13 +2205,6 @@
     outline: none; 
     font-size: 15px;
     font-weight: 500;
-  }
-  .modal-field-row .glass-select { 
-    padding: 6px 8px; 
-    font-size: 15px; 
-    border-radius: 8px;
-    appearance: none;
-    -webkit-appearance: none;
   }
   .modal-actions { 
     display: flex; 
@@ -2346,6 +2349,2064 @@
     text-shadow: 0 0 4px rgba(100, 150, 255, 0.8), 0 1px 2px rgba(0, 0, 0, 0.5);
     font-weight: 800;
   }
+
+  /* ==== Explore (src/explore/) ==== */
+
+  .explore-small-button {
+    padding: 5px 10px;
+  }
+  .explore-small-button[disabled] {
+    opacity: 0.45;
+    cursor: default;
+  }
+  .explore-small-button[hidden] {
+    display: none;
+  }
+  /* A two- or three-way switch (the Seed popover's Shape / File / Design, the seed editor's),
+     drawn like the control bar's 3D / 2D switch */
+  .explore-seed-kind {
+    display: flex;
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid rgba(100, 150, 200, 0.3);
+    border-radius: 6px;
+    background: rgba(35, 45, 60, 0.7);
+    overflow: hidden;
+  }
+  .seed-kind-option {
+    flex: 1;
+    padding: 8px 0;
+    border: none;
+    background: transparent;
+    color: rgba(200, 220, 255, 0.95);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .seed-kind-option + .seed-kind-option {
+    border-left: 1px solid rgba(100, 150, 200, 0.3);
+  }
+  .seed-kind-option:hover {
+    background: rgba(45, 60, 80, 0.8);
+  }
+  .seed-kind-option[aria-pressed="true"] {
+    background: rgba(77, 163, 255, 0.25);
+    color: rgba(220, 235, 255, 1);
+    box-shadow: inset 0 0 0 1px rgba(77, 163, 255, 0.35);
+    font-weight: 700;
+  }
+  .seed-kind-option:focus-visible {
+    outline: 2px solid rgba(120, 180, 255, 0.8);
+    outline-offset: -2px;
+  }
+  .explore-error {
+    margin-top: 8px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 120, 100, 0.6);
+    background: rgba(90, 30, 30, 0.6);
+    color: #ffd9d2;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+  .explore-error[hidden] {
+    display: none;
+  }
+  /* What the view draws, and why a run stopped: at the top, in the middle */
+  .explore-notice {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    width: max-content;
+    max-width: min(560px, calc(100vw - 32px));
+    pointer-events: none;
+  }
+  .explore-note {
+    padding: 6px 12px;
+    border-radius: 8px;
+    background: rgba(35, 45, 60, 0.88);
+    border: 1px solid rgba(120, 180, 255, 0.35);
+    color: rgba(200, 220, 255, 0.95);
+    font-size: 14px;
+    line-height: 1.4;
+    text-align: center;
+  }
+  .explore-note--end {
+    border-color: rgba(255, 170, 90, 0.7);
+  }
+  .explore-note[hidden] {
+    display: none;
+  }
+  /* Explore's Limits and Run boxes and Restart button show only in Explore, which has no fixed
+     size and no reverse (a stream only runs forward) */
+  #glass-info-explore,
+  #glass-info-limits,
+  #restartButton {
+    display: none;
+  }
+  #restartButton {
+    width: 60px;
+    height: 60px;
+    padding: 0;
+    border-radius: 6px;
+  }
+  body.mode-explore #glass-info-explore,
+  body.mode-explore #glass-info-limits {
+    display: block;
+  }
+  body.mode-explore #restartButton {
+    display: flex;
+  }
+  /* Explore's settings in the HUD (src/explore/hud.js): what the seed is and what locks the
+     rules, a Change button at the foot of each box, which itself lets clicks through, and Save
+     this generation and Save seed beside them */
+  .explore-hud-name,
+  body.mode-explore #glass-info-shape .hud-shape-line {
+    display: none;
+  }
+  body.mode-explore .explore-hud-name {
+    display: block;
+    max-width: 220px;
+    margin: 4px 0;
+    color: var(--color-control-font);
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+  }
+  body.mode-explore .explore-hud-name[hidden] {
+    display: none;
+  }
+  /* The Simulation box (#130): a simulation is a seed and its rules, so the Seed and Rules boxes
+     sit inside it as its two parts. In Explore it also names the simulation in use, and its gear
+     sets both parts together */
+  .hud-simulation {
+    display: none;
+  }
+  body.mode-explore .hud-simulation {
+    display: block;
+    margin: 2px 0 8px;
+  }
+  .hud-simulation-parts {
+    display: flex;
+    flex-direction: column;
+    margin-top: 2px;
+  }
+  #glass-info-simulation .hud-simulation-parts > .glass-display {
+    width: auto;
+    margin: 0;
+    padding: 6px 0 4px;
+    border: none;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+  }
+  #glass-info-simulation .hud-simulation-parts > .glass-display.has-popover {
+    background: rgba(77, 163, 255, 0.12);
+  }
+  /* A part's title is the parent's, quieter: smaller, lighter, in the info text's colour, led by a
+     short line like a branch from the Simulation title above */
+  #glass-info-simulation .hud-simulation-parts .box-title {
+    margin-bottom: 2px;
+    padding-bottom: 0;
+    border-bottom: none;
+    color: var(--color-info-display-text);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.4px;
+  }
+  #glass-info-simulation .hud-simulation-parts .box-title-text::before {
+    content: "";
+    display: inline-block;
+    width: 10px;
+    height: 1px;
+    margin-right: 6px;
+    background: var(--color-title);
+    vertical-align: middle;
+  }
+  #glass-info-simulation .hud-simulation-parts .box-title .hud-collapse {
+    color: var(--color-info-display-text);
+  }
+  /* The panel's title is the mode: its name in the blue band, and what it is under it */
+  #glass-info-mode > .box-title {
+    align-items: flex-start;
+  }
+  .hud-mode-title {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  /* The name's line is as tall as the gear and the chevron, so it lines up with them */
+  #glass-info-mode > .box-title .hud-mode-name {
+    margin: 0;
+    color: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 24px;
+    letter-spacing: 0.4px;
+  }
+  .hud-mode-kind {
+    margin-top: -2px;
+    color: var(--color-info-display-text);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.4px;
+    text-transform: none;
+  }
+  .hud-mode-kind:empty {
+    display: none;
+  }
+  #glass-info-mode > .hud-mode-children {
+    margin-top: 8px;
+  }
+  .hud-simulation-name {
+    margin: 2px 0;
+    color: var(--color-control-font);
+    font-size: 16px;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  }
+  /* Which boxes, lines and gears each mode shows (#130): body[data-mode] is the mode
+     (controls.js). The precomputed modes set their grid from the Grid box's gear; only the
+     bounded mode has a seed and rules to set; Explore's Run box reports its generation, so it has
+     no Grid box */
+  .hud-gear.hud-gear--precomputed,
+  .hud-gear.hud-gear--life {
+    display: none;
+  }
+  body[data-mode="gameOfLife"] .hud-gear--precomputed,
+  body[data-mode="rule30"] .hud-gear--precomputed,
+  body[data-mode="sineWave"] .hud-gear--precomputed,
+  body[data-mode="sandpile"] .hud-gear--precomputed,
+  body[data-mode="gameOfLife"] .hud-gear--life {
+    display: inline-flex;
+  }
+  #glass-info-sim .grid-line {
+    display: none;
+  }
+  body[data-mode="gameOfLife"] #glass-info-sim .grid-line--gameOfLife,
+  body[data-mode="rule30"] #glass-info-sim .grid-line--rule30,
+  body[data-mode="sandpile"] #glass-info-sim .grid-line--sandpile {
+    display: flex;
+  }
+  body[data-mode="explore"] #glass-info-sim,
+  body[data-mode="rule30"] #glass-info-simulation,
+  body[data-mode="sineWave"] #glass-info-simulation,
+  body[data-mode="sandpile"] #glass-info-simulation {
+    display: none;
+  }
+  #glass-info-simulation,
+  #glass-info-sim {
+    position: relative;
+  }
+  /* The Mode popover's list of modes, one button each, the running one pressed */
+  .mode-option-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .mode-option {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 6px 8px;
+    border: 1px solid rgba(120, 180, 255, 0.3);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--color-control-font);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .mode-option:hover {
+    border-color: rgba(120, 180, 255, 0.6);
+  }
+  .mode-option[aria-pressed="true"] {
+    border-color: rgba(120, 180, 255, 0.95);
+    background: rgba(77, 163, 255, 0.3);
+    color: #fff;
+  }
+  .mode-option:focus-visible {
+    outline: 2px solid rgba(120, 180, 255, 0.8);
+    outline-offset: 1px;
+  }
+  .mode-option-name {
+    font-weight: 600;
+  }
+  .mode-option-kind {
+    font-size: 12px;
+    opacity: 0.8;
+  }
+  .hud-confirm .explore-save-actions {
+    justify-content: flex-end;
+  }
+  /* The Simulation box (every mode): the HUD's boxes as its sections, Mode first */
+  #glass-info-mode {
+    position: relative;
+  }
+  #glass-info-mode.glass-display--compact {
+    width: 250px;
+    box-sizing: border-box;
+  }
+  /* The panel's own title, Simulation, is the parent of its sections: a blue band across the top,
+     where the sections' titles are orange */
+  #glass-info-mode > .box-title {
+    margin: -10px -12px 0;
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(120, 180, 255, 0.35);
+    border-radius: 12px 12px 0 0;
+    background: rgba(77, 163, 255, 0.16);
+    color: var(--color-state-value);
+    font-size: 15px;
+    letter-spacing: 1.2px;
+  }
+  #glass-info-mode > .box-title .hud-collapse {
+    color: var(--color-state-value);
+  }
+  #glass-info-mode.is-collapsed > .box-title {
+    margin-bottom: -10px;
+    padding-bottom: 8px;
+    border-radius: 12px;
+  }
+  .hud-mode-name {
+    margin: 2px 0;
+    color: var(--color-control-font);
+    font-size: 16px;
+    font-weight: 700;
+  }
+  /* One panel: the boxes that belong to the mode are its sections, each under one dividing line
+     that runs the panel's width, with no border of their own */
+  .hud-mode-children {
+    display: flex;
+    flex-direction: column;
+    margin: 0 -12px -10px;
+  }
+  #glass-info-mode .hud-mode-children > .glass-display {
+    width: auto;
+    margin: 0;
+    padding: 8px 12px 10px;
+    border: none;
+    border-top: 1px solid var(--color-info-display-border);
+    border-radius: 0;
+  }
+  #glass-info-mode .hud-mode-children > .glass-display:first-child {
+    border-top: none;
+  }
+  #glass-info-mode .hud-mode-children > .glass-display:last-child {
+    border-radius: 0 0 12px 12px;
+  }
+  #glass-info-mode .hud-mode-children .box-title {
+    margin-bottom: 4px;
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+  /* Run reports the run and sets nothing, so it reads as a readout, not a setting: a darker
+     inset, a green title where the settings' titles are orange, and its figures in white, with
+     digits that line up as they change */
+  #glass-info-mode .hud-mode-children > #glass-info-explore,
+  #glass-info-mode .hud-mode-children > #glass-info-contest {
+    background: rgba(0, 0, 0, 0.3);
+    box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.35);
+  }
+  #glass-info-explore > .box-title,
+  #glass-info-explore > .box-title .hud-collapse,
+  #glass-info-contest > .box-title,
+  #glass-info-contest > .box-title .hud-collapse {
+    color: rgba(130, 215, 160, 0.9);
+  }
+  #glass-info-explore .info-line .value,
+  #glass-info-contest .info-line .value {
+    color: #e8edf3;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+  #glass-info-explore .info-line .label,
+  #glass-info-contest .info-line .label {
+    opacity: 0.8;
+  }
+  /* Isolation and Overcrowding follow from Survival; in Explore the Rules popover shows them */
+  body.mode-explore #glass-info-rules .hud-derived-line {
+    display: none;
+  }
+  /* Each box folds down to its title: a click anywhere on the title row, or its arrow */
+  .box-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .hud-collapse {
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--color-title);
+    cursor: pointer;
+    pointer-events: auto;
+  }
+  .hud-collapse {
+    display: inline-flex;
+  }
+  .glass-display > .box-title:has(.hud-collapse) {
+    cursor: pointer;
+    pointer-events: auto;
+  }
+  .hud-collapse:hover {
+    border-color: rgba(120, 180, 255, 0.4);
+  }
+  /* A gear in a title row changes that section's settings; the rest of the row folds it. Seed's
+     and Rules' gears show only in Explore, and a folded section hides its gear */
+  .box-title-tools {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+  }
+  /* The gear changes its box's settings (#130): a small square in the lab's blue, the colour of the
+     popover it opens, so it reads as a control and not as the title's text */
+  .hud-gear {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: 1px solid rgba(120, 180, 255, 0.45);
+    border-radius: 5px;
+    background: rgba(77, 163, 255, 0.12);
+    color: rgb(150, 200, 255);
+    cursor: pointer;
+    pointer-events: auto;
+  }
+  .hud-gear:hover {
+    border-color: rgba(120, 180, 255, 0.85);
+    background: rgba(77, 163, 255, 0.25);
+    color: #fff;
+  }
+  .hud-gear:focus-visible {
+    outline: 2px solid rgba(120, 180, 255, 0.8);
+    outline-offset: 1px;
+  }
+  /* A save icon (#130) sits before its box's gear, in a colour of its own: violet, which sits
+     between the lab's blue and its titles' orange without being either, and is no readout's green.
+     It opens the save popover, which says what it saves. Off until the run has started */
+  .hud-gear.hud-save {
+    margin-right: 4px;
+    border-color: rgba(180, 150, 255, 0.5);
+    background: rgba(160, 120, 255, 0.12);
+    color: rgb(196, 176, 255);
+  }
+  .hud-gear.hud-save:hover {
+    border-color: rgba(180, 150, 255, 0.9);
+    background: rgba(160, 120, 255, 0.28);
+    color: #fff;
+  }
+  .hud-gear.hud-save.is-active {
+    border-color: rgba(190, 165, 255, 0.95);
+    background: rgba(160, 120, 255, 0.4);
+    color: #fff;
+  }
+  .hud-gear.hud-save:focus-visible {
+    outline-color: rgba(190, 165, 255, 0.9);
+  }
+  .hud-gear:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+  .hud-gear.hud-save:disabled:hover {
+    border-color: rgba(180, 150, 255, 0.5);
+    background: rgba(160, 120, 255, 0.12);
+    color: rgb(196, 176, 255);
+  }
+  .hud-gear.is-active {
+    border-color: rgba(120, 180, 255, 0.95);
+    background: rgba(77, 163, 255, 0.35);
+    color: #fff;
+  }
+  body:not(.mode-explore) .hud-gear--explore,
+  .glass-display.is-collapsed > .box-title .hud-gear {
+    display: none;
+  }
+  .hud-collapse:focus-visible {
+    outline: 2px solid rgba(120, 180, 255, 0.8);
+    outline-offset: 1px;
+  }
+  .hud-collapse svg {
+    transition: transform 0.15s ease;
+  }
+  .glass-display.is-collapsed > :not(.box-title) {
+    display: none !important;
+  }
+  .glass-display.is-collapsed > .box-title {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+  .glass-display.is-collapsed > .box-title .hud-collapse svg {
+    transform: rotate(-90deg);
+  }
+  /* The section whose popover is open, and its button, stand out: a tint across the panel and a
+     bar at its left edge */
+  #glass-info-mode .hud-mode-children > .glass-display.has-popover {
+    background: rgba(77, 163, 255, 0.12);
+    box-shadow: inset 3px 0 0 rgba(120, 180, 255, 0.9);
+  }
+  #glass-info-explore,
+  #glass-info-shape,
+  #glass-info-rules,
+  #glass-info-limits {
+    position: relative;
+  }
+  /* One popover at a time (src/explore/popover.js), drawn like the GPU toggle's
+     (.gpu-compute-popover), beside its section of the panel; popover.js moves it up if it would
+     run off the window's foot */
+  .explore-popover {
+    position: absolute;
+    left: calc(100% + 12px);
+    top: 0;
+    width: 340px;
+    max-width: calc(100vw - 32px);
+    max-height: calc(100vh - 16px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 10px 12px;
+    background: rgba(35, 45, 60, 0.97);
+    border: 1px solid rgba(120, 180, 255, 0.4);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    color: rgba(200, 220, 255, 0.95);
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.4;
+    text-align: left;
+    white-space: normal;
+    user-select: text;
+    z-index: 50;
+    /* Hidden with display, not visibility: a control with `transition: all` (a switch such as
+       Shape / File / Design) would otherwise fade its own visibility in, and refuse focus until it had */
+    display: none;
+  }
+  .explore-popover.is-open {
+    display: block;
+    pointer-events: auto;
+  }
+  .explore-popover:focus {
+    outline: none;
+  }
+  .explore-popover [hidden] {
+    display: none !important;
+  }
+  .explore-popover-title {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 8px;
+  }
+  .explore-popover-part {
+    margin-top: 8px;
+  }
+  .explore-popover-section {
+    margin: 12px 0 2px;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: var(--color-title);
+  }
+  .explore-popover-section:first-child {
+    margin-top: 0;
+  }
+  .explore-source-label {
+    margin-bottom: 4px;
+  }
+  .explore-popover-text {
+    margin: 6px 0 0;
+  }
+  .explore-popover-quiet {
+    color: var(--color-info-display-text);
+    font-size: 12px;
+  }
+  .explore-popover-quiet:empty {
+    display: none;
+  }
+  /* A popover's foot (#130): what the control pointed at or focused does, so the popover itself
+     keeps only its controls; tall enough for a few lines, so it doesn't jump as the text changes */
+  .popover-help {
+    min-height: 4.2em;
+    margin: 10px 0 0;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    color: var(--color-info-display-text);
+    font-size: 12px;
+    line-height: 1.4;
+  }
+  /* The Simulation popover's one page (#130): a preset from the list, or a file */
+  .explore-popover-or {
+    margin: 8px 0 6px;
+    color: var(--color-info-display-text);
+    font-size: 12px;
+    text-align: center;
+  }
+  #explore-simulation-status:empty {
+    display: none;
+  }
+  .explore-popover-locked {
+    margin-bottom: 8px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    background: rgba(255, 170, 90, 0.1);
+    border: 1px solid rgba(255, 170, 90, 0.4);
+  }
+  .explore-popover-locked .glass-button {
+    margin-top: 6px;
+  }
+  .explore-field {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+    margin: 10px 0 4px;
+  }
+  .explore-field-label {
+    font-weight: 600;
+    font-size: 13px;
+  }
+  .explore-field-hint {
+    font-size: 12px;
+    color: rgb(0, 180, 200);
+    font-weight: 700;
+  }
+  .explore-popover .glass-input,
+  .explore-popover .glass-select {
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .explore-popover .glass-input[readonly] {
+    opacity: 0.6;
+    cursor: default;
+  }
+  .explore-check {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    cursor: pointer;
+  }
+  .explore-check input {
+    width: auto;
+    margin: 0;
+    cursor: pointer;
+  }
+  /* The Limits popover's choice of what happens at the arena's edge (#115) */
+  .explore-edge {
+    border: 0;
+    margin: 8px 0 0;
+    padding: 0;
+    min-width: 0;
+  }
+  .explore-edge legend {
+    padding: 0;
+  }
+  .explore-edge .explore-popover-text {
+    margin-left: 20px;
+  }
+  .explore-edge:disabled {
+    opacity: 0.5;
+  }
+  /* The walls' corner, edge and face rules, under Walls (#119) */
+  .explore-walls-rules {
+    margin: 4px 0 0 20px;
+  }
+  .explore-wall-kind {
+    margin-top: 6px;
+    font-weight: 600;
+  }
+  .explore-wall-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto 1fr;
+    align-items: center;
+    gap: 4px 6px;
+    margin-top: 2px;
+  }
+  .explore-wall-row .glass-input {
+    min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  /* The Rules popover's derived counts */
+  .explore-rules-derived {
+    margin-top: 4px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.2);
+    font-size: 12px;
+  }
+  .explore-derived-line {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 2px 0;
+  }
+  .explore-derived-line > span:first-child {
+    color: var(--color-info-display-text);
+  }
+  .explore-derived-line > span:last-child {
+    font-weight: 600;
+    text-align: right;
+    overflow-wrap: anywhere;
+  }
+  .explore-popover .explore-error {
+    margin-top: 8px;
+  }
+  .explore-popover .explore-save-actions {
+    margin-top: 10px;
+  }
+  .explore-save-text {
+    margin: 0 0 8px;
+  }
+  .explore-save-text[hidden],
+  .explore-save-actions .glass-button[hidden] {
+    display: none;
+  }
+  .explore-save-where {
+    color: rgba(160, 200, 255, 0.95);
+  }
+  /* The hashes, whole, so they can be copied and compared */
+  .explore-save-hashes {
+    margin: 0 0 8px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.25);
+    font-size: 11px;
+    line-height: 1.35;
+  }
+  .explore-save-hashes[hidden] {
+    display: none;
+  }
+  .explore-save-hashes > div + div {
+    margin-top: 4px;
+  }
+  .explore-save-hash-label {
+    display: block;
+    font-weight: 600;
+    color: rgba(160, 200, 255, 0.95);
+  }
+  .explore-save-hashes code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    word-break: break-all;
+  }
+  .explore-save-status {
+    padding: 6px 8px;
+    border-radius: 6px;
+    background: rgba(120, 180, 255, 0.12);
+  }
+  .explore-save-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+  /* On a narrow screen there is no room beside the box: the popover opens under it, across the
+     window's width */
+  @media (max-width: 640px) {
+    .explore-popover {
+      left: 0;
+      top: calc(100% + 8px);
+      width: calc(100vw - 32px);
+    }
+  }
+  body.mode-explore #glass-info-sim {
+    display: none;
+  }
+  /* ==== The Contests mode (src/contests/, #77) ==== */
+  /* The Contests banner, left of the company logo, glowing gold. In Contests it stays, pressed:
+     a click there (or Esc) goes back */
+  .contests-banner {
+    position: fixed;
+    top: 21px;
+    right: 92px;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px 6px 10px;
+    border: 1px solid rgba(255, 205, 90, 0.6);
+    border-radius: 10px;
+    background: linear-gradient(135deg, rgba(95, 72, 25, 0.88), rgba(35, 40, 50, 0.85));
+    box-shadow: 0 0 14px rgba(242, 193, 78, 0.3);
+    color: #fff;
+    font: inherit;
+    cursor: pointer;
+    animation: contests-glow 3.2s ease-in-out infinite;
+    transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  }
+  .contests-banner:hover {
+    transform: translateY(-1px);
+    border-color: rgba(255, 220, 130, 0.95);
+  }
+  .contests-banner:focus-visible {
+    outline: 3px solid rgba(120, 180, 255, 0.9);
+    outline-offset: 3px;
+  }
+  .contests-banner[aria-pressed="true"] {
+    border-color: #f6cd62;
+    background: linear-gradient(180deg, #f6cd62 0%, #d99a2b 100%);
+    box-shadow: 0 0 22px rgba(242, 193, 78, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+    color: #231703;
+    animation: none;
+  }
+  .contests-banner[aria-pressed="true"] .contests-banner-trophy {
+    color: #231703;
+    filter: none;
+  }
+  .contests-banner[aria-pressed="true"] .contests-banner-closes {
+    border-color: rgba(35, 23, 3, 0.45);
+    color: #231703;
+  }
+  body.seed-editor-open .contests-banner {
+    display: none;
+  }
+  @keyframes contests-glow {
+    0%, 100% { box-shadow: 0 0 10px rgba(242, 193, 78, 0.25); }
+    50% { box-shadow: 0 0 22px rgba(242, 193, 78, 0.55); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .contests-banner {
+      animation: none;
+    }
+  }
+  .contests-banner-trophy {
+    flex: none;
+    color: #f2c14e;
+    filter: drop-shadow(0 0 4px rgba(242, 193, 78, 0.6));
+  }
+  .contests-banner-name {
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .contests-banner-closes {
+    padding: 2px 8px;
+    border: 1px solid rgba(255, 205, 90, 0.6);
+    border-radius: 10px;
+    color: #f6dc9a;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  /* On a phone there is no room beside the logo: the banner goes under it, without the date */
+  @media (max-width: 640px) {
+    .contests-banner {
+      top: 72px;
+      right: 10px;
+    }
+    .contests-banner-closes {
+      display: none;
+    }
+  }
+  /* Its HUD section shows only in the mode, which has no grid, seed or rules of its own to show,
+     and no playback: a contest's run can only be started and stopped, from the panel */
+  #glass-info-contest {
+    display: none;
+  }
+  body.mode-contests #glass-info-contest {
+    display: block;
+  }
+  body.mode-contests #glass-info-sim,
+  body.mode-contests #glass-info-simulation,
+  body.mode-contests #glass-info-shape,
+  body.mode-contests #glass-info-rules {
+    display: none;
+  }
+  body.mode-contests #playPauseButton,
+  body.mode-contests #stepButton,
+  body.mode-contests #reverseButton {
+    opacity: 0.35;
+    pointer-events: none;
+  }
+  .contests-panel {
+    position: fixed;
+    top: calc(50% - 40px);
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(700px, calc(100vw - 32px));
+    max-height: calc(100vh - 160px);
+    overflow-y: auto;
+    box-sizing: border-box;
+    padding: 18px 20px;
+    background: rgba(35, 45, 60, 0.94);
+    border: 1px solid rgba(120, 180, 255, 0.4);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    color: rgba(200, 220, 255, 0.95);
+    font-size: 14px;
+    line-height: 1.45;
+    z-index: 60;
+  }
+  .contests-panel[hidden],
+  .contests-panel [hidden] {
+    display: none !important;
+  }
+  .contests-panel-title {
+    margin: 0 0 10px;
+    color: var(--color-text-contrast);
+    font-size: 20px;
+    font-weight: 700;
+  }
+  .contests-panel p {
+    margin: 0 0 10px;
+  }
+  .contests-panel a {
+    color: #8cc6ff;
+  }
+  .contests-panel-status:empty {
+    display: none;
+  }
+  .contests-panel-status {
+    margin: 10px 0 0;
+    color: rgba(200, 220, 255, 0.8);
+    font-size: 13px;
+  }
+  /* The list: a square card per contest, in its own colour (src/contests/looks.js) */
+  .contests-closes {
+    color: #f6dc9a;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .contests-tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 12px;
+    margin: 0 0 14px;
+  }
+  .contests-tile {
+    --contest-color: #f2c14e;
+    /* From the top, so every card's logo and name line up, however long its line about it;
+       Open keeps to the foot */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+    aspect-ratio: 1;
+    padding: 18px 14px 14px;
+    box-sizing: border-box;
+    border: 1px solid color-mix(in srgb, var(--contest-color) 65%, transparent);
+    border-radius: 14px;
+    background:
+      radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--contest-color) 22%, transparent), transparent 70%),
+      rgba(30, 36, 48, 0.85);
+    box-shadow: 0 0 18px color-mix(in srgb, var(--contest-color) 25%, transparent);
+    color: rgba(200, 220, 255, 0.9);
+    font: inherit;
+    text-align: center;
+  }
+  button.contests-tile {
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  button.contests-tile:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 28px color-mix(in srgb, var(--contest-color) 45%, transparent);
+  }
+  button.contests-tile:focus-visible {
+    outline: 3px solid rgba(120, 180, 255, 0.9);
+    outline-offset: 3px;
+  }
+  .contests-tile-logo {
+    filter: drop-shadow(0 0 8px color-mix(in srgb, var(--contest-color) 60%, transparent));
+  }
+  .contests-tile-name {
+    color: #fff;
+    font-size: 17px;
+    font-weight: 700;
+  }
+  .contests-tile-about {
+    font-size: 12px;
+    line-height: 1.35;
+  }
+  .contests-tile-foot {
+    margin-top: auto;
+    color: var(--contest-color);
+    font-size: 13px;
+    font-weight: 700;
+  }
+  /* A contest's page: its logo and what it measures, Run, then titled areas */
+  .contests-page-head {
+    --contest-color: #f2c14e;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 0 0 12px;
+  }
+  .contests-page-logo {
+    flex: none;
+    filter: drop-shadow(0 0 10px color-mix(in srgb, var(--contest-color) 60%, transparent));
+  }
+  .contests-page-head p {
+    margin: 0 0 2px;
+  }
+  .contests-page-kicker {
+    color: var(--contest-color);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .contests-page-summary {
+    color: #e8edf3;
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .contests-section {
+    margin: 0 0 14px;
+  }
+  .contests-section-title {
+    margin: 0 0 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    color: var(--color-title);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .contests-section p {
+    margin: 0;
+  }
+  .contests-facts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 8px;
+  }
+  .contests-fact {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.2);
+  }
+  .contests-fact-label {
+    color: rgba(200, 220, 255, 0.7);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+  }
+  .contests-fact-value {
+    color: #fff;
+    font-size: 18px;
+    font-weight: 700;
+  }
+  .contests-fact-about {
+    font-size: 12px;
+    line-height: 1.35;
+  }
+  /* The result's hash on one line, with Copy at its right */
+  .contests-hash-box {
+    margin: 0 0 12px;
+  }
+  .contests-hash-label {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--color-info-display-text);
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .contests-hash-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 6px 6px 10px;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.25);
+  }
+  .contests-hash-row .contests-hash {
+    flex: 1;
+    min-width: 0;
+  }
+  .contests-hash-row .contests-button {
+    flex: none;
+  }
+  .contests-facts {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 4px 14px;
+    margin: 0 0 12px;
+  }
+  .contests-facts dt {
+    color: var(--color-info-display-text);
+    font-weight: 600;
+    font-size: 13px;
+  }
+  .contests-facts dd {
+    margin: 0;
+    color: #e8edf3;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+  }
+  .contests-note {
+    padding: 8px 10px;
+    border-left: 3px solid rgba(240, 190, 80, 0.7);
+    background: rgba(0, 0, 0, 0.2);
+    font-size: 13px;
+  }
+  .contests-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  /* The panel's buttons read as buttons, not text (#130): filled in the lab's blue, as the HUD's
+     gears are, and the page's main one in the contests' gold */
+  .contests-button {
+    padding: 7px 14px;
+    border-color: rgba(120, 180, 255, 0.6);
+    background: rgba(77, 163, 255, 0.18);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .contests-button:hover:not([disabled]) {
+    border-color: rgba(120, 180, 255, 0.95);
+    background: rgba(77, 163, 255, 0.32);
+  }
+  .contests-button--main {
+    border-color: rgba(255, 205, 90, 0.85);
+    background: rgba(255, 205, 90, 0.16);
+    color: #fff;
+  }
+  .contests-button--main:hover:not([disabled]) {
+    border-color: rgba(255, 205, 90, 1);
+    background: rgba(255, 205, 90, 0.28);
+  }
+  .contests-button:focus-visible {
+    outline: 2px solid rgba(120, 180, 255, 0.8);
+    outline-offset: 2px;
+  }
+  .contests-button[disabled] {
+    opacity: 0.45;
+    cursor: default;
+  }
+  /* The contest's page leads with Run: the one thing to do there */
+  .contests-run-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    width: 100%;
+    margin: 4px 0 16px;
+    padding: 14px 18px;
+    border: 1px solid rgba(255, 220, 140, 0.9);
+    border-radius: 10px;
+    background: linear-gradient(180deg, #f6cd62 0%, #d99a2b 100%);
+    box-shadow: 0 6px 18px rgba(217, 154, 43, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+    color: #231703;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+  }
+  .contests-run-button:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.05);
+    box-shadow: 0 10px 24px rgba(217, 154, 43, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  }
+  .contests-run-button:active {
+    transform: translateY(0);
+  }
+  .contests-run-button:focus-visible {
+    outline: 3px solid rgba(120, 180, 255, 0.9);
+    outline-offset: 3px;
+  }
+  .contests-run-icon {
+    width: 0;
+    height: 0;
+    border-top: 11px solid transparent;
+    border-bottom: 11px solid transparent;
+    border-left: 18px solid #231703;
+  }
+  .contests-run-text {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    line-height: 1.2;
+  }
+  .contests-run-label {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: 0.2px;
+  }
+  .contests-run-sub {
+    font-size: 13px;
+    font-weight: 600;
+    opacity: 0.8;
+  }
+  /* The run's clock, an arc that empties over the contest's seconds round the seconds left,
+     beside the statistics */
+  .contests-run-top {
+    display: grid;
+    grid-template-columns: 160px 1fr;
+    gap: 16px;
+    align-items: center;
+    margin: 0 0 12px;
+  }
+  .contests-run-top .contests-stats {
+    margin: 0;
+  }
+  .contests-clock {
+    position: relative;
+    width: 160px;
+    height: 160px;
+  }
+  .contests-clock-ring {
+    display: block;
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+  }
+  .contests-clock-track {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.1);
+    stroke-width: 10;
+  }
+  .contests-clock-arc {
+    fill: none;
+    stroke: #f2c14e;
+    stroke-width: 10;
+    stroke-linecap: round;
+    stroke-dasharray: 100;
+    stroke-dashoffset: 0;
+  }
+  .contests-clock-face {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .contests-countdown-value {
+    color: #fff;
+    font-size: 42px;
+    font-weight: 800;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .contests-clock-unit {
+    margin-top: 4px;
+    font-size: 12px;
+    color: rgba(200, 220, 255, 0.75);
+  }
+  /* The chart: generations completed over time, one series in the contest's gold */
+  .contests-chart {
+    margin: 0 0 12px;
+  }
+  .contests-chart-caption {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 8px;
+    margin: 0 0 6px;
+  }
+  .contests-chart-title {
+    color: var(--color-text-contrast);
+    font-weight: 700;
+  }
+  .contests-chart-subtitle {
+    color: rgba(200, 220, 255, 0.7);
+    font-size: 12px;
+  }
+  .contests-chart-plot {
+    position: relative;
+  }
+  .contests-chart-svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+    touch-action: pan-y;
+  }
+  .contests-chart-grid {
+    stroke: rgba(255, 255, 255, 0.08);
+    stroke-width: 1;
+    shape-rendering: crispEdges;
+  }
+  .contests-chart-axis {
+    stroke: rgba(255, 255, 255, 0.3);
+    stroke-width: 1;
+    shape-rendering: crispEdges;
+  }
+  .contests-chart-tick {
+    fill: rgba(200, 220, 255, 0.7);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+  }
+  .contests-chart-axis-title {
+    fill: rgba(200, 220, 255, 0.85);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .contests-chart-area {
+    fill: #c0862a;
+    fill-opacity: 0.12;
+  }
+  .contests-chart-line {
+    fill: none;
+    stroke: #c0862a;
+    stroke-width: 2;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+  }
+  .contests-chart-dot {
+    fill: #c0862a;
+    stroke: rgb(35, 45, 60);
+    stroke-width: 2;
+  }
+  .contests-chart-end {
+    fill: var(--color-text-contrast);
+    font-size: 13px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .contests-chart-crosshair {
+    stroke: rgba(255, 255, 255, 0.35);
+    stroke-width: 1;
+  }
+  .contests-chart-readout {
+    position: absolute;
+    padding: 4px 8px;
+    border: 1px solid rgba(120, 180, 255, 0.4);
+    border-radius: 6px;
+    background: rgba(20, 26, 36, 0.95);
+    color: #e8edf3;
+    font-size: 12px;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .contests-chart-table summary {
+    cursor: pointer;
+    font-size: 12px;
+    color: rgba(200, 220, 255, 0.8);
+  }
+  .contests-chart-table table {
+    margin-top: 6px;
+    border-collapse: collapse;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  .contests-chart-table th,
+  .contests-chart-table td {
+    padding: 2px 12px 2px 0;
+    text-align: right;
+  }
+  /* A Discovery run's table has a row a generation: it scrolls */
+  .contests-chart-table[open] {
+    max-height: 320px;
+    overflow-y: auto;
+  }
+  /* A Discovery contest's entry (#94): the seed, drawn in its box, beside its facts */
+  .contests-entry {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 18px;
+    margin: 0 0 4px;
+  }
+  .contests-entry .contests-facts {
+    margin: 0;
+  }
+  .contests-seed-picture {
+    flex: none;
+    max-width: 100%;
+    height: auto;
+    padding: 6px;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.25);
+  }
+  .contests-seed-box {
+    fill: rgba(179, 156, 255, 0.06);
+    stroke: rgba(179, 156, 255, 0.35);
+    stroke-width: 1;
+  }
+  .contests-seed-edges {
+    fill: none;
+    stroke: rgba(179, 156, 255, 0.25);
+    stroke-width: 1;
+    stroke-dasharray: 3 3;
+  }
+  .contests-seed-top { fill: #d6caff; }
+  .contests-seed-right { fill: #9c84f0; }
+  .contests-seed-left { fill: #7a63cc; }
+  .contests-seed-picture polygon:not(.contests-seed-box) {
+    stroke: rgba(20, 12, 50, 0.55);
+    stroke-width: 0.5;
+  }
+  .contests-warning,
+  .contests-refused {
+    margin: 8px 0 0;
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 13px;
+  }
+  .contests-warning {
+    border-left: 3px solid rgba(240, 190, 80, 0.9);
+    background: rgba(240, 190, 80, 0.12);
+  }
+  .contests-refused {
+    border-left: 3px solid rgba(255, 110, 110, 0.9);
+    background: rgba(255, 110, 110, 0.12);
+  }
+  .contests-run-button[disabled] {
+    opacity: 0.45;
+    cursor: default;
+    transform: none;
+    filter: none;
+  }
+  /* How a Methuselah run ends: four rows */
+  .contests-endings {
+    width: 100%;
+    margin: 0 0 10px;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .contests-endings th,
+  .contests-endings td {
+    padding: 5px 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    text-align: left;
+    vertical-align: top;
+  }
+  .contests-endings thead th {
+    color: rgba(200, 220, 255, 0.7);
+    font-size: 11px;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+  }
+  .contests-endings tbody th {
+    color: #fff;
+    white-space: nowrap;
+  }
+  /* A Discovery run's ring fills over its budget, in the contest's colour */
+  .contests-clock--budget .contests-clock-arc {
+    stroke: var(--contest-color, #b39cff);
+  }
+  .contests-countdown-value--small {
+    font-size: 30px;
+  }
+  /* The statistics: small figures, secondary to the clock and the score */
+  .contests-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 6px;
+    margin: 0 0 12px;
+  }
+  .contests-stat {
+    display: flex;
+    flex-direction: column;
+    padding: 6px 8px;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.18);
+  }
+  .contests-stat-label {
+    font-size: 11px;
+    color: rgba(200, 220, 255, 0.7);
+  }
+  .contests-stat-value {
+    color: #e8edf3;
+    font-size: 14px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  /* The score leads the results card, sized for a screenshot */
+  .contests-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0 0 16px;
+    padding: 18px 12px 16px;
+    border: 1px solid rgba(255, 205, 90, 0.45);
+    border-radius: 12px;
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(242, 193, 78, 0.28), transparent 70%),
+      linear-gradient(180deg, rgba(60, 48, 20, 0.55), rgba(25, 30, 40, 0.4));
+    text-align: center;
+  }
+  .contests-hero-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #f2c14e;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+  .contests-hero-value {
+    margin: 2px 0 0;
+    color: #fff;
+    font-size: clamp(56px, 14vw, 84px);
+    font-weight: 800;
+    line-height: 1.05;
+    text-shadow: 0 0 24px rgba(242, 193, 78, 0.55), 0 2px 0 rgba(0, 0, 0, 0.35);
+  }
+  .contests-hero-unit {
+    color: #f6dc9a;
+    font-size: 18px;
+    font-weight: 600;
+  }
+  .contests-hero-meta {
+    margin-top: 8px;
+    color: rgba(200, 220, 255, 0.75);
+    font-size: 12px;
+  }
+  .contests-ending,
+  .contests-departures {
+    font-size: 13px;
+  }
+  .contests-hash {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px;
+    word-break: break-all;
+  }
+  /* Verify a result judges every contest's entries: a steel-blue button with a pair of scales,
+     apart from the gold that each contest's own Run wears */
+  .contests-verify-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 16px 8px 12px;
+    border: 1px solid rgba(140, 190, 255, 0.55);
+    border-radius: 8px;
+    background: linear-gradient(180deg, rgba(62, 88, 128, 0.7), rgba(34, 48, 74, 0.75));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 2px 8px rgba(0, 0, 0, 0.25);
+    color: #dbe9ff;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+  }
+  .contests-verify-button:hover {
+    border-color: rgba(170, 210, 255, 0.85);
+    background: linear-gradient(180deg, rgba(74, 104, 150, 0.8), rgba(40, 57, 88, 0.85));
+    transform: translateY(-1px);
+  }
+  .contests-verify-button:focus-visible {
+    outline: 3px solid rgba(120, 180, 255, 0.9);
+    outline-offset: 3px;
+  }
+  .contests-verify-glyph {
+    flex: none;
+    color: #9cc9ff;
+  }
+  /* On the list, Verify a result is a bar across the panel, under its own heading below the
+     contests' cards, so it never reads as a fourth card */
+  .contests-judge {
+    margin: 4px 0 0;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+  }
+  .contests-judge-title {
+    display: block;
+    margin-bottom: 8px;
+    color: rgba(200, 220, 255, 0.7);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .contests-verify-button--wide {
+    display: flex;
+    width: 100%;
+    gap: 14px;
+    padding: 10px 18px;
+    box-sizing: border-box;
+  }
+  .contests-verify-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.25;
+  }
+  .contests-verify-label {
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .contests-verify-sub {
+    color: rgba(200, 220, 255, 0.75);
+    font-size: 12px;
+  }
+  .contests-verdict-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 6px;
+  }
+  .contests-verdict-head .contests-verdict {
+    margin: 0;
+  }
+  .contests-verdict {
+    margin: 0 0 6px;
+    font-size: 18px;
+    font-weight: 700;
+  }
+  .contests-verdict--verified { color: #9be3b0; }
+  .contests-verdict--mismatch,
+  .contests-verdict--refused,
+  .contests-verdict--error { color: #ffb4ad; }
+  .contests-verdict--not-checked,
+  .contests-verdict--cancelled { color: #f0d890; }
+  /* What Watch's replay found at the result's generation, on the card and on Watch's bar */
+  .contests-self-verified {
+    margin: 0 0 12px;
+    font-size: 13px;
+    color: rgba(200, 220, 255, 0.8);
+  }
+  .contests-self-verified[data-verdict="verified"] { color: #9be3b0; }
+  .contests-self-verified[data-verdict="mismatch"] { color: #ffb4ad; }
+  .contests-self-verified[data-verdict="not-checked"] { color: #f0d890; }
+  /* Submit by email (#79), at the foot of the results card: the link, what to attach by hand,
+     and the address, subject and text with Copy, for webmail */
+  .contests-submit {
+    margin: 18px 0 0;
+  }
+  .contests-submit > p {
+    margin: 0 0 10px;
+  }
+  .contests-submit-go {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 14px;
+    margin: 0 0 12px;
+  }
+  .contests-submit .contests-submit-go p {
+    flex: 1 1 220px;
+    margin: 0;
+    color: #f0d890;
+    font-size: 13px;
+  }
+  a.contests-submit-button {
+    display: inline-flex;
+    align-items: center;
+    border-color: rgba(255, 205, 90, 0.8);
+    color: #fff;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  a.contests-submit-button:focus-visible {
+    outline: 2px solid rgba(120, 180, 255, 0.8);
+    outline-offset: 2px;
+  }
+  .contests-submit-copy {
+    display: grid;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .contests-submit-row {
+    display: grid;
+    grid-template-columns: 64px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 6px 6px 10px;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.25);
+  }
+  .contests-submit-row--text {
+    align-items: start;
+  }
+  .contests-submit-label {
+    color: var(--color-info-display-text);
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .contests-submit-value {
+    color: #e8edf3;
+    overflow-wrap: anywhere;
+  }
+  .contests-submit-text {
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 120px;
+    resize: vertical;
+    padding: 6px 8px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.3);
+    color: #e8edf3;
+    font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  /* The Hall of Fame (#79), on each contest's page: its top entries, best first */
+  .contests-hof {
+    display: grid;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .contests-hof-entry {
+    display: grid;
+    grid-template-columns: 22px 40px minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.25);
+  }
+  .contests-hof-entry:first-child {
+    box-shadow: inset 3px 0 0 rgba(242, 193, 78, 0.85);
+  }
+  .contests-hof-place {
+    color: rgba(242, 193, 78, 0.95);
+    font-weight: 700;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .contests-hof-picture {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: rgba(255, 255, 255, 0.06);
+  }
+  .contests-hof-picture--logo {
+    object-fit: contain;
+    padding: 6px;
+    box-sizing: border-box;
+  }
+  .contests-hof-who {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .contests-hof-name {
+    color: #fff;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .contests-hof-meta {
+    color: rgba(200, 220, 255, 0.7);
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .contests-hof-score {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    font-variant-numeric: tabular-nums;
+  }
+  .contests-hof-score-main {
+    color: #e8edf3;
+    font-weight: 600;
+  }
+  .contests-hof-score-detail {
+    color: rgba(200, 220, 255, 0.7);
+    font-size: 12px;
+  }
+  .contests-hof-empty {
+    color: rgba(200, 220, 255, 0.75);
+    font-size: 13px;
+  }
+  @media (max-width: 640px) {
+    .contests-hof-entry {
+      grid-template-columns: 22px 40px minmax(0, 1fr) auto;
+    }
+    .contests-hof-score {
+      grid-column: 3;
+      align-items: flex-start;
+      font-size: 13px;
+    }
+    .contests-hof-entry .contests-button {
+      grid-column: 4;
+      grid-row: 1 / span 2;
+    }
+    .contests-submit-row {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+    .contests-submit-label {
+      grid-column: 1 / -1;
+    }
+  }
+  /* Watch: its bar sits above the control bar and its readouts, and play, step and speed work again */
+  .contests-watch {
+    position: fixed;
+    left: 50%;
+    bottom: 226px;
+    transform: translateX(-50%);
+    width: min(640px, calc(100vw - 32px));
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: rgba(10, 16, 30, 0.72);
+    border: 1px solid rgba(160, 190, 255, 0.25);
+    backdrop-filter: blur(8px);
+    color: rgba(220, 232, 255, 0.95);
+    z-index: 60;
+  }
+  .contests-watch[hidden] {
+    display: none;
+  }
+  .contests-watch-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+  .contests-watch-title {
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .contests-watch-scrub {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .contests-watch-scrub input {
+    flex: 1;
+    min-width: 0;
+  }
+  .contests-watch-generation {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    font-size: 13px;
+  }
+  .contests-watch .contests-self-verified,
+  .contests-watch-departures {
+    margin: 6px 0 0;
+  }
+  .contests-watch-departures {
+    font-size: 13px;
+  }
+  body.mode-contests.contests-watching #playPauseButton,
+  body.mode-contests.contests-watching #stepButton {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  body.mode-contests.contests-watching #stepButton.disabled {
+    opacity: 0.35;
+  }
+  @media (max-width: 640px) {
+    .contests-watch {
+      bottom: 120px;
+    }
+    .contests-panel {
+      top: auto;
+      bottom: 110px;
+      transform: translateX(-50%);
+      max-height: calc(100vh - 140px);
+      padding: 14px;
+    }
+    .contests-run-top {
+      grid-template-columns: 1fr;
+      justify-items: center;
+    }
+    .contests-run-top .contests-stats {
+      width: 100%;
+    }
+    .contests-clock {
+      width: 132px;
+      height: 132px;
+    }
+    .contests-countdown-value {
+      font-size: 34px;
+    }
+  }
+  /* ==== The seed editor (src/explore/editor.js) ==== */
+  /* It takes over the view: the HUD, the control bar and the notices step aside */
+  body.seed-editor-open #glass-display-container,
+  body.seed-editor-open #footer-icons,
+  body.seed-editor-open #explore-notice,
+  body.seed-editor-open #company-brand {
+    display: none !important;
+  }
+  /* The view takes the editor's keys: a thin ring when it has them from the keyboard */
+  body.seed-editor-open canvas:focus {
+    outline: none;
+  }
+  body.seed-editor-open canvas:focus-visible {
+    outline: 2px solid rgba(120, 180, 255, 0.45);
+    outline-offset: -2px;
+  }
+  .seed-editor {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    bottom: 12px;
+    width: 330px;
+    box-sizing: border-box;
+    overflow-y: auto;
+    padding: 12px 14px;
+    background: rgba(35, 45, 60, 0.94);
+    border: 1px solid rgba(120, 180, 255, 0.4);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    color: rgba(200, 220, 255, 0.95);
+    font-size: 13px;
+    line-height: 1.4;
+    z-index: 60;
+  }
+  .seed-editor[hidden],
+  .seed-editor [hidden] {
+    display: none !important;
+  }
+  .seed-editor-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+  .seed-editor-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--color-title);
+    letter-spacing: 0.3px;
+  }
+  .seed-editor-note {
+    margin: 8px 0 0;
+    padding: 6px 8px;
+    border-radius: 6px;
+    background: rgba(255, 170, 90, 0.1);
+    border: 1px solid rgba(255, 170, 90, 0.4);
+  }
+  .seed-editor-help {
+    margin-top: 8px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.25);
+    font-size: 12px;
+  }
+  .seed-editor-help dl {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 3px 10px;
+    margin: 0;
+  }
+  .seed-editor-help dt {
+    font-weight: 700;
+    color: rgba(160, 200, 255, 0.95);
+    white-space: nowrap;
+  }
+  .seed-editor-help dd {
+    margin: 0;
+  }
+  .seed-editor-count,
+  .seed-editor-line {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .seed-editor-count strong {
+    font-size: 15px;
+    color: var(--color-text-contrast);
+  }
+  .seed-editor-line {
+    margin-top: 2px;
+    font-variant-numeric: tabular-nums;
+  }
+  .seed-editor-switch .seed-kind-option {
+    padding: 6px 0;
+    font-size: 12px;
+  }
+  .seed-editor-axes {
+    margin-top: 6px;
+  }
+  .seed-editor-axes.is-quiet {
+    opacity: 0.55;
+  }
+  /* The axis buttons in the colours of the cursor's guides: x red, y green, z blue */
+  .seed-editor-axis-x { color: #ff8a8a; }
+  .seed-editor-axis-y { color: #8aff9f; }
+  .seed-editor-axis-z { color: #8ab8ff; }
+  .seed-editor-selection {
+    margin: 6px 0 0;
+    min-height: 2.8em;
+  }
+  .seed-editor-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+  }
+  .seed-editor-row .glass-button[disabled] {
+    opacity: 0.45;
+    cursor: default;
+  }
+  .seed-editor-toggle[aria-pressed="true"] {
+    background: rgba(77, 163, 255, 0.3);
+    box-shadow: inset 0 0 0 1px rgba(77, 163, 255, 0.5);
+  }
+  .seed-editor-density {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .seed-editor-density .glass-input {
+    width: 64px;
+  }
+  /* The cursor's pad: the arrows as a cross, Away and Near beside it */
+  .seed-editor-pad {
+    display: grid;
+    grid-template-columns: repeat(3, 40px) 1fr;
+    grid-template-rows: repeat(3, 32px);
+    gap: 4px;
+    margin-top: 6px;
+  }
+  .seed-editor-pad .glass-button {
+    padding: 0;
+  }
+  .seed-editor-pad-up { grid-column: 2; grid-row: 1; }
+  .seed-editor-pad-left { grid-column: 1; grid-row: 2; }
+  .seed-editor-pad-right { grid-column: 3; grid-row: 2; }
+  .seed-editor-pad-down { grid-column: 2; grid-row: 3; }
+  .seed-editor-pad-away { grid-column: 4; grid-row: 1; justify-self: start; padding: 0 12px !important; }
+  .seed-editor-pad-near { grid-column: 4; grid-row: 3; justify-self: start; padding: 0 12px !important; }
+  .seed-editor-status {
+    padding: 6px 8px;
+    border-radius: 6px;
+    background: rgba(120, 180, 255, 0.12);
+  }
+  .seed-editor-actions {
+    position: sticky;
+    bottom: -12px; /* the panel's own padding, so the bar meets the panel's foot */
+    margin: 10px -14px -12px;
+    padding: 10px 14px 12px;
+    background: rgba(35, 45, 60, 0.98);
+  }
+  /* At phone width the panel sits at the foot, over the lower part of the view, and scrolls */
+  @media (max-width: 640px) {
+    .seed-editor {
+      top: auto;
+      left: 8px;
+      right: 8px;
+      bottom: 8px;
+      width: auto;
+      max-height: 48vh;
+    }
+  }
+  body.mode-explore #reverseButton {
+    opacity: 0.35;
+    pointer-events: none;
+  }
 </style>
 <script>
   // Display tooltips in the bottom tooltip display area
@@ -2355,7 +4416,8 @@
     
     // Use event delegation to handle tooltips on dynamically added elements
     document.addEventListener('mouseenter', function(e) {
-      const element = e.target.closest('[data-tooltip]');
+      // The document itself is a target too, when the pointer leaves the page
+      const element = e.target instanceof Element ? e.target.closest('[data-tooltip]') : null;
       if (element) {
         const tooltipText = element.getAttribute('data-tooltip');
         if (tooltipText) {
@@ -2365,7 +4427,8 @@
     }, true);
     
     document.addEventListener('mouseleave', function(e) {
-      const element = e.target.closest('[data-tooltip]');
+      // The document itself is a target too, when the pointer leaves the page
+      const element = e.target instanceof Element ? e.target.closest('[data-tooltip]') : null;
       if (element) {
         // Only clear if no other tooltip element is being hovered
         setTimeout(() => {
