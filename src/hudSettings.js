@@ -3,8 +3,8 @@
 // Every mode's settings in the HUD (#130), as Game of Life 3D (unbounded) has had them since #69
 // (src/explore/hud.js). The settings dialog these replace is gone:
 //
-// - The Mode box's gear picks the mode. Each mode keeps its own settings, so switching back to one
-//   runs it as it was.
+// - The gear in the HUD panel's title, or the control bar's, opens the Mode popover, which picks
+//   the mode. Each mode keeps its own settings, so switching back to one runs it as it was.
 // - In the precomputed modes, Game of Life 3D (bounded), Rule 30, the sine wave and the sandpile,
 //   the Grid, Seed and Rules boxes' gears open popovers beside their box, whose Apply computes the
 //   run again. Grid: size and generations (Rule 30's size follows its generations; the sandpile's
@@ -324,7 +324,7 @@ function wireMode() {
     return option;
   }));
   wire('hud-change-mode', 'mode-popover', () => {
-    modeDraft = MODES.some((mode) => mode.id === state.simulationMode) ? state.simulationMode : 'explore';
+    modeDraft = state.simulationMode; // in Contests, none of the list's modes
     showModeDraft();
   }, () => {
     if (modeDraft === state.simulationMode) return { mode: 'none' }; // already running
@@ -339,10 +339,10 @@ function showModeDraft() {
   }
   const mode = MODES.find((m) => m.id === modeDraft);
   setText('mode-popover-about', mode?.about ?? '');
-  const same = modeDraft === state.simulationMode;
-  setText('mode-popover-note', same
-    ? 'This mode is running now.'
-    : `Applying switches to ${mode.name} (${mode.kind.toLowerCase()}), with the settings it had last. Change them from its boxes.`);
+  let note = `Applying switches to ${mode?.name} (${mode?.kind.toLowerCase()}), with the settings it had last. Change them from its boxes.`;
+  if (!mode) note = 'Choose a mode to leave the contests for it.';
+  else if (modeDraft === state.simulationMode) note = 'This mode is running now.';
+  setText('mode-popover-note', note);
   placeOpenPopover();
 }
 
@@ -526,14 +526,14 @@ function showError(el, message) {
 
 const n = (x) => Number(x).toLocaleString('en');
 
-/** Counts as the HUD writes them: runs of three or more as ranges, such as 5-15. */
+/** Counts as the HUD writes them, as the unbounded mode does: runs as ranges, such as 9-10 or 5-15. */
 function counts(list) {
   const out = [];
   for (let i = 0; i < list.length; i++) {
     let j = i;
     while (j + 1 < list.length && list[j + 1] === list[j] + 1) j++;
-    if (j - i >= 2) out.push(`${list[i]}-${list[j]}`);
-    else for (let k = i; k <= j; k++) out.push(String(list[k]));
+    if (j > i) out.push(`${list[i]}-${list[j]}`);
+    else out.push(String(list[i]));
     i = j;
   }
   return out.join(',');

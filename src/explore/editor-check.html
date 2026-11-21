@@ -44,11 +44,11 @@
   </div>
   <h2>By hand, in the lab (npm run dev, then http://localhost:5180)</h2>
   <ul class="by-hand">
-    <li>Seed gear → Custom → Design → Design…: the whole 10³ box shows, live cells as cubes, empty places as faint dots, its outline, and the cursor with red, green and blue guides.</li>
+    <li>Seed gear → Design → Design…: the whole 10³ box shows, live cells as cubes, empty places as faint dots, its outline, and the cursor with red, green and blue guides.</li>
     <li>Drag to turn the view; Front, Top, Side and Angled put the camera there. From each, the arrow keys move the cursor the way they point, and Page Up moves it away from you.</li>
     <li>Click a live cube, then an empty dot: the cursor goes there. With 4 Box, Shift+click sets the box's other corner.</li>
     <li>The selection is a yellow box: its live cells are tinted, its empty places bright. F fades every cell outside the plane or box, and a click then picks only inside it.</li>
-    <li>Export: the browser asks where to save (Chrome, Edge) or downloads explore-seed.json. Load… in the editor, or the Seed box's File → Load… then Apply, then Design…, opens it unchanged.</li>
+    <li>Export: the browser asks where to save (Chrome, Edge) or downloads game-of-life-3d-seed.json, the cells without rules (#130). Load… in the editor, or the Seed box's File → Load seed… then Apply, then Design…, opens it unchanged.</li>
     <li>Save seed (Seed box) of a design in use, loaded back the same ways, opens unchanged.</li>
     <li>Keyboard alone: Tab from the Seed gear through the popover to Design…, Enter opens the editor; Tab reaches every panel button; Space on a focused button presses it, Space on the view switches the selection; Esc closes and focus is back on the gear.</li>
     <li>At phone width (devtools, 375 px), the panel sits at the foot and scrolls, the box shows above it, and the on-screen arrows, Away and Near move the cursor.</li>
@@ -153,7 +153,6 @@
     }
     async function openDesign() {
       press('explore-change-seed');
-      press('explore-seed-custom');
       press('explore-source-design');
       press('explore-design');
       await sleep(200);
@@ -168,9 +167,8 @@
 
       section('Opening from Design…');
       press('explore-change-seed');
-      press('explore-seed-custom');
       press('explore-source-design');
-      ok(visible('explore-design') && text('explore-design-status').includes('seed in use'), `Custom has Design, with Design… and what it opens ("${text('explore-design-status')}")`);
+      ok(visible('explore-design') && text('explore-design-status').includes('seed in use'), `The Seed popover has Design, with Design… and what it opens ("${text('explore-design-status')}")`);
       press('explore-design');
       await sleep(200);
       ok(open() && visible('seed-editor'), 'Design… opens the editor');
@@ -182,6 +180,7 @@
       ok(text('seed-editor-cursor') === 'x 0, y 0, z 0', `The cursor starts at the centre (${text('seed-editor-cursor')})`);
       ok(doc.activeElement === doc.querySelector('canvas'), 'The view has the keys');
       ok(text('seed-editor-rules').includes(startRules) && text('seed-editor-rules').includes('the Rules box'), `It says which rules Use brings, the Rules box's ${startRules} ("${text('seed-editor-rules')}")`);
+      ok(text('seed-editor-rules').includes('Export saves the seed alone, without rules'), 'and that Export saves the seed alone (#130)');
 
       section('Drawing only on change');
       ok(await drawsDuring(1000) === 0, 'Left alone for a second, it draws nothing');
@@ -286,16 +285,16 @@
       await sleep(800);
       ok(!open() && !visible('seed-editor'), 'Use closes the editor');
       ok(visible('glass-display-container'), "Explore's view and HUD return");
-      ok(text('explore-seed-label') === `Design: ${designed.toLocaleString('en')} cells`, `The Seed box reads "${text('explore-seed-label')}"`);
+      ok(text('explore-seed-label') === 'Design' && text('hud-simulation-name') === 'Custom', `The Seed box reads "${text('explore-seed-label')}", a Custom simulation`);
       ok(text('explore-generation') === '0', 'The run restarted from generation 0');
-      ok(boxRules() === startRules && !visible('explore-rules-lock'), `It runs under the Rules box's rules, unlocked (${boxRules()})`);
+      ok(boxRules() === startRules, `It runs under the Rules box's rules (${boxRules()})`);
       await openDesign();
       ok(count() === designed, `Design… opens the design in use again (${count()} cells)`);
       ok(text('explore-design-status').startsWith('The design in use'), `The Seed popover said a design is in use ("${text('explore-design-status')}")`);
       key('Escape');
       await sleep(100);
       ok(!open() && doc.activeElement?.id === 'explore-change-seed', 'Esc closes it, and focus is back on the Seed gear');
-      ok(text('explore-seed-label') === `Design: ${designed.toLocaleString('en')} cells`, 'Cancelling changed nothing');
+      ok(text('explore-seed-label') === 'Design' && text('explore-live') === designed.toLocaleString('en'), `Cancelling changed nothing: the design's ${text('explore-live')} cells still run`);
 
       section('An empty design');
       await openDesign();
@@ -310,44 +309,41 @@
       panelButton('[data-action="cancel"]');
       await sleep(100);
 
-      section('Edit a copy of a preset');
+      section("A preset's cells, designed (#130)");
+      ok(!doc.getElementById('explore-edit-copy'), 'There is no Edit a copy…: a preset\'s cells are a shape in the Seed box');
       press('explore-change-seed');
-      press('explore-seed-preset');
-      setValue('explore-preset', 'spreading-noise');
-      ok(visible('explore-edit-copy'), 'Preset has Edit a copy…');
-      press('explore-edit-copy');
-      await sleep(200);
-      ok(open() && count() === 224, `It opens Spreading noise's 224 cells (${count()})`);
-      ok(visible('seed-editor-note') && text('seed-editor-note').startsWith('A copy of Spreading noise'), 'The note says it is a copy');
-      ok(text('seed-editor-rules').includes("Spreading noise's rules"), `Use brings the preset's rules ("${text('seed-editor-rules')}")`);
+      press('explore-source-shape');
+      setValue('explore-shape', 'preset:spreading-noise');
+      submit('explore-seed-popover');
+      await sleep(800);
+      ok(text('explore-seed-label') === 'Spreading noise' && boxRules() === startRules, `Spreading noise's cells run under the rules in use (${boxRules()})`);
+      await openDesign();
+      ok(open() && count() === 224, `Design… opens its 224 cells (${count()})`);
       key('5');
       key(' ');
       panelButton('[data-action="use"]');
       await sleep(800);
-      ok(text('explore-seed-label') === 'Design: 1,000 cells', `Using it makes a Custom seed ("${text('explore-seed-label')}")`);
-      ok(!visible('explore-rules-lock') && boxRules() === 'B7,13-14 / S0,2-6,9,13,19,23-24', `With the preset's rules, unlocked (${boxRules()})`);
-      press('explore-change-seed');
-      press('explore-seed-preset');
+      ok(text('explore-seed-label') === 'Design' && boxRules() === startRules, `Use makes it a design, under the same rules (${boxRules()})`);
+      press('explore-change-simulation');
       setValue('explore-preset', 'spreading-noise');
-      submit('explore-seed-popover');
+      submit('explore-simulation-popover');
       await sleep(800);
-      ok(text('explore-seed-label') === 'Spreading noise' && text('explore-seed-cells') === '224', 'The preset itself is unchanged: 224 cells');
+      ok(text('hud-simulation-name') === 'Spreading noise' && text('explore-live') === '224', 'The preset itself is unchanged: 224 cells');
 
       section("A seed that doesn't fit, and a saved generation");
       press('explore-change-seed');
-      press('explore-seed-custom');
       press('explore-source-shape');
       setValue('explore-shape', 'cube');
       setValue('explore-shape-size', '20');
       setValue('explore-shape-density', '1');
       submit('explore-seed-popover');
       await sleep(800);
-      ok(text('explore-seed-label') === 'Cube, size 20, density 1', 'A 20-cube runs in Explore');
+      ok(text('explore-seed-label') === 'Cube 20', 'A 20-cube runs in Explore');
       await openDesign();
       ok(open() && count() === 0 && text('seed-editor-note').startsWith('7,000 cells of this seed lie outside the 10³ box.'), `The editor opens empty and says why ("${text('seed-editor-note')}")`);
       panelButton('[data-action="cancel"]');
       await sleep(100);
-      ok(text('explore-seed-label') === 'Cube, size 20, density 1', 'The cube still runs');
+      ok(text('explore-seed-label') === 'Cube 20', 'The cube still runs');
 
       const { text: savedText } = await generationSave({
         config: { rules: { birth: [5], survival: [4, 5] }, cells: Int32Array.from([0, 0, 0, 1, 0, 0]), arena: null, memoryMB: 1024 },
@@ -355,13 +351,12 @@
         cells: Int32Array.from([0, 0, 0, 0, 1, 0]),
         ending: 'stopped',
       });
-      press('explore-change-seed');
-      press('explore-source-file');
-      loadFile('explore-seed-file', 'run-7.json', savedText);
+      press('explore-change-simulation');
+      loadFile('explore-simulation-file', 'run-7.json', savedText);
       await sleep(400);
-      submit('explore-seed-popover');
+      submit('explore-simulation-popover');
       await sleep(800);
-      ok(text('explore-seed-label').startsWith('Saved generation 7'), `A saved generation runs ("${text('explore-seed-label')}")`);
+      ok(text('explore-seed-label').startsWith('Gen 7'), `A saved generation runs, from Load simulation… ("${text('explore-seed-label')}")`);
       await openDesign();
       ok(open() && count() === 0 && text('seed-editor-note').includes("saved generation carries on under its own rules and arena, so it can't open as a design"), `The editor opens empty and says why ("${text('seed-editor-note')}")`);
 
@@ -382,7 +377,7 @@
       key('y', { ctrlKey: true });
       panelButton('[data-action="use"]');
       await sleep(800);
-      ok(text('explore-seed-label') === 'Design: 4 cells' && text('rules-birth') === '6', 'Use runs it with its rules');
+      ok(text('explore-seed-label') === 'Design' && text('explore-live') === '4' && text('rules-birth') === '6', 'Use runs it with its rules');
       await openDesign();
       ok(count() === 4, 'The design opens back unchanged: 4 cells');
       panelButton('[data-action="cancel"]');

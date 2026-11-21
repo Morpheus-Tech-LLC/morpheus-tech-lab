@@ -3,7 +3,9 @@
 // How each kind of contest looks on the page (#77): its colour and its logo, drawn here as SVG,
 // stroke-only on a 24-unit grid, so it takes the colour it is given. Every contest of a kind
 // shares its look: Speed a stopwatch, Methuselah an hourglass, Contained chaos a scribble held
-// inside a box. Verify a result, which judges every contest's entries, has a pair of scales.
+// inside a box. Classic Methuselah, Methuselah with ships leaving at the edge, has a look of its
+// own (#130): the hourglass, moved aside for a ship flying out, in a pinker violet. Verify a
+// result, which judges every contest's entries, has a pair of scales.
 
 const SVG = 'http://www.w3.org/2000/svg';
 
@@ -11,6 +13,7 @@ const SVG = 'http://www.w3.org/2000/svg';
 export const LOOKS = Object.freeze({
   speed: Object.freeze({ color: '#f2c14e', name: 'Speed' }),
   methuselah: Object.freeze({ color: '#b39cff', name: 'Methuselah' }),
+  'classic-methuselah': Object.freeze({ color: '#e29cf5', name: 'Classic Methuselah' }),
   'contained-chaos': Object.freeze({ color: '#4fd1c5', name: 'Contained chaos' }),
 });
 
@@ -31,6 +34,18 @@ const SHAPES = {
     ['path', { d: 'M7.5 21.5 C7.5 16 11 14.5 12 12 C13 14.5 16.5 16 16.5 21.5' }],
     ['path', { d: 'M9.3 20.3 C10 18.2 11.3 17.4 12 17.2 C12.7 17.4 14 18.2 14.7 20.3 Z', fill: 'currentColor', stroke: 'none' }],
   ],
+  // Methuselah's hourglass, moved left, and a ship flying out to the right: three cells and the
+  // lines of its wake
+  'classic-methuselah': [
+    ['path', { d: 'M2 2.5 H13 M2 21.5 H13' }],
+    ['path', { d: 'M3.3 2.5 C3.3 8 6.6 9.5 7.5 12 C8.4 9.5 11.7 8 11.7 2.5' }],
+    ['path', { d: 'M3.3 21.5 C3.3 16 6.6 14.5 7.5 12 C8.4 14.5 11.7 16 11.7 21.5' }],
+    ['path', { d: 'M5 20.3 C5.7 18.2 6.9 17.4 7.5 17.2 C8.1 17.4 9.3 18.2 10 20.3 Z', fill: 'currentColor', stroke: 'none' }],
+    ['path', { d: 'M14.5 9.5 H16.5 M14 12 H16 M14.5 14.5 H16.5' }],
+    ['rect', { x: 18, y: 8.6, width: 2.4, height: 2.4, rx: 0.4, fill: 'currentColor', stroke: 'none' }],
+    ['rect', { x: 20.6, y: 10.8, width: 2.4, height: 2.4, rx: 0.4, fill: 'currentColor', stroke: 'none' }],
+    ['rect', { x: 18, y: 13, width: 2.4, height: 2.4, rx: 0.4, fill: 'currentColor', stroke: 'none' }],
+  ],
   // A pair of scales on a post: Verify a result, the judge of every contest's entries
   verify: [
     ['circle', { cx: 12, cy: 3.6, r: 1.1 }],
@@ -48,9 +63,15 @@ const SHAPES = {
   ],
 };
 
+/** A contest's look: its kind's, or Classic Methuselah's own, whose ships leave at the edge. */
+export function lookOf(contest) {
+  return contest.kind === 'methuselah' && contest.departures ? 'classic-methuselah' : contest.kind;
+}
+
 /**
  * A contest kind's logo, as an SVG element in its colour.
- * @param {string} kind - 'speed', 'methuselah' or 'contained-chaos'
+ * @param {string} kind - a look: 'speed', 'methuselah', 'classic-methuselah' or 'contained-chaos'
+ *   (lookOf() gives a contest's)
  * @param {number} [size] - in CSS pixels
  * @param {string} [className]
  */

@@ -85,7 +85,7 @@ export function updateComputeControl() {
 // Why the next run can't use the GPU, in one or two sentences; null if it can
 function unavailableReason() {
   if (state.simulationMode === 'contests') {
-    return 'The contests run on the CPU, in a background thread (a Web Worker), so every entrant runs the same engine: season 1 is CPU-only. '
+    return 'The contests run on the CPU, in a background thread (a Web Worker), so every entrant runs the same engine: Season 0 is CPU-only. '
       + 'GPU compute covers Game of Life 3D (bounded) and Rule 30.';
   }
   if (state.simulationMode === 'explore') {

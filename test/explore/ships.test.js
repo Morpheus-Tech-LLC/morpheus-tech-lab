@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 // Explore's Ships leave at the edge (#103): the option in Explore's settings, the world a run
-// steps in, a run that ends where Classic Methuselah's would, Design a seed in Explore and Use in a
-// contest, and Save this generation once a ship has left.
+// steps in, a run that ends where Classic Methuselah's would, Design a seed in Explore,
+// and Save this generation once a ship has left.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  initialSetup, changeArena, changeSeed, makeShape, fileSeed, configOf, boxesOf, shipsOf, worldOf, contestArena,
-  contestEntry, ownRules, SHIP_PERIOD,
+  initialSetup, changeArena, changeSeed, makeShape, fileSeed, simulationFile, configOf, boxesOf, shipsOf, worldOf, contestArena,
+  ownRules, SHIP_PERIOD,
 } from '../../src/explore/setup.js';
 import { arenaBox } from '../../src/explore/seed.js';
 import { generationSave, readSeedOrSave, shipsLeftReason } from '../../src/explore/save.js';
@@ -21,7 +21,6 @@ import { verifyResult } from '../../src/unbounded/verify.js';
 import { SHIP, SHIP_REST, OSCILLATOR } from '../unbounded/helpers.js';
 
 const CLASSIC = contestById('classic-methuselah-1');
-const METHUSELAH = contestById('methuselah-1');
 const start = () => initialSetup({ size: 10, density: 1 });
 /** SHIP, which leaves a 64³ arena at generation 35, and a period-2 oscillator that settled long before. */
 const SHIP_AND_REST = { rules: SHIP.rules, cells: Int32Array.from([...SHIP.seed, ...SHIP_REST].flat()) };
@@ -116,27 +115,13 @@ test("Design a seed in Explore sets the arena, and the ships, to the contest's",
   assert.match(contestArena(setup, 64, 'Methuselah').note, /^The arena in Game of Life 3D \(unbounded\) is now on, at 64³, as Methuselah's: /);
 });
 
-test('Use in a contest notes when Explore let ships leave and the contest does not, or the other way round', () => {
-  const seed = makeShape('cube', { size: 4, density: 1 });
-  const base = changeSeed(changeArena(start(), true, 64), seed);
-  const withShips = changeArena(base, true, 64, { edge: 'ships' });
-  assert.equal(contestEntry(withShips, CLASSIC).entry.note, null);
-  assert.equal(contestEntry(base, METHUSELAH).entry.note, null);
-  assert.equal(contestEntry(base, CLASSIC).entry.note,
-    "Classic Methuselah lets ships leave at the edge of its arena, and Game of Life 3D (unbounded) didn't, so a run here may end differently from one there.");
-  assert.equal(contestEntry(withShips, METHUSELAH).entry.note,
-    "Methuselah doesn't let ships leave its arena, and Game of Life 3D (unbounded) did, so a run here may end differently from one there.");
-  // Another arena: the arena's note says it
-  assert.match(contestEntry(changeArena(withShips, true, 100), CLASSIC).entry.note, /^Classic Methuselah runs in its own 64³ arena, and the arena in Game of Life 3D \(unbounded\) was 100³/);
-});
-
 test('a saved generation carries on without the rule, as it was saved; Use your own rules gives the option back', async () => {
   const world = new World({ rules: SHIP.rules, chunkSize: 8, slabBytes: 1 << 20, arena: arenaBox(64), departures: { period: 32 } });
   world.setCells(SHIP.seed);
   while (world.generation < 20) stepWithDepartures(world);
   const cfg = { rules: SHIP.rules, cells: Int32Array.from(SHIP.seed.flat()), arena: 64, ships: true };
   const { text } = await generationSave({ config: cfg, generation: 20, cells: world.cells(), ending: 'stopped' });
-  const setup = changeSeed(changeArena(start(), true, 64, { edge: 'ships' }), fileSeed('saved.json', await readSeedOrSave(text)));
+  const setup = changeSeed(changeArena(start(), true, 64, { edge: 'ships' }), simulationFile('saved.json', await readSeedOrSave(text)));
   assert.equal(setup.seed.kind, 'saved');
   assert.equal(shipsOf(setup), false);
   assert.equal(configOf(setup).ships, false);
@@ -148,7 +133,7 @@ test('Save this generation: before a ship leaves the file verifies; once one has
   assert.equal(shipsLeftReason(undefined), null);
   assert.match(shipsLeftReason(1), /^A ship has left the arena by this generation, and a saved generation can't record that ships leave at the edge/);
   assert.match(shipsLeftReason(3), /^3 ships have left/);
-  assert.match(shipsLeftReason(1), /Save seed still saves the seed\.$/);
+  assert.match(shipsLeftReason(1), /Save simulation still saves the seed and its rules\.$/);
 
   // Generation 30, before the ship leaves at 35: the run so far is the same without the rule
   const cfg = config(true);

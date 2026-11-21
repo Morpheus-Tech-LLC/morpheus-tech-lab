@@ -5,7 +5,7 @@
   through the Contests mode (#77) in a frame holding the lab, and marks each check ✔ or ✖: choosing
   the mode, the list, Speed's page, two real 6-second runs (one to the end, one stopped), Export,
   Submit by email (#79), Verify a result on the exported file, an edited copy and a file that
-  isn't a result, a staged Hall of Fame (#79), Methuselah (#94: its page, Design a seed in Explore and back, Load seed… and its
+  isn't a result, a staged Hall of Fame (#79), Methuselah (#94: its page, Design a seed in Explore and back, Load simulation… and its
   refusals, runs that die, reach the edge and are stopped, Export, Verify, Watch, Submit and its
   Hall of Fame), Classic Methuselah (#102: its page, a run whose ship leaves before it settles, its
   departures on the results card, in Export, Submit, Watch and Verify), and leaving the mode. It changes only the lab in its frame; reload to run it again. The list under
@@ -141,10 +141,11 @@
       counting = false;
       return frames;
     }
+    /** The Mode popover (#130): its gear, then the mode in its list. */
     async function chooseMode(mode) {
-      press('hud-change-mode');
+      if (!el('mode-popover').classList.contains('is-open')) press('hud-change-mode');
       await sleep(300);
-      press(`mode-${mode}`);
+      el('mode-popover-list').querySelector(`[data-mode="${mode}"]`).click();
       await sleep(100);
     }
     /** Contests opens from its banner beside the HUD, in one click. */
@@ -153,7 +154,7 @@
       await sleep(1200);
     }
     async function apply() {
-      press('shapeConfirm');
+      el('mode-popover').requestSubmit();
       await sleep(1200);
     }
     /** Hands one of the panel's hidden file inputs a file, as choosing one would. */
@@ -175,7 +176,7 @@
       ok(banner.right <= brand.left && brand.left - banner.right >= 16 && brand.left - banner.right <= 40, `It sits left of the company logo, with room between (${Math.round(brand.left - banner.right)} px apart)`);
       ok(Math.abs((banner.top + banner.bottom) / 2 - (brand.top + brand.bottom) / 2) <= 6, 'level with it');
       ok(banner.height <= 44 && banner.width <= 260, `It is compact (${Math.round(banner.width)} × ${Math.round(banner.height)} px)`);
-      ok(text('contests-banner').replace(/\s+/g, ' ') === 'Contest Closes TBD', `It says only Contest and when entries close ("${text('contests-banner').replace(/\s+/g, ' ')}")`);
+      ok(text('contests-banner').replace(/\s+/g, ' ') === 'Contests Closes 31 Dec 2026', `It says only Contests and when entries close ("${text('contests-banner').replace(/\s+/g, ' ')}")`);
       ok(win.getComputedStyle(el('contests-banner')).boxShadow.includes('rgba(242, 193, 78'), 'It glows gold');
       ok(el('contests-banner').getAttribute('aria-pressed') === 'false', 'It is not pressed outside Contests');
       section('The company panel');
@@ -205,17 +206,19 @@
 
       press('hud-change-mode');
       await sleep(300);
-      ok(!doc.getElementById('mode-contests'), 'The settings dialog has no Contests card: the banner is the way in');
-      press('shapeCancel');
+      const modeOptions = [...el('mode-popover-list').children];
+      ok(el('mode-popover').classList.contains('is-open') && modeOptions.length > 0 && !modeOptions.some((o) => o.dataset.mode === 'contests' || o.textContent.includes('Contests')), 'The Mode popover has no Contests option: the banner is the way in');
+      el('mode-popover').querySelector('[data-cancel]').click();
       await sleep(300);
+      ok(!el('mode-popover').classList.contains('is-open'), 'Cancel closes the Mode popover');
       await openContests();
       ok(doc.body.classList.contains('mode-contests') && !doc.body.classList.contains('mode-explore'), 'Clicking the banner switches to Contests at once, and Explore ends');
       ok(visible('contests-banner') && el('contests-banner').getAttribute('aria-pressed') === 'true', 'In Contests, the banner stays, pressed');
       ok(win.getComputedStyle(el('contests-banner')).backgroundImage !== win.getComputedStyle(doc.body).backgroundImage && el('contests-banner').title.includes('Esc'), 'It looks pressed, and says Esc leaves');
       ok(visible('contests-panel'), 'The panel shows');
-      ok(text('hud-mode-name') === 'Contest', `The HUD's Mode section says Contest ("${text('hud-mode-name')}")`);
+      ok(text('hud-mode-name') === 'Contests' && text('hud-mode-kind') === 'Season 0', `The HUD's title says Contests, Season 0 ("${text('hud-mode-name')}" / "${text('hud-mode-kind')}")`);
       ok(visible('glass-info-contest') && text('contest-hud-status') === 'Choosing', 'The HUD shows the Contest section, choosing');
-      ok(!visible('glass-info-sim') && !visible('glass-info-shape') && !visible('glass-info-rules') && !visible('glass-info-explore'), "The other modes' sections, and Explore's, are hidden");
+      ok(!visible('glass-info-sim') && !visible('glass-info-simulation') && !visible('glass-info-explore'), "The other modes' sections, and Explore's, are hidden");
       ok(win.getComputedStyle(el('playPauseButton')).pointerEvents === 'none', 'Play is off: a contest only runs from its panel');
       el('company-logo-button-top').click();
       await sleep(300);
@@ -225,21 +228,25 @@
       ok(el('company-modal').classList.contains('hidden') && doc.body.classList.contains('mode-contests') && visible('contests-panel'), 'In Contests, Esc closes the company panel first, and stays in Contests');
 
       section('The list');
-      ok(text('contests-panel-title') === 'The Contest', 'The panel opens on the list of branches, titled The Contest');
+      ok(text('contests-panel-title') === 'Season 0', 'The panel opens on the list of contests, titled Season 0 (#130)');
       ok(visible('contests-open-speed-1'), 'Speed has a card to open');
       const tiles = [...el('contests-panel').querySelectorAll('.contests-tile')];
       ok(tiles.length === 3 && tiles.every((t) => { const r = t.getBoundingClientRect(); return Math.abs(r.width - r.height) <= 2; }), `Speed, Methuselah and Classic Methuselah each have a square card (${tiles.map((t) => Math.round(t.getBoundingClientRect().width)).join(', ')} px)`);
       ok(tiles.every((t) => t.querySelector('svg.contests-tile-logo path, svg.contests-tile-logo circle')), 'Each card has its logo');
       const colours = tiles.map((t) => t.style.getPropertyValue('--contest-color'));
-      ok(colours[0] !== colours[1] && colours[1] === colours[2], `Speed has its own colour; the two Methuselahs share Methuselah's (${colours.join(', ')})`);
-      ok(text('contests-closes') === 'Closing date to be announced', 'The list gives the closing date');
-      ok(panelText().includes('Season 1 runs on the CPU only'), 'The list says season 1 is CPU-only (#116)');
-      ok(panelText().includes('One contest, in three branches') && !/\b3 contests\b|three contests/i.test(panelText()), 'It speaks of one contest in three branches');
+      ok(new Set(colours).size === 3 && colours[1] === '#b39cff' && colours[2] === '#e29cf5', `Each has its own colour, Classic Methuselah a pinker violet than Methuselah's (${colours.join(', ')})`);
+      const logoOf = (t) => [...t.querySelectorAll('svg.contests-tile-logo > *')].length;
+      ok(logoOf(tiles[2]) > logoOf(tiles[1]), "Classic Methuselah's logo is Methuselah's hourglass with a ship leaving");
+      const nameTops = tiles.map((t) => Math.round(t.querySelector('.contests-tile-name').getBoundingClientRect().top));
+      ok(new Set(nameTops).size === 1, `The cards' names line up, however long the line under them (${nameTops.join(', ')})`);
+      ok(text('contests-closes') === 'Entries close 31 December 2026, 11:59 PM Central Time', `The list gives the closing date and time ("${text('contests-closes')}")`);
+      ok(text('contests-list-about').startsWith('Three contests') && text('contests-list-about').includes('on the CPU'), 'It speaks of three contests, all on the CPU (#116)');
+      ok(!/branch/i.test(panelText()) && (panelText().match(/same (engine|thing)/g) ?? []).length === 1, 'It never says branch, and says once that everyone runs the same thing');
       ok(el('contests-verify').classList.contains('contests-verify-button') && el('contests-verify').querySelector('svg.contests-verify-glyph path'), 'Verify a result has its own button, with the scales');
       const verifyBox = el('contests-verify').getBoundingClientRect();
       const tilesBox = el('contests-panel').querySelector('.contests-tiles').getBoundingClientRect();
       ok(verifyBox.top > tilesBox.bottom && Math.abs(verifyBox.width - tilesBox.width) <= 2 && verifyBox.height < 80, `It is a bar across the panel, under the cards (${Math.round(verifyBox.width)} × ${Math.round(verifyBox.height)} px)`);
-      ok(el('contests-verify').closest('.contests-judge')?.textContent.includes('For every branch'), 'under its own heading, For every branch');
+      ok(el('contests-verify').closest('.contests-judge')?.textContent.includes('For every contest'), 'under its own heading, For every contest');
       ok(!panelText().includes('Contained chaos') && !panelText().includes('Coming'), 'Contained chaos, a later season\'s, is no longer listed as coming');
       ok(visible('contests-open-methuselah-1') && el('contests-open-methuselah-1').textContent.includes('Open'), 'Methuselah has a card to open');
       ok(visible('contests-open-classic-methuselah-1') && el('contests-open-classic-methuselah-1').textContent.includes('ships have left'), 'Classic Methuselah has a card to open, saying what it measures');
@@ -248,7 +255,7 @@
       press('contests-open-speed-1');
       ok(text('contests-panel-title') === 'Speed', 'Open shows Speed');
       ok(el('contests-panel').querySelector('.contests-page-logo path'), "Speed's page shows Speed's logo");
-      ok(panelText().includes('A branch of the contest'), 'It says Speed is a branch of the contest');
+      ok(panelText().includes('A Season 0 contest') && text('contests-panel').includes('Entries close 31 December 2026'), 'It says Speed is a Season 0 contest, and when entries close');
       const areas = [...el('contests-panel').querySelectorAll('.contests-section-title')].map((t) => t.textContent);
       ok(areas.join(' / ') === 'What everyone runs / Hall of Fame / How it runs / Fair play', `Its details are in titled areas (${areas.join(' / ')})`);
       ok(visible('contests-hof-empty') && text('contests-hof-empty').startsWith('No entries yet.') && !el('contests-hof'), `With no entries, the Hall of Fame says so ("${text('contests-hof-empty')}")`);
@@ -550,8 +557,10 @@
       const mAreas = [...el('contests-panel').querySelectorAll('.contests-section-title')].map((t) => t.textContent);
       ok(mAreas.join(' / ') === 'Your entry / What the contest fixes / How a run ends / Hall of Fame / How it runs / Fair play', `Its details are in titled areas (${mAreas.join(' / ')})`);
       ok(el('contests-panel').querySelector('.contests-page-head').style.getPropertyValue('--contest-color') === '#b39cff', "It wears Methuselah's colour");
-      ok(visible('contests-entry-none') && el('contests-run').disabled, 'With no entry yet, it says how to bring one, and Run waits');
-      ok(doc.activeElement?.id === 'contests-load-seed', 'Load seed… has the focus');
+      ok(text('contests-entry-none') === 'A simulation file: a seed and its rules.' && el('contests-run').disabled, 'With no entry yet, it says in one line what an entry is, and Run waits (#130)');
+      ok(doc.activeElement?.id === 'contests-load-seed' && text('contests-load-seed') === 'Load simulation…', 'Load simulation… has the focus');
+      const bg = win.getComputedStyle(el('contests-design-seed')).backgroundColor;
+      ok(bg !== 'rgba(0, 0, 0, 0)' && bg !== win.getComputedStyle(el('contests-panel')).backgroundColor && text('contests-design-seed') === 'Design a seed…', 'Design a seed… is a filled button, plainly one');
       const facts = [...el('contests-panel').querySelectorAll('.contests-fact')].map((f) => f.textContent);
       ok(facts.length === 4 && ['64³', '10³', '10,000 generations', '9,999'].every((v, i) => facts[i].includes(v)), `It gives the arena, the seed box, the budget and the top score (${facts.map((f) => f.slice(0, 24)).join(' | ')})`);
       ok(panelText().includes('scores nothing'), 'and that a pattern unsettled at 10,000 scores nothing');
@@ -562,12 +571,12 @@
       ok(visible('contests-hof-empty'), 'Its Hall of Fame is empty');
 
       section('Design a seed in Explore');
-      ok(visible('contests-design-seed'), 'The entry offers Design a seed in Explore');
+      ok(visible('contests-design-seed') && el('contests-design-seed').title.includes('Game of Life 3D (unbounded)'), 'The entry offers Design a seed…, in Explore, as its title says');
       press('contests-design-seed');
       await sleep(1500);
       ok(doc.body.classList.contains('mode-explore') && !doc.body.classList.contains('mode-contests'), 'It leaves Contests for Explore');
       ok(visible('seed-editor') && doc.body.classList.contains('seed-editor-open'), 'with the seed editor open');
-      ok(text('seed-editor-note').startsWith('For Methuselah: the seed must lie in this 10³ box.') && text('seed-editor-note').includes('Contest banner'), `Its note says how to come back ("${text('seed-editor-note').slice(0, 60)}…")`);
+      ok(text('seed-editor-note').startsWith('For Methuselah: keep the seed in this 10³ box') && text('seed-editor-note').includes('Contests banner'), `Its note says how to come back ("${text('seed-editor-note').slice(0, 60)}…")`);
       ok(state.explore.arena === 64 && /The arena in Game of Life 3D \(unbounded\) is (now on, at )?64³, as Methuselah's/.test(text('seed-editor-note')), `Explore's arena is the contest's, 64³, and the note says so (arena ${state.explore.arena})`);
       el('seed-editor').querySelector('[data-action="cancel"]').click();
       await sleep(300);
@@ -575,10 +584,10 @@
       await openContests();
       ok(doc.body.classList.contains('mode-contests') && text('contests-panel-title') === 'Methuselah', 'The banner brings it back to Methuselah\'s page, not the list');
       press('contests-back');
-      ok(text('contests-panel-title') === 'The Contest', 'Back goes to the list, as before');
+      ok(text('contests-panel-title') === 'Season 0', 'Back goes to the list, as before');
       press('contests-open-methuselah-1');
 
-      section('Load seed…');
+      section('Load simulation…');
       await loadSeed('outside.json', seedFile(DIES.rules, [[0, 0, 0], [5, 0, 0], [6, 1, 1]]));
       ok(visible('contests-entry-refused') && /outside the seed box/.test(text('contests-entry-refused')) && /2 of its 3 cells are outside/.test(text('contests-entry-refused')), `A seed outside the box is refused, saying so ("${text('contests-entry-refused')}")`);
       ok(el('contests-run').disabled, 'and Run still waits');
@@ -587,7 +596,9 @@
       await loadSeed('empty.json', seedFile(DIES.rules, []));
       ok(/empty/.test(text('contests-entry-refused')), `An empty seed is refused ("${text('contests-entry-refused')}")`);
       await loadSeed(fileName, file);
-      ok(/result file, not a seed file/.test(text('contests-entry-refused')), `A result file is refused, pointing to Verify a result ("${text('contests-entry-refused')}")`);
+      ok(/result file, not a simulation file/.test(text('contests-entry-refused')), `A result file is refused, pointing to Verify a result ("${text('contests-entry-refused')}")`);
+      await loadSeed('cells.json', JSON.stringify({ format: 'morpheus-tech-lab/explore-seed', version: 1, cells: [[0, 0, 0]] }));
+      ok(/is a seed file: it holds cells, but no rules/.test(text('contests-entry-refused')), `A seed file, without rules, is refused (#130) ("${text('contests-entry-refused').slice(0, 70)}…")`);
       await loadSeed('b1.json', seedFile({ birth: [1, 5], survival: [2] }, [[0, 0, 0]]));
       ok(!visible('contests-entry-refused') && visible('contests-entry-warning') && /B1/.test(text('contests-entry-warning')) && !el('contests-run').disabled, `A B1 rule is loaded, with a warning before Run ("${text('contests-entry-warning').slice(0, 60)}…")`);
       const full = [];
@@ -698,7 +709,7 @@
       press('contests-back');
       press('contests-open-classic-methuselah-1');
       ok(text('contests-panel-title') === 'Classic Methuselah', 'Open shows Classic Methuselah');
-      ok(el('contests-panel').querySelector('.contests-page-head').style.getPropertyValue('--contest-color') === '#b39cff', "It wears Methuselah's colour");
+      ok(el('contests-panel').querySelector('.contests-page-head').style.getPropertyValue('--contest-color') === '#e29cf5', 'It wears its own colour (#130)');
       const cFacts = [...el('contests-panel').querySelectorAll('.contests-fact')].map((f) => f.textContent);
       ok(cFacts.length === 5 && ['64³', '10³', '10,000 generations', '9,999', 'Period ≤ 32'].every((v, i) => cFacts[i].includes(v)), `It gives Methuselah's facts, and the ships' period (${cFacts.map((f) => f.slice(0, 24)).join(' | ')})`);
       ok(text('contests-differs').startsWith('Unlike Methuselah, a ship may leave the arena here') && text('contests-differs').includes('period up to 32, the longest recognised') && !visible('contests-strict'),
@@ -706,7 +717,7 @@
       const cEndings = [...(el('contests-endings')?.querySelectorAll('tbody tr') ?? [])].map((r) => r.firstChild.textContent);
       ok(cEndings.join(' ') === 'Death Repeat Emits Edge Budget', `It lists five endings, Emits among them (${cEndings.join(', ')})`);
       ok(visible('contests-hof-empty'), 'Its Hall of Fame is empty, apart from Methuselah\'s');
-      ok(visible('contests-design-seed'), 'Its entry offers Design a seed in Explore');
+      ok(visible('contests-design-seed'), 'Its entry offers Design a seed…');
       press('contests-design-seed');
       await sleep(1500);
       ok(doc.body.classList.contains('mode-explore') && visible('seed-editor'), 'It opens the seed editor in Explore');
@@ -783,7 +794,7 @@
       ok(!visible('contests-panel') && !visible('glass-info-contest'), 'The panel and the Contest section are gone');
       const g = Number(text('explore-generation').replace(/,/g, ''));
       await sleep(1000);
-      ok(Number(text('explore-generation').replace(/,/g, '')) >= g && text('hud-mode-name') === 'Game of Life 3D (unbounded)', 'The unbounded mode runs as before');
+      ok(Number(text('explore-generation').replace(/,/g, '')) >= g && text('hud-mode-name') === 'Game of Life 3D' && text('hud-mode-kind') === 'Unbounded', 'The unbounded mode runs as before');
       ok(el('contests-banner').getAttribute('aria-pressed') === 'false', 'Back in Explore, the banner is not pressed');
       await openContests();
       press('contests-banner');
@@ -794,23 +805,22 @@
       await sleep(1200);
       ok(doc.body.classList.contains('mode-explore') && !doc.body.classList.contains('mode-contests'), 'So does Esc');
       await openContests();
-      ok(visible('contests-panel') && text('contests-panel-title') === 'The Contest', 'Back in Contests, the panel is on the list again');
+      ok(visible('contests-panel') && text('contests-panel-title') === 'Season 0', 'Back in Contests, the panel is on the list again');
       press('hud-change-mode');
       await sleep(300);
-      ok(text('mode-description').includes('Season 1 runs on the CPU only'), 'The dialog says season 1 is CPU-only');
-      ok(text('mode-description').includes('Speed times how many generations') && !doc.querySelector('.mode-card.active'), 'Opened from Contests, the dialog describes it, with no other mode chosen');
-      ok(!visible('sim-params-section') && text('explore-settings-note').includes('Each branch of the contest fixes its own'), 'with nothing to set');
+      ok(el('mode-popover').classList.contains('is-open') && ![...el('mode-popover-list').children].some((o) => o.getAttribute('aria-pressed') === 'true'), 'Opened from Contests, the Mode popover has no mode chosen');
+      ok(text('mode-popover-note').includes('leave the contests'), `and says choosing one leaves the contests ("${text('mode-popover-note')}")`);
       await apply();
       ok(doc.body.classList.contains('mode-contests') && visible('contests-panel'), 'Apply with no mode chosen stays in Contests');
       await chooseMode('gameOfLife');
       await apply();
       await sleep(1500);
       ok(!doc.body.classList.contains('mode-contests') && !visible('contests-panel'), 'Choosing Game of Life leaves Contests too');
-      ok(text('hud-mode-name') === 'Game of Life 3D (bounded)' && visible('glass-info-sim'), 'The bounded mode shows its Grid section as before');
+      ok(text('hud-mode-name') === 'Game of Life 3D' && text('hud-mode-kind') === 'Bounded' && visible('glass-info-sim'), 'The bounded mode shows its Grid section as before');
       await openContests();
       doc.body.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
       await sleep(2500);
-      ok(text('hud-mode-name') === 'Game of Life 3D (bounded)' && !doc.body.classList.contains('mode-contests') && visible('glass-info-sim'), 'Opened from the bounded mode, Esc goes back to it');
+      ok(text('hud-mode-kind') === 'Bounded' && !doc.body.classList.contains('mode-contests') && visible('glass-info-sim'), 'Opened from the bounded mode, Esc goes back to it');
     }
 
     run()

@@ -222,17 +222,6 @@ export function designOf(setup) {
 }
 
 /**
- * What Edit a copy… opens: a preset's cells, which come with its rules, to be used unlocked.
- * @returns {{places: Uint8Array, rules: {birth: number[], survival: number[]}, name: string}}
- * @throws {SeedError} for an unknown preset
- */
-export function presetCopy(id) {
-  const preset = presetById(id);
-  if (!preset) throw new SeedError('Pick a preset.');
-  return { places: designCells(preset.cells), rules: preset.rules, name: preset.name };
-}
-
-/**
  * A file loaded with the editor's own Load…, which takes seed files and simulation files, not
  * saved generations.
  * @param {string} name - the file's name
@@ -255,7 +244,7 @@ export function designFile(name, loaded) {
 
 /**
  * The editor's Use: the design becomes the seed, a Custom simulation, with `rules` in the Rules box,
- * unlocked: the rules it opened with, a copied preset's or a loaded file's.
+ * unlocked: the rules it opened with, or those of a simulation file it loaded.
  * @param {Int32Array} cells
  * @param {{birth: number[], survival: number[]}} rules
  * @throws {SeedError} for an empty design, or one that doesn't fit the arena
@@ -597,61 +586,6 @@ export function changeArena(setup, on, sideText, { own = false, edge, walls } = 
   if (edge !== undefined && !EDGES.includes(edge)) throw new SeedError(`What happens at the edge must be one of ${EDGES.join(', ')}.`);
   const wallRules = walls === undefined ? base.walls : parseWalls(walls);
   return checked({ ...base, arena: on ? side : null, arenaSize: ok ? side : base.arenaSize, edge: edge ?? base.edge, walls: wallRules });
-}
-
-/**
- * Explore's seed in use and its rules as a Discovery contest's entry (#95), for Use in a contest:
- * the starting cells exactly as they are, never shifted, or why they can't be an entry. A seed
- * with any cell outside the contest's seed box is refused, saying which; so is an empty one, and a
- * saved generation, which isn't a starting seed. Explore never takes a B0 rule, and the contest's
- * page checks the entry again (runFor()).
- * @param {object} setup
- * @param {{title: string, fixes: {seedBox: {min: number[], max: number[]}, arena: {min: number[], max: number[]}}}} contest
- * @returns {{entry: {rules: object, cells: Int32Array, source: string, note: string | null}}
- *   | {reason: string}} the entry, with where it came from and, if Explore's arena isn't the
- *   contest's, a note saying so; or why not
- */
-export function contestEntry(setup, contest) {
-  const { seed } = setup;
-  const n = (x) => x.toLocaleString('en');
-  const box = contest.fixes.seedBox;
-  const boxText = `the ${box.max[0] - box.min[0] + 1}³ seed box, cells ${box.min[0]} to ${box.max[0]} on each axis`;
-  if (seed.kind === 'saved') {
-    return { reason: `A saved generation carries on from generation ${n(seed.from)}, so it isn't a seed to start a contest from. Load its run's simulation file, or design a seed, instead.` };
-  }
-  const { cells } = seed;
-  const count = cells.length / 3;
-  if (!count) return { reason: `The seed has no live cells: a ${contest.title} entry needs at least one, in ${boxText}.` };
-  const outside = [];
-  let outsideCount = 0;
-  for (let i = 0; i < cells.length; i += 3) {
-    const cell = [cells[i], cells[i + 1], cells[i + 2]];
-    if (cell.some((c, a) => c < box.min[a] || c > box.max[a])) {
-      outsideCount++;
-      if (outside.length < 3) outside.push(`[${cell.join(', ')}]`);
-    }
-  }
-  if (outsideCount) {
-    const which = outsideCount === 1 ? `Its cell ${outside[0]} lies` : `${n(outsideCount)} of its ${n(count)} cells lie`;
-    const such = outsideCount > 1 ? `, such as ${outside.join(outsideCount > 2 ? ', ' : ' and ')}` : '';
-    return { reason: `${which} outside ${boxText}${such}. Seeds are never shifted: make it fit with a smaller shape, or Design….` };
-  }
-  const side = contest.fixes.arena.max[0] - contest.fixes.arena.min[0] + 1;
-  const arena = arenaOf(setup);
-  const ships = Boolean(contest.departures);
-  let note = null;
-  if (arena !== side) {
-    note = `${contest.title} runs in its own ${side}³ arena, and the arena in Game of Life 3D (unbounded) ${arena ? `was ${n(arena)}³` : 'was off'}, so a run here may end differently from one there.`;
-  } else if (wrapOf(setup)) {
-    note = `${contest.title}'s arena doesn't wrap around, and the one in Game of Life 3D (unbounded) did, so a run here may end differently from one there.`;
-  } else if (wallsOf(setup)) {
-    note = `${contest.title}'s arena has no walls, and the one in Game of Life 3D (unbounded) had, so a run here may end differently from one there.`;
-  } else if (shipsOf(setup) !== ships) {
-    note = ships
-      ? `${contest.title} lets ships leave at the edge of its arena, and Game of Life 3D (unbounded) didn't, so a run here may end differently from one there.`
-      : `${contest.title} doesn't let ships leave its arena, and Game of Life 3D (unbounded) did, so a run here may end differently from one there.`;
-  }
-  return { entry: { rules: rulesOf(setup), cells: Int32Array.from(cells), source: `Game of Life 3D (unbounded): ${seedLabel(seed)}`, note } };
 }
 
 /**

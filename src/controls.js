@@ -7,7 +7,7 @@ import { initHud, startFromSetup, openSeedEditor } from "./explore/hud.js";
 import { initSettingsHud, openModePopover, MODES } from "./hudSettings.js";
 import { contestArena } from "./explore/setup.js";
 import { isContests, startContests, stopContests, isWatching, closeWatch, watchTogglePlay, watchStep, watchViewChanged } from "./contests/contests.js";
-import { CONTESTS } from "./unbounded/contests.js";
+import { CONTESTS, SEASON } from "./unbounded/contests.js";
 import { closingText } from "./contests/format.js";
 
 
@@ -30,7 +30,7 @@ function updateStateDisplay() {
 // them; the popover says what each mode is
 const MODE_TITLES = {
   ...Object.fromEntries(MODES.map(({ id, name, kind }) => [id, [name, kind]])),
-  contests: ['Contest', 'Season 1'],
+  contests: ['Contests', SEASON],
 };
 
 function updateSimulationModeTitle() {
@@ -650,11 +650,9 @@ const MODE_FLAGS = ['useRule30', 'useRule30_2D', 'useSineWave', 'useSandpile'];
 
 /**
  * Opens the Contests mode (src/contests/): from its banner by the company logo. It has nothing to
- * set. Explore's Use in a contest (#95) opens it on a contest's page with an entry.
- * @param {object} [options]
- * @param {{contestId: string, rules: object, cells: Int32Array, source: string, note: string | null}} [options.entry]
+ * set.
  */
-function enterContests({ entry } = {}) {
+function enterContests() {
   if (state.simulationMode !== 'contests') {
     beforeContests = { mode: state.simulationMode, flags: Object.fromEntries(MODE_FLAGS.map((f) => [f, state[f]])) };
   }
@@ -667,7 +665,7 @@ function enterContests({ entry } = {}) {
   stopExplore(); // its Worker and view go
   resetControlsUI();
   initControls(); // the title and the GPU toggle follow the mode
-  startContests({ designInExplore, entry });
+  startContests({ designInExplore });
 }
 
 /**

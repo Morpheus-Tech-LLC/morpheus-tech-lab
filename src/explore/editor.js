@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 // The seed editor (#70): designing a seed cell by cell in the 10³ seed box. It opens from the Seed
-// popover's Design… or the Simulation popover's Edit a copy… (hud.js), and takes over the
-// main 3D view: Explore's view pauses behind it, and its run, if any, goes on in its Worker. A
+// popover's Design… (hud.js), or Design a seed… on a Methuselah contest's page, and takes over
+// the main 3D view: Explore's view pauses behind it, and its run, if any, goes on in its Worker. A
 // panel at the side holds the tools, and every tool has a key. Use makes the design Explore's
 // seed and restarts the run; Cancel, or Esc, leaves everything as it was.
 //

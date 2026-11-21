@@ -227,8 +227,31 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
   unchanged, and every one made before still loads (#116).
 - The company panel and the control bar take their look from the stylesheets instead of styles
   written into the page, ready for the brand restyle; they look and work as before (#21).
+- Every mode's settings are in the HUD, as Game of Life 3D (unbounded)'s have been: each box you
+  can change has a gear in its title that opens a popover beside it, whose Apply runs the mode
+  again. The precomputed modes get a Grid popover (size, generations, Rule 30's 3D, the
+  sandpile's initial sand, and the bounded grid's edge, wrapping or walls with their own rules),
+  and the bounded mode Seed and Rules popovers; the memory question asks in the popover. The HUD
+  panel's title names the mode, and its gear, or the control bar's, opens the Mode popover. Each
+  mode keeps its own settings, so switching back runs it as it was (#130).
+- In Game of Life 3D (unbounded), a seed is only its cells and a simulation is a seed and its
+  rules. The Simulation box holds the Seed and Rules boxes, names the simulation in use (Cube10
+  and the other presets, a loaded file, or Custom), and its gear sets both, from a preset or Load
+  simulation…; the Seed popover takes cells from a shape (a preset's among them), a file or a
+  design, and keeps the rules. Save icons on the boxes' name lines save a simulation file, a seed
+  file (cells only) and, from the Run box, the generation; the seed editor's Export saves a seed
+  file. Each popover says at its foot what the control pointed at does. Files saved before still
+  load, as simulation files (#130).
+- The contests are Season 0: Speed, Methuselah and Classic Methuselah are three contests, not
+  branches of one, and entries close at 11:59 PM Central Time on 31 December 2026, which the
+  banner, the list and each contest's page say. A Methuselah entry is a simulation file, loaded
+  with Load simulation…; its section is shorter, and the panel's buttons look like buttons.
+  Classic Methuselah has its own colour and logo, and the contest cards' names line up (#130).
 
 ### Removed
+- The settings dialog, now that every setting is in the HUD; Edit a copy…, since a preset's
+  cells are a shape in the Seed popover; and Use in a contest, since a contest takes a simulation
+  file (#130).
 - The Morpheus Tech logo buttons beside the settings dialog's range hints; the logo at the top of
   the page still opens the company panel (#123).
 - The `good first issue` label: the `ready` label alone says what work can be picked up (#71).

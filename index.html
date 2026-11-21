@@ -463,7 +463,7 @@
              the panel in the middle of the screen does the rest -->
         <div id="glass-info-contest" class="glass-display glass-display--compact">
           <div class="box-title"><span class="box-title-text">Contest</span><button type="button" class="hud-collapse" aria-expanded="true" aria-label="Collapse the Contest box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></div>
-          <div class="info-line"><span class="label">Branch</span><span id="contest-hud-name" class="value">–</span></div>
+          <div class="info-line"><span class="label">Contest</span><span id="contest-hud-name" class="value">–</span></div>
           <div class="info-line"><span class="label">Status</span><span id="contest-hud-status" class="value">Choosing</span></div>
           <div class="info-line"><span class="label">Generation</span><span id="contest-hud-generation" class="value">–</span></div>
         </div>
@@ -473,20 +473,20 @@
   <!-- The Contests banner (#77), left of the company logo in every mode: one click opens the
        Contests mode, and in it, shown as pressed, one click (or Esc) goes back. controls.js fills in
        the date entries close, from src/unbounded/contests.js -->
-  <button type="button" id="contests-banner" class="contests-banner" aria-pressed="false" title="Open the contest">
+  <button type="button" id="contests-banner" class="contests-banner" aria-pressed="false" title="Open the contests">
     <svg class="contests-banner-trophy" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <path d="M7 3.5 H17 V9 A5 5 0 0 1 7 9 Z"></path>
       <path d="M7 5.5 H4.5 A2.5 2.5 0 0 0 7.2 10.5 M17 5.5 H19.5 A2.5 2.5 0 0 1 16.8 10.5"></path>
       <path d="M12 14 V17 M9.5 17 H14.5 V20.5 H9.5 Z"></path>
     </svg>
-    <span class="contests-banner-name">Contest</span>
+    <span class="contests-banner-name">Contests</span>
     <span id="contests-banner-closes" class="contests-banner-closes">Closes TBD</span>
   </button>
   <!-- The Contests mode's panel (src/contests/panel.js, #77): the list of contests, a contest's
        page, its run, its results and Verify a result. panel.js fills it; nothing is drawn in 3D
        behind it -->
   <section id="contests-panel" class="contests-panel" aria-labelledby="contests-panel-title" hidden>
-    <h2 id="contests-panel-title" class="contests-panel-title">The Contest</h2>
+    <h2 id="contests-panel-title" class="contests-panel-title">Season 0</h2>
     <div id="contests-panel-body" class="contests-panel-body"></div>
     <p id="contests-panel-status" class="contests-panel-status" role="status" aria-live="polite"></p>
   </section>
@@ -2017,36 +2017,6 @@
   /* With the panel open, the Contests banner and panel make way */
   body.company-modal-open .contests-banner,
   body.company-modal-open .contests-panel { display: none; }
-  .modal-backdrop { 
-    position: absolute; 
-    inset: 0; 
-    background: rgba(0,0,0,0.98);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-  }
-  .modal-backdrop::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-image: 
-      repeating-linear-gradient(0deg, rgba(255,255,255,0.03) 0px, transparent 1px, transparent 2px, rgba(255,255,255,0.03) 3px),
-      repeating-linear-gradient(90deg, rgba(255,255,255,0.03) 0px, transparent 1px, transparent 2px, rgba(255,255,255,0.03) 3px);
-    background-size: 4px 4px;
-    opacity: 0.4;
-    pointer-events: none;
-  }
-  .modal-backdrop::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: 
-      radial-gradient(circle at 20% 50%, rgba(255,255,255,0.02) 0%, transparent 50%),
-      radial-gradient(circle at 80% 80%, rgba(255,255,255,0.02) 0%, transparent 50%),
-      radial-gradient(circle at 40% 20%, rgba(255,255,255,0.02) 0%, transparent 50%);
-    opacity: 0.5;
-    pointer-events: none;
-    mix-blend-mode: overlay;
-  }
   .glass-panel { 
     background: rgba(30, 30, 35, 0.98); 
     border: 1px solid rgba(120, 120, 130, 0.3); 
@@ -2080,61 +2050,9 @@
     overflow: hidden;
     background: rgba(30, 30, 35, 0.98);
   }
-  .modal-title { 
-    margin: 0 0 10px; 
-    color: rgba(240, 240, 245, 0.98); 
-    border-bottom: 1px solid rgba(140, 140, 150, 0.3); 
-    padding-bottom: 6px; 
-    font-weight: 600; 
-    font-size: 20px;
-    letter-spacing: 0.3px;
-  }
-  .modal-body { 
-    display: flex; 
-    flex-direction: column; 
-    gap: 2px; 
-    overflow-y: auto;
-    overflow-x: hidden;
-    flex: 1;
-    min-height: 0;
-    padding-right: 4px;
-  }
-  .modal-body::-webkit-scrollbar {
-    width: 8px;
-  }
-  .modal-body::-webkit-scrollbar-track {
-    background: rgba(25, 25, 30, 0.6);
-    border-radius: 4px;
-  }
-  .modal-body::-webkit-scrollbar-thumb {
-    background: rgba(140, 140, 150, 0.4);
-    border-radius: 4px;
-  }
-  .modal-body::-webkit-scrollbar-thumb:hover {
-    background: rgba(160, 160, 170, 0.6);
-  }
-  .modal-grid { 
-    display: grid; 
-    grid-template-columns: repeat(4, 1fr); 
-    gap: 4px 12px; 
-    align-items: start; 
-    position: relative; 
-    min-width: 0;
-  }
   @media (max-width: 900px) {
     .modal-content {
       min-width: 90vw;
-    }
-    .modal-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
-    .modal-grid .rules-col,
-    .modal-grid .boundary-col {
-      border-left: none;
-      border-top: 1px solid rgba(140, 140, 150, 0.25);
-      padding-left: 0;
-      padding-top: 10px;
-      margin-top: 6px;
     }
   }
   @media (max-width: 600px) {
@@ -2144,282 +2062,6 @@
     }
     /* The company panel keeps its own narrow width, with a gutter on each side */
     #company-modal .modal-content { min-width: min(300px, calc(100vw - 64px)); }
-    .modal-grid {
-      grid-template-columns: 1fr;
-    }
-    .modal-grid .seed-col,
-    .modal-grid .rules-col,
-    .modal-grid .boundary-col {
-      border-left: none;
-      border-top: 1px solid rgba(140, 140, 150, 0.25);
-      padding-left: 0;
-      padding-top: 10px;
-      margin-top: 6px;
-      width: 100%;
-    }
-    .modal-field-row .glass-input,
-    .modal-field-row .glass-select {
-      max-width: 100%;
-    }
-  }
-  .modal-grid .sim-col { 
-    grid-column: 1 / -1; 
-    display: flex; 
-    flex-direction: column; 
-    gap: 3px; 
-    margin-bottom: 2px;
-  }
-  .modal-grid .sim-col:not(:first-child) {
-    grid-column: 1;
-    margin-bottom: 0;
-    border-left: none;
-    padding-left: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-    width: 100%;
-    box-sizing: border-box;
-  }
-  .modal-grid .seed-col { 
-    grid-column: 2; 
-    display: flex; 
-    flex-direction: column; 
-    gap: 2px; 
-    border-left: 1px solid rgba(140, 140, 150, 0.25); 
-    padding-left: 12px; 
-    min-width: 0;
-    width: 100%;
-    box-sizing: border-box;
-  }
-  .modal-grid .rules-col { 
-    grid-column: 3; 
-    display: flex; 
-    flex-direction: column; 
-    gap: 2px; 
-    border-left: 1px solid rgba(140, 140, 150, 0.25); 
-    padding-left: 12px; 
-    min-width: 0;
-    width: 100%;
-    box-sizing: border-box;
-  }
-  .modal-grid .boundary-col { 
-    grid-column: 4; 
-    display: flex; 
-    flex-direction: column; 
-    gap: 2px; 
-    border-left: 1px solid rgba(140, 140, 150, 0.25); 
-    padding-left: 12px; 
-    padding-right: 0;
-    min-width: 0;
-    width: 100%;
-    box-sizing: border-box;
-  }
-  @media (max-width: 1200px) {
-    .modal-grid .sim-col:not(:first-child) { grid-column: 1; }
-    .modal-grid .seed-col { grid-column: 1; }
-    .modal-grid .rules-col { grid-column: 2; }
-    .modal-grid .boundary-col { grid-column: 1 / -1; }
-  }
-  @media (max-width: 768px) {
-    .modal-grid .sim-col:not(:first-child),
-    .modal-grid .seed-col,
-    .modal-grid .rules-col,
-    .modal-grid .boundary-col {
-      grid-column: 1;
-    }
-  }
-  .rules-title { 
-    color: var(--color-title); 
-    font-weight: 700; 
-    font-size: 16px; 
-    margin-bottom: 4px; 
-    border-bottom: 1px solid rgba(140, 140, 150, 0.25); 
-    padding-bottom: 2px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    letter-spacing: 0.3px;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-  }
-  .mode-selector {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin-top: 4px;
-  }
-  .mode-card {
-    flex: 1;
-    padding: 8px 10px;
-    border-radius: 6px;
-    border: 1px solid rgba(140, 140, 150, 0.3);
-    background: rgba(40, 40, 45, 0.5);
-    color: rgba(230, 230, 235, 0.95);
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 3px;
-    outline: none;
-  }
-  .mode-card:hover {
-    transform: translateY(-1px);
-    border-color: rgba(120, 180, 255, 0.4);
-    background: rgba(35, 45, 60, 0.6);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  }
-  .mode-card.active {
-    border-color: rgba(120, 180, 255, 0.6);
-    background: rgba(40, 60, 90, 0.7);
-    box-shadow: 
-      0 4px 16px rgba(0, 0, 0, 0.4),
-      inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    color: rgba(220, 235, 255, 1);
-  }
-  .mode-card[data-mode="gameOfLife"] {
-    border-left: 3px solid rgba(100, 180, 255, 0.6);
-  }
-  .mode-card[data-mode="gameOfLife"].active {
-    border-left: 3px solid rgba(120, 200, 255, 0.9);
-    background: rgba(40, 70, 110, 0.7);
-  }
-  .mode-card[data-mode="rule30"] {
-    border-left: 3px solid rgba(100, 200, 150, 0.6);
-  }
-  .mode-card[data-mode="rule30"].active {
-    border-left: 3px solid rgba(120, 220, 170, 0.9);
-    background: rgba(40, 90, 70, 0.7);
-  }
-  .mode-card[data-mode="sineWave"] {
-    border-left: 3px solid rgba(180, 140, 220, 0.6);
-  }
-  .mode-card[data-mode="sineWave"].active {
-    border-left: 3px solid rgba(200, 160, 240, 0.9);
-    background: rgba(80, 60, 100, 0.7);
-  }
-  .mode-card[data-mode="sandpile"] {
-    border-left: 3px solid rgba(220, 160, 100, 0.6);
-  }
-  .mode-card[data-mode="sandpile"].active {
-    border-left: 3px solid rgba(240, 180, 120, 0.9);
-    background: rgba(100, 70, 50, 0.7);
-  }
-  .mode-name {
-    font-weight: 600;
-    font-size: 15px;
-    letter-spacing: 0.2px;
-  }
-  .mode-description {
-    margin-top: 6px;
-    padding: 10px 14px;
-    background: rgba(40, 40, 45, 0.5);
-    border: 1px solid rgba(140, 140, 150, 0.25);
-    border-radius: 6px;
-    color: rgba(230, 230, 235, 0.95);
-    font-size: 16px;
-    line-height: 1.7;
-    letter-spacing: 0.3px;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    white-space: normal;
-  }
-  .mode-description p {
-    margin: 0;
-  }
-  .mode-subtitle {
-    font-size: 12px;
-    opacity: 0.75;
-    font-weight: 400;
-    letter-spacing: 0.2px;
-  }
-  .modal-field-row {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-    margin-bottom: 3px;
-    min-width: 0;
-    padding: 0;
-    border-radius: 0;
-    background: transparent;
-    border: none;
-    transition: none;
-  }
-  
-  .modal-field-row:hover {
-    background: transparent;
-    border-color: transparent;
-  }
-  .modal-field-row .modal-label {
-    min-width: 0;
-    flex-shrink: 0;
-    white-space: nowrap;
-    font-size: 14px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding-right: 2px;
-    margin-top: 0;
-    padding-top: 0;
-    width: auto;
-  }
-  .modal-field-row .glass-input,
-  .modal-field-row .glass-select {
-    width: 100%;
-    min-width: 0;
-    max-width: 100%;
-    flex-shrink: 0;
-    margin-left: 0;
-    box-sizing: border-box;
-    position: relative;
-    z-index: 1;
-  }
-  .modal-field-row > div[style*="flex-direction: column"] {
-    margin-left: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
-    width: 100%;
-    min-width: 0;
-    max-width: 100%;
-    margin-top: 0;
-    padding-top: 0;
-  }
-  
-  .modal-field-row .label-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    gap: 8px;
-    pointer-events: none;
-  }
-  
-  .modal-field-row .label-row * {
-    pointer-events: auto;
-  }
-  
-  .modal-field-row .input-range-hint {
-    margin-left: auto;
-    flex-shrink: 0;
-  }
-  .modal-field-row > div[style*="flex-direction: column"] .glass-input {
-    width: 100%;
-    margin-left: 0;
-    margin-top: 0;
-    margin-bottom: 0;
-    align-self: stretch;
-  }
-  .modal-label { 
-    color: rgba(230, 230, 235, 0.95); 
-    font-weight: 600; 
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 14px;
-    letter-spacing: 0.3px;
   }
   .input-range-hint {
     font-size: 11px;
@@ -2523,9 +2165,6 @@
   .memory-confirm p {
     margin: 0 0 10px;
   }
-  .memory-confirm .modal-actions-buttons {
-    justify-content: flex-end;
-  }
   /* Tooltip styles for elements with data-tooltip attribute */
   [data-tooltip] {
     position: relative;
@@ -2558,11 +2197,6 @@
   .tooltip-display:empty {
     opacity: 0;
   }
-  
-  .modal-actions-buttons {
-    display: flex;
-    gap: 12px;
-  }
   .glass-input { 
     padding: 6px 8px; 
     border-radius: 8px; 
@@ -2572,13 +2206,6 @@
     outline: none; 
     font-size: 15px;
     font-weight: 500;
-  }
-  .modal-field-row .glass-select { 
-    padding: 6px 8px; 
-    font-size: 15px; 
-    border-radius: 8px;
-    appearance: none;
-    -webkit-appearance: none;
   }
   .modal-actions { 
     display: flex; 
@@ -2725,13 +2352,7 @@
   }
 
   /* ==== Explore (src/explore/) ==== */
-  .mode-card[data-mode="explore"] {
-    border-left: 3px solid rgba(240, 110, 140, 0.6);
-  }
-  .mode-card[data-mode="explore"].active {
-    border-left: 3px solid rgba(255, 130, 160, 0.9);
-    background: rgba(100, 45, 60, 0.7);
-  }
+
   .explore-small-button {
     padding: 5px 10px;
   }
@@ -2742,21 +2363,8 @@
   .explore-small-button[hidden] {
     display: none;
   }
-  /* In Explore, the dialog holds only the mode choice, and says where Explore's settings are */
-  .explore-settings-note {
-    margin: 8px 0 0;
-    padding: 8px 10px;
-    border-radius: 6px;
-    border: 1px solid rgba(120, 180, 255, 0.35);
-    background: rgba(120, 180, 255, 0.1);
-    color: rgba(200, 220, 255, 0.95);
-    font-size: 13px;
-    line-height: 1.4;
-  }
-  .explore-settings-note[hidden] {
-    display: none;
-  }
-  /* Custom / Preset: drawn like the control bar's 3D / 2D switch */
+  /* A two- or three-way switch (the Seed popover's Shape / File / Design, the seed editor's),
+     drawn like the control bar's 3D / 2D switch */
   .explore-seed-kind {
     display: flex;
     width: 100%;
@@ -3257,29 +2865,6 @@
     background: rgba(77, 163, 255, 0.12);
     box-shadow: inset 3px 0 0 rgba(120, 180, 255, 0.9);
   }
-  .explore-box-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-top: 8px;
-  }
-  /* The Seed and Rules boxes show in every mode; their Change and Save seed only in Explore */
-  body:not(.mode-explore) .explore-box-actions--shared {
-    display: none;
-  }
-  .explore-box-actions .glass-button {
-    flex: 1 1 auto;
-    pointer-events: auto;
-  }
-  .explore-box-actions .glass-button.is-active {
-    border-color: rgba(120, 180, 255, 0.95);
-    background: rgba(77, 163, 255, 0.35);
-    color: #fff;
-  }
-  .explore-box-actions .glass-button:focus-visible {
-    outline: 2px solid rgba(120, 180, 255, 0.8);
-    outline-offset: 2px;
-  }
   #glass-info-explore,
   #glass-info-shape,
   #glass-info-rules,
@@ -3313,8 +2898,8 @@
     white-space: normal;
     user-select: text;
     z-index: 50;
-    /* Hidden with display, not visibility: a control with `transition: all` (the Custom / Preset
-       switch) would otherwise fade its own visibility in, and refuse focus until it had */
+    /* Hidden with display, not visibility: a control with `transition: all` (a switch such as
+       Shape / File / Design) would otherwise fade its own visibility in, and refuse focus until it had */
     display: none;
   }
   .explore-popover.is-open {
@@ -3359,7 +2944,6 @@
   .explore-popover-quiet:empty {
     display: none;
   }
-  /* Use in a contest: apart from the draft above it, since it takes the seed in use */
   /* A popover's foot (#130): what the control pointed at or focused does, so the popover itself
      keeps only its controls; tall enough for a few lines, so it doesn't jump as the text changes */
   .popover-help {
@@ -3380,21 +2964,6 @@
   }
   #explore-simulation-status:empty {
     display: none;
-  }
-  .explore-popover-contest {
-    margin-top: 12px;
-    padding-top: 10px;
-    border-top: 1px solid rgba(255, 255, 255, 0.12);
-  }
-  .explore-contest-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-  }
-  .explore-contest-row select {
-    flex: 1 1 140px;
-    min-width: 0;
   }
   .explore-popover-locked {
     margin-bottom: 8px;
@@ -3563,9 +3132,6 @@
   body.mode-explore #glass-info-sim {
     display: none;
   }
-  .explore-popover-button {
-    margin-top: 8px;
-  }
   /* ==== The Contests mode (src/contests/, #77) ==== */
   /* The Contests banner, left of the company logo, glowing gold. In Contests it stays, pressed:
      a click there (or Esc) goes back */
@@ -3728,13 +3294,15 @@
   }
   .contests-tile {
     --contest-color: #f2c14e;
+    /* From the top, so every card's logo and name line up, however long its line about it;
+       Open keeps to the foot */
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 6px;
     aspect-ratio: 1;
-    padding: 14px;
+    padding: 18px 14px 14px;
     box-sizing: border-box;
     border: 1px solid color-mix(in srgb, var(--contest-color) 65%, transparent);
     border-radius: 14px;
@@ -3771,7 +3339,7 @@
     line-height: 1.35;
   }
   .contests-tile-foot {
-    margin-top: 4px;
+    margin-top: auto;
     color: var(--contest-color);
     font-size: 13px;
     font-weight: 700;

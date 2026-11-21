@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// The Contests mode (#77): a sixth mode, chosen in the settings dialog. Like Explore, it never
+// The Contests mode (#77): a sixth mode, opened from its banner. Like Explore, it never
 // reaches initSimulation(): it shows the panel in the middle of the screen (panel.js), and
 // nothing is drawn in 3D behind it, so a run has the machine to itself. Only Watch (watch.js,
 // #78) draws, once a run is over, in place of the panel. Leaving the mode closes the panel,
@@ -27,10 +27,8 @@ export function isContests() {
  * @param {(contest: {note: string, arena: number, title: string}) => void} [options.designInExplore]
  *   - leaves for Explore with the contest's arena and the seed editor open (controls.js), for a
  *   Discovery contest's page
- * @param {object} [options.entry] - Explore's Use in a contest (#95): opens on its contest's page
- *   with this entry, {contestId, rules, cells, source, note}
  */
-export function startContests({ designInExplore, entry } = {}) {
+export function startContests({ designInExplore } = {}) {
   stopContests();
   state.reset();
   state.autoRotateActive = false;
@@ -40,7 +38,7 @@ export function startContests({ designInExplore, entry } = {}) {
   active = true;
   document.body.classList.add('mode-contests');
   banner(true);
-  openPanel({ designInExplore, entry });
+  openPanel({ designInExplore });
   document.getElementById('loading-overlay')?.classList.add('hidden');
 }
 
@@ -58,7 +56,7 @@ function banner(pressed) {
   const button = document.getElementById('contests-banner');
   if (!button) return;
   button.setAttribute('aria-pressed', String(pressed));
-  button.title = pressed ? 'Leave the contest (Esc)' : 'Open the contest';
+  button.title = pressed ? 'Leave the contests (Esc)' : 'Open the contests';
 }
 
 /**

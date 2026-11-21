@@ -115,15 +115,27 @@ A saved generation's edge is always `'end'`. From it come what each
 HUD box shows, what is locked (a preset's rules; a saved generation's rules and arena) and the
 config `startExplore()` takes. A change never edits it in place: each popover's Apply gives a new
 value, or the reason it is refused, checked by building that config, and restarts the run.
-`hud.js` wires the gears in the Seed, Rules and Limits boxes' titles to their popovers, and the
-folding of every HUD box, and `popover.js` keeps one popover open at a time, the save popover
-too. The HUD is one panel, Simulation, in every mode, with the boxes as its sections: first
-Mode, which names the simulation that runs (`controls.js`), then the mode's own. The unbounded mode's Run
-box only reports. The settings dialog shows only the mode choice in Game of Life 3D (unbounded).
+`hud.js` wires the gears in the Simulation, Seed, Rules and Limits boxes' titles to their
+popovers, the save icons, and the folding of every HUD box, and `popover.js` keeps one popover
+open at a time, the save popover too. A seed is only cells, and a simulation is a seed and its
+rules (#130): the Simulation box holds the Seed and Rules boxes as its two parts, and names the
+simulation in use (`simulationOf()`: a preset whenever the seed and rules are a preset's, a
+loaded file's, a saved generation, or Custom). Its popover sets both, from a preset or Load
+simulation… (`simulationFile()`); the Seed popover sets only the cells, from a shape, a file
+(`fileSeed()`, which takes a seed or a simulation file's cells) or a design, and the rules in use
+stay. The unbounded mode's Run box only reports.
+
+**The HUD in every mode** (#130). There is no settings dialog. The HUD is one panel: its title
+names the mode, and its gear, or the control bar's, opens the Mode popover (`hudSettings.js`);
+under it come the mode's boxes. In the precomputed modes, `hudSettings.js` wires the Grid, Seed
+and Rules boxes' gears to popovers whose Apply sets `state` and runs `initSimulation()` again,
+asking first above a high memory estimate (#123); each mode keeps its own settings, so switching
+back to one runs it as it was.
 
 **The seed editor** (#70) designs a seed in the seed box, `SEED_BOX` in `contests.js`, which `seed.js` re-exports (cells −5 to 4
-on each axis), where the Discovery contests' seeds go. The Seed popover opens it: Design… on the
-seed in use (`designOf()`), Edit a copy… on a preset (`presetCopy()`). `editorModel.js`, with no
+on each axis), where the Discovery contests' seeds go. The Seed popover's Design… opens it on the
+seed in use (`designOf()`); so does a Methuselah contest's Design a seed…, after setting the
+contest's arena. `editorModel.js`, with no
 DOM and no Three.js, holds the box as 1,000 bytes, the cursor, the selection (every kind is an
 axis-aligned box of cells), switching, random fill and 100 steps of undo and redo, and works out
 which axis each movement key takes from the camera's right, up and viewing directions: each
@@ -134,8 +146,9 @@ points for the lattice, boxes and lines for the selection and the cursor. It dra
 something changes. While the editor is open, `time.animate()` calls `editorFrame()` instead of
 `exploreFrame()` and the main render, and the unbounded mode's camera controls are off; the run's Worker
 keeps going. `editor.js` holds the panel, the keys and picking. Use goes through `useDesign()`,
-which makes the seed `{kind: 'design', cells}` with the rules the editor opened with, and
-restarts the run as a popover's Apply does.
+which makes the seed `{kind: 'design', cells}` with the rules the editor opened with (or those
+of a simulation file it loaded, `designFile()`), and restarts the run as a popover's Apply does.
+Export writes the design alone, as a seed file.
 
 `explore.js` runs it through `EngineDriver`, with no history:
 `state.simulationData` stays null. `view.js` draws the latest snapshot in a point buffer that
@@ -150,16 +163,18 @@ with the current cells, cell for cell, before the run ends. A false match costs 
 and the run carries on. The Worker then replays the cycle once to send its frames, which the view
 loops while the count stays put.
 
-**Saving** (`save.js`): Save this generation, in the unbounded mode's Run box, and Save seed, in the Seed
-box, open one popover, which moves beside the box of the button that opened it. **Save this generation**
-asks the Worker for every live cell of the current generation, with the statistics of the same
-moment (a snapshot whose budget is 1,000,000 cells, so a bigger generation comes back as chunks
+**Saving** (`save.js`): Save this generation (on the Run box's title line), Save simulation and
+Save seed (at the end of the Simulation and Seed boxes' name lines) open one popover, which moves
+beside the box of the icon that opened it. **Save this generation** asks the Worker for every
+live cell of the current generation, with the statistics of the same moment (a snapshot whose budget is 1,000,000 cells, so a bigger generation comes back as chunks
 and isn't saved), or takes the cycle frame on screen, and makes a result file from it
 (`resultFromCells()`): the run's definition with its first seed, the generation, the ending, both
-hashes, the details and the cells. **Save seed** writes the run's first seed as a seed file.
-Save writes through the browser's save dialog (`showSaveFilePicker()`) where there is one, or as
-a download. Load… reads either (`readSeedOrSave()`); a saved generation is checked against its
-hashes, and its run starts with those cells at that generation (the Worker's `from`), under the
+hashes, the details and the cells. **Save simulation** writes the run's first seed and its rules
+as a simulation file, and **Save seed** its cells alone as a seed file: one format (`seed.js`),
+with `rules` or without. A file saved before #130 always has rules, so it reads as a simulation
+file. Save writes through the browser's save dialog (`showSaveFilePicker()`) where there is one,
+or as a download. Load simulation… reads a simulation file or a saved generation
+(`readSeedOrSave()`); a saved generation is checked against its hashes, and its run starts with those cells at that generation (the Worker's `from`), under the
 file's rules and arena, keeping the first seed in its config, so a later save is still a result
 of that seed.
 
@@ -170,7 +185,7 @@ live cells sorted by z, y, x, as zigzag varints of the difference from the cell 
 SHA-256 hash goes in a result file, beside run details (timings, statistics, browser) that are
 outside the hash. A result may also carry `cells`, the live cells at its generation, and
 `seedHash`, the hash of generation 0 under the same run; `checkResultHashes()` confirms both
-without a replay, so an edited file fails. The unbounded mode's Save this generation writes them, so Load…
+without a replay, so an edited file fails. The unbounded mode's Save this generation writes them, so Load simulation…
 can carry on from the generation. `verifyResult()` replays the run from its seed to the stated generation and
 compares hashes, and checks an ending the pattern decides by taking one more step; with a
 reference table (every generation's hash, made once by `scripts/reference-hashes.mjs`) it looks
@@ -221,14 +236,14 @@ made from the contest itself, with `scripts/reference-hashes.mjs --contest speed
 The browser's name and version in a result's details come from `src/browser.js`, and are never
 checked.
 
-**The Contests mode** (`src/contests/`, #77). The page presents one contest in three branches
-(Speed, Methuselah, and Classic Methuselah, #102, which takes Contained chaos's place in season
-1); the code calls each branch a contest (`contests.js`'s
-`CONTESTS`, an id such as `speed-1`, and a result file's `run.contest`, which is hashed, so it
-keeps its name). It is a sixth mode, opened from a compact banner left of the
-company logo, which also gives the date entries close (`closes` in `contests.js`, "Closes TBD"
-while null). It has nothing to set, so one click opens it (`enterContests()` in `controls.js`),
-and it has no card in the settings dialog. In Contests the banner stays, pressed; a click on it,
+**The Contests mode** (`src/contests/`, #77). Season 0 (`SEASON` in `contests.js`, #130) is
+three contests: Speed, Methuselah, and Classic Methuselah (#102, which took Contained chaos's
+place), each a contest in the code too (`contests.js`'s `CONTESTS`, an id such as `speed-1`, and
+a result file's `run.contest`, which is hashed). All three close at the same instant, 11:59 PM
+Central Time on 31 December 2026 (`closes`). It is a sixth mode, opened from a compact banner
+left of the company logo, which also gives the date entries close ("Closes TBD" while `closes` is
+null). It has nothing to set, so one click opens it (`enterContests()` in `controls.js`), and the
+Mode popover has no Contests option. In Contests the banner stays, pressed; a click on it,
 or Esc, goes back to the mode it was opened from (`leaveContests()`). Like Game of Life 3D (unbounded), it never reaches
 `initSimulation()`. `contests.js` starts it in an empty scene and
 shows the panel (`panel.js`) in the middle of the screen; `animate()` then draws nothing, and only
@@ -247,20 +262,13 @@ file and checks it in its own Worker (`verify.worker.js`, running `verifyResult(
 only `textContent`, so nothing from a file is read as HTML. Leaving the mode closes the panel and
 terminates its Workers.
 
-**Use in a contest** (#95). The unbounded mode's Seed popover takes the seed in use and its rules into
-Methuselah: `setup.js`'s `contestEntry()` makes the entry from the setup's cells exactly as they
-are, or refuses it (a cell outside the seed box, naming them; an empty seed; a saved generation),
-with a note when the unbounded mode's arena isn't the contest's. `hud.js` hands the entry to `controls.js`
-(`initHud()`'s `useInContest`), whose `enterContests({entry})` opens Contests; `startContests()`
-passes it to `openPanel()`, which checks it again with `runFor()`, as a loaded file is, and opens
-the contest's page with it as the entry, Run focused. Game of Life 3D (unbounded) stays the mode to go back to.
-
 **Methuselah's page** (#94). `panel.js` gives Methuselah its own page: the entry, what the contest
 fixes, its four endings, the Hall of Fame and how it runs. The entry is a seed and its rules,
-kept per contest while the panel is open. **Load seed…** reads a seed file (`seed.js`'s
-`parseSeedFile()`, as untrusted data) and passes it through `runFor()`, which refuses a B0 rule,
+kept per contest while the panel is open. **Load simulation…** reads a simulation file
+(`seed.js`'s `parseSeedFile()`, as untrusted data; a seed file, with no rules, is refused) and
+passes it through `runFor()`, which refuses a B0 rule,
 an empty seed or a cell outside the seed box with the reason, shown before Run; a B1 rule gets
-`methuselahWarnings()`'s warning. **Design a seed in Game of Life 3D (unbounded)** calls back into `controls.js`
+`methuselahWarnings()`'s warning. **Design a seed…** calls back into `controls.js`
 (`designInExplore()`, handed to `startContests()`), which sets the unbounded mode's arena to the contest's,
 with ships leaving at its edge for Classic Methuselah and not for Methuselah, and never wrapping (`setup.js`'s
 `contestArena()`; a saved generation keeps its own), starts Game of Life 3D (unbounded) and opens the
@@ -284,8 +292,7 @@ The page adds what differs: a sentence and a fact on the ships, a fifth ending (
 ships that left on the results card (`departuresText()`) and in the email, and in Watch, which
 replays with the same rule, a tick on the scrub bar where each left and a line that follows them
 (`watchDeparturesText()`). Verify a result's Worker passes a file's departures back, without
-their cells. The unbounded mode's Use in a contest offers both Methuselah contests. Contained chaos (#42), a
-later season's, would add its kind.
+their cells. Contained chaos (#42), a later season's, would add its kind.
 
 **Watch** (`watch.js`, #78) plays a result back in 3D: from the results card, or from a file Verify
 a result has read (`readResult()` again, on the page). It hides the panel and starts a *replay* in a
@@ -379,7 +386,7 @@ GPU, memory and rendering, not the step, set the size limit (README §4).
 100, chosen for the weakest machines. The caps held back visitors with strong ones, and still
 didn't protect the weakest: the sandpile had no generation cap at all. Now nothing is capped.
 `memoryAdvice.js` estimates what a run will hold (every grid exactly; the live cells by a model
-fitted to measured runs), the dialog's range hints show it with the ranges a laptop and a desktop
+fitted to measured runs), the Grid popover's range hints show it with the ranges a laptop and a desktop
 run, and above 2 GB Apply asks first. A refused allocation is a `RangeError`, which
 `initSimulation()` turns into a message and an empty view; a tab the browser kills for memory
 can't be caught, so the confirmation comes before the run, not after.
