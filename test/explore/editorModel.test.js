@@ -48,8 +48,17 @@ test('the box is the seed box: 10 cells a side, -5 to 4, and places map to cells
   assert.equal(indexOf(0, -6, 0), -1);
 });
 
+test('a new design selects a plane across x, through the cursor at the centre', () => {
+  const m = new DesignModel();
+  assert.equal(m.kind, 'plane');
+  assert.equal(m.axis, 0);
+  assert.deepEqual(m.selectionCount(), { cells: 100, alive: 0 });
+  assert.equal(selectionText(m), 'Plane across x, at x 0: 100 cells, 0 alive.');
+});
+
 test('a cell selects the cursor only, at the centre and in a corner', () => {
   const m = new DesignModel();
+  m.setKind('cell');
   assert.deepEqual(m.cursor, [0, 0, 0]);
   assert.deepEqual(selected(m), new Set(['0,0,0']));
   m.setCursor([-5, 4, -5]);
@@ -202,6 +211,7 @@ test('a design written out and read back is unchanged, also through a seed file'
 
 test('undo and redo stop at their ends, and at 100 steps', () => {
   const m = new DesignModel();
+  m.setKind('cell');
   assert.equal(m.undo(), false);
   assert.equal(m.redo(), false);
   for (let i = 0; i < HISTORY_STEPS + 20; i++) {
@@ -234,6 +244,7 @@ test('a change that changes nothing leaves no undo step', () => {
 
 test('Load replaces every cell, in one undo step', () => {
   const m = new DesignModel();
+  m.setKind('cell');
   m.switchSelection();
   m.replace(designCells(presetById('cube10').cells));
   assert.equal(m.count, 1000);
@@ -243,6 +254,7 @@ test('Load replaces every cell, in one undo step', () => {
 
 test('the panel names the cursor and the selection', () => {
   const m = new DesignModel();
+  m.setKind('cell');
   m.setCursor([2, -1, 4]);
   assert.equal(cursorText(m.cursor), 'x 2, y −1, z 4');
   assert.equal(selectionText(m), 'Cell at x 2, y −1, z 4: empty.');

@@ -89,7 +89,9 @@ export class DesignModel {
     this.places = places ? Uint8Array.from(places) : new Uint8Array(PLACES);
     // The cursor starts at the origin, one of the eight cells at the box's centre
     this.cursor = [0, 0, 0];
-    this.kind = 'cell';
+    // A plane, not the cursor's cell: one cell is easily hidden among live ones, and a plane shows
+    // as a band across the faces in view (across x, from the editor's angled view)
+    this.kind = 'plane';
     this.axis = 0;
     this.anchor = null;
     this.past = [];

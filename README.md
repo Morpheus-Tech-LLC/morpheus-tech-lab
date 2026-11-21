@@ -195,7 +195,9 @@ The editor takes over the 3D view, with its tools in a panel beside it (at the f
 The whole box shows at once: live cells as solid cubes, empty places as faint dots. The cursor is
 a white wireframe cube, with guide lines along x (red), y (green) and z (blue). The selection is a
 yellow box, its live cells tinted and its empty places bright, and the panel names it: "Plane
-across z, at z 4: 100 cells, 37 alive." The unbounded mode's run, if it is running, keeps going behind it.
+across z, at z 4: 100 cells, 37 alive." The editor opens on a plane, across x through the cursor,
+since a single cell is easily hidden among live ones; 1 selects the cursor's cell alone. The
+unbounded mode's run, if it is running, keeps going behind it.
 
 | Key | Does |
 |---|---|
