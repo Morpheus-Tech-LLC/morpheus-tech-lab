@@ -6,7 +6,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { contestById } from '../../src/unbounded/contests.js';
+import { contestById, CONTESTS } from '../../src/unbounded/contests.js';
 import {
   countdownText, niceScale, chartLayout, CHART_MARGIN, speedHero, speedScoreText, speedEndingText, resultFileName, statsRows,
   secondsText, boardScore, methuselahScoreText, scoreText, methuselahHero, methuselahEndingText, arenaText, budgetText,
@@ -81,11 +81,19 @@ test("Speed's score and ending, in words", () => {
 });
 
 test('the closing date is the earliest set, or to be announced', () => {
-  assert.equal(SPEED.closes, null);
-  assert.equal(closingText([SPEED]), 'Closing date to be announced');
+  assert.equal(closingText([{ closes: null }]), 'Closing date to be announced');
   assert.equal(closingText([{ closes: '2027-03-31' }, { closes: null }, { closes: '2027-02-28' }]), 'Entries close 28 February 2027');
-  assert.equal(closingText([SPEED], { short: true }), 'Closes TBD');
+  assert.equal(closingText([{ closes: null }], { short: true }), 'Closes TBD');
   assert.equal(closingText([{ closes: '2027-02-28' }], { short: true }), 'Closes 28 Feb 2027');
+});
+
+test('Season 0 closes at 11:59 PM Central Time on 31 December 2026, in Central Time wherever it is read (#130)', () => {
+  assert.equal(SPEED.closes, '2026-12-31T23:59:00-06:00');
+  assert.ok(CONTESTS.every((contest) => contest.closes === SPEED.closes), 'all three close together');
+  assert.equal(closingText(CONTESTS), 'Entries close 31 December 2026, 11:59 PM Central Time');
+  assert.equal(closingText(CONTESTS, { short: true }), 'Closes 31 Dec 2026');
+  // A timed closing is ordered by its instant: 23:00 UTC on the 31st comes before it
+  assert.equal(closingText([{ closes: '2026-12-31T23:59:00-06:00' }, { closes: '2026-12-31T23:00:00Z' }]), 'Entries close 31 December 2026, 5:00 PM Central Time');
 });
 
 test("a result's file name gives the contest and the score", () => {

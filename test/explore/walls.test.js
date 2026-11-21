@@ -1,26 +1,23 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 // Explore's arena with walls (#119): the choice and the walls' rules in Explore's settings, the
-// refusals, the world a run steps in and a run in it, Use in a contest and Design a seed in
+// refusals, the world a run steps in and a run in it, Design a seed in
 // Explore, a saved generation, and Save this generation's refusal.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  initialSetup, changeArena, changeSeed, makeShape, fileSeed, configOf, boxesOf, edgeOf, wallsOf, wrapOf,
-  worldOf, contestArena, contestEntry, ownRules, parseWalls, DEFAULT_WALLS, EDGES, WALL_KINDS,
+  initialSetup, changeArena, changeSeed, makeShape, fileSeed, simulationFile, configOf, boxesOf, edgeOf, wallsOf, wrapOf,
+  worldOf, contestArena, ownRules, parseWalls, DEFAULT_WALLS, EDGES, WALL_KINDS,
 } from '../../src/explore/setup.js';
 import { arenaBox } from '../../src/explore/seed.js';
 import { generationSave, readSeedOrSave, WALLS_SAVE_REASON } from '../../src/explore/save.js';
-import { contestById } from '../../src/unbounded/contests.js';
 import { Run } from '../../src/unbounded/run.js';
 import { World } from '../../src/unbounded/world.js';
 import { step } from '../../src/unbounded/step.js';
 import { ReferenceWorld } from '../../src/unbounded/reference.js';
 import { SHIP } from '../unbounded/helpers.js';
 
-const METHUSELAH = contestById('methuselah-1');
-const CLASSIC = contestById('classic-methuselah-1');
 const start = () => initialSetup({ size: 10, density: 1 });
 const OLD_TEXTS = {
   corner: { birth: '2,3', survival: '2-4' },
@@ -127,14 +124,6 @@ test("the run's world has the walls only with an arena and the choice, and a run
   assert.equal(engine.liveCells, reference.cells().length);
 });
 
-test("Use in a contest notes that the contest's arena has no walls, and Explore's had", () => {
-  const setup = walled(changeSeed(start(), makeShape('cube', { size: 4, density: 1 })));
-  for (const contest of [METHUSELAH, CLASSIC]) {
-    assert.equal(contestEntry(setup, contest).entry.note,
-      `${contest.title}'s arena has no walls, and the one in Game of Life 3D (unbounded) had, so a run here may end differently from one there.`);
-  }
-});
-
 test('Design a seed in Explore takes the walls off, as no contest has them', () => {
   const strict = contestArena(walled(), 64, 'Methuselah');
   assert.equal(edgeOf(strict.setup), 'end');
@@ -152,15 +141,15 @@ test('a saved generation carries on with the run ending at the edge; Use your ow
   while (world.generation < 20) step(world);
   const cfg = { rules: SHIP.rules, cells: Int32Array.from(SHIP.seed.flat()), arena: 64 };
   const { text } = await generationSave({ config: cfg, generation: 20, cells: world.cells(), ending: 'stopped' });
-  const setup = changeSeed(walled(), fileSeed('saved.json', await readSeedOrSave(text)));
+  const setup = changeSeed(walled(), simulationFile('saved.json', await readSeedOrSave(text)));
   assert.equal(edgeOf(setup), 'end');
   assert.equal(configOf(setup).walls, null);
   assert.equal(boxesOf(setup).walls, null);
   assert.deepEqual(wallsOf(ownRules(setup)), DEFAULT_WALLS);
 });
 
-test('Save this generation says why it refuses while the arena has walls, and that Save seed still works', () => {
+test('Save this generation says why it refuses while the arena has walls, and that Save simulation still works', () => {
   assert.match(WALLS_SAVE_REASON, /^This run's arena has walls, with their own corner, edge and face rules, and a saved generation can't record them/);
   assert.match(WALLS_SAVE_REASON, /no contest has walls/);
-  assert.match(WALLS_SAVE_REASON, /Save seed still saves the seed/);
+  assert.match(WALLS_SAVE_REASON, /Save simulation still saves the seed and its rules/);
 });

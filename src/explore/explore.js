@@ -12,7 +12,7 @@ import { initSpace } from '../space.js';
 import { EngineDriver } from '../unbounded/driver.js';
 import { ExploreView, RENDER_BUDGET } from './view.js';
 import { arenaBox, MAX_FILE_CELLS } from './seed.js';
-import { generationSave, seedSave, savedEnding, generationFileName, shipsLeftReason, WRAP_SAVE_REASON, WALLS_SAVE_REASON, SEED_FILE_NAME } from './save.js';
+import { generationSave, seedSave, simulationSave, savedEnding, generationFileName, shipsLeftReason, WRAP_SAVE_REASON, WALLS_SAVE_REASON, SEED_FILE_NAME, SIMULATION_FILE_NAME } from './save.js';
 import { SHIP_PERIOD, worldOf } from './setup.js';
 import { headingText } from '../contests/format.js';
 import { detectBrowser } from '../browser.js';
@@ -151,22 +151,23 @@ export function exploreViewChanged() {
 
 // ---- Saving ----
 //
-// Save this generation, at the foot of Explore's Run box, and Save seed, at the foot of the Seed box,
-// open one popover beside their box, which says what the file holds and where it goes before
-// anything is written:
+// Save this generation, Save simulation and Save seed, the save icons in the titles of Explore's
+// Run, Simulation and Seed boxes (#130), open one popover beside their box, which says what the
+// file holds and where it goes before anything is written:
 // - Save this generation: a result file, as a contest entry is one (save.js), with the
-//   generation's cells, so Load… can carry on from it. Opening the popover takes the generation
+//   generation's cells, so Load simulation… can carry on from it. Opening the popover takes the generation
 //   on screen from the Worker, every live cell of it, past the view's render budget too; while a
 //   settled cycle plays, the frame on screen. Past MAX_FILE_CELLS live cells nothing is saved,
 //   and the popover says why; nor once a ship has left (#103), nor while the arena wraps (#115)
 //   or has walls (#119).
-// - Save seed: the seed the run started from, with its rules, as a seed file.
+// - Save simulation: the seed the run started from, with its rules, as a simulation file (#130).
+// - Save seed: the seed the run started from, its cells alone, as a seed file.
 // Save writes the file through the browser's save dialog where there is one, so the visitor
 // picks the folder, or as a download.
 
 /**
  * Opens the save popover for one kind of save, or closes it if that one is open.
- * @param {'generation' | 'seed'} kind
+ * @param {'generation' | 'simulation' | 'seed'} kind
  */
 export async function toggleSave(kind) {
   const open = session.save;
@@ -184,13 +185,17 @@ export async function toggleSave(kind) {
     ? `Save asks where to put it, as ${name}.`
     : `Save downloads it as ${name}, to your browser's downloads folder, or wherever your browser asks.`);
 
-  if (kind === 'seed') {
-    save.name = SEED_FILE_NAME;
-    save.text = seedSave(config);
+  // A seed is only cells; a simulation is a seed and its rules (#130)
+  if (kind === 'seed' || kind === 'simulation') {
     const first = config.from ? `, generation 0 of the run generation ${n(config.from)} was saved from` : '';
+    const simulation = kind === 'simulation';
+    save.name = simulation ? SIMULATION_FILE_NAME : SEED_FILE_NAME;
+    save.text = simulation ? simulationSave(config) : seedSave(config);
     fillSave({
-      title: 'Save seed',
-      what: `A seed file: the ${n(seedCells)} cells this run started from${first}, and its rules, ${rules}. Load it from the Seed box, under Custom, with Load…, to run it from generation 0.`,
+      title: simulation ? 'Save simulation' : 'Save seed',
+      what: simulation
+        ? `A simulation file: the seed, the ${n(seedCells)} cells this run started from${first}, and its rules, ${rules}. Load it from the Simulation box, with Load simulation…, to run it from generation 0, or bring it to a contest with Load simulation… there.`
+        : `A seed file: the ${n(seedCells)} cells this run started from${first}, without its rules. Load it from the Seed box, under File, to run it under the rules in the Rules box. To keep the rules with it, use Save simulation.`,
       hashes: [],
       where: where(save.name),
       ready: true,
@@ -238,7 +243,7 @@ export async function toggleSave(kind) {
   if (!cells) {
     fillSave({
       title,
-      what: `This generation has ${n(live)} live cells, and a saved generation holds at most ${n(MAX_FILE_CELLS)}, so it can't be saved. An earlier one can: Restart, and save before it grows this far. Save seed still saves the seed.`,
+      what: `This generation has ${n(live)} live cells, and a saved generation holds at most ${n(MAX_FILE_CELLS)}, so it can't be saved. An earlier one can: Restart, and save before it grows this far. Save simulation still saves the seed and its rules.`,
     });
     return;
   }
@@ -262,7 +267,7 @@ export async function toggleSave(kind) {
   const running = session.status === 'running' ? ' The run keeps going; the file holds the generation as it was when you opened this.' : '';
   fillSave({
     title,
-    what: `A result file, as a contest entry is one: the run's seed (${n(seedCells)} cells), its rules (${rules})${arena}, generation ${n(generation)} with the position of each of its ${n(live)} live cells, how the run stands (${stands}), and its statistics, chunk size and browser. Load it from the Seed box, under Custom, with Load…, to carry on from generation ${n(generation)}.${running}`,
+    what: `A result file, as a contest entry is one: the run's seed (${n(seedCells)} cells), its rules (${rules})${arena}, generation ${n(generation)} with the position of each of its ${n(live)} live cells, how the run stands (${stands}), and its statistics, chunk size and browser. Load it from the Simulation box, with Load simulation…, to carry on from generation ${n(generation)}.${running}`,
     hashes: [[`Generation ${n(generation)}`, built.result.hash], ['Seed', built.result.seedHash]],
     where: where(save.name),
     ready: true,
@@ -274,7 +279,8 @@ export async function confirmSave() {
   const save = session.save;
   if (!save?.text || save.saved) return;
   try {
-    const status = await writeJsonFile(save.name, save.text, save.kind === 'seed' ? 'Game of Life 3D seed file' : 'Game of Life 3D saved generation');
+    const kinds = { seed: 'Game of Life 3D seed file', simulation: 'Game of Life 3D simulation file', generation: 'Game of Life 3D saved generation' };
+    const status = await writeJsonFile(save.name, save.text, kinds[save.kind]);
     if (session.save !== save) return;
     save.saved = true;
     fillSave({ status, ready: false });
@@ -591,7 +597,7 @@ function showViewNote(snapshot) {
   }
 }
 
-const SAVE_BUTTONS = { generation: 'explore-save-generation', seed: 'explore-save-seed' };
+const SAVE_BUTTONS = { generation: 'explore-save-generation', simulation: 'explore-save-simulation', seed: 'explore-save-seed' };
 
 function showSaveButton() {
   for (const id of Object.values(SAVE_BUTTONS)) {

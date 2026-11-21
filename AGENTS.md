@@ -10,7 +10,7 @@ pull requests, DCO sign-off, changelog) is in [CONTRIBUTING.md](CONTRIBUTING.md)
 .github/workflows/ci.yml The `build` (npm ci, npm run build, npm test) and `DCO` (sign-off) checks, required on main
 .github/ISSUE_TEMPLATE/  Issue forms: bug_report.yml (type Bug), idea.yml (type Feature; what and why only), both labelled `idea`; config.yml turns off blank issues and links Discussions (GitHub adds the security-report entry itself)
 .github/pull_request_template.md  The pull-request template: each issue and its relation, what changed, how it was tested, screenshots, and the checklist
-index.html               All markup: HUD, control bar, configuration modal, info panels
+index.html               All markup: HUD and its popovers, control bar, company panel, info panels
 public/CNAME             lab.morpheustech.net, copied into every build. Never delete
 public/favicon.svg       Brand pin (see brand.lock). Never hand-edit
 public/hall-of-fame/     The Hall of Fame's pictures (128×128, metadata stripped) and, in results/, each entry's
@@ -73,12 +73,16 @@ src/
   shapeGenerators.js     Seed shapes: perlin, cube, tetrahedron, octahedron, worley, rule30
   space.js               Scene, camera, renderer, OrbitControls (stored on `state`)
   time.js                The animation loop, playback speed, auto-rotate
-  controls.js            All UI wiring: buttons, sliders, modal, mode switching (~1,900 lines); Apply's
-                         question above a high memory estimate (#123)
+  controls.js            The control bar's wiring: buttons, sliders, the company panel, mode switching
+                         and the Contests banner (~800 lines)
   memoryAdvice.js        A precomputed run's memory estimate (grids, live cells, view), the
-                         suggested ranges for a laptop and a desktop, CONFIRM_BYTES, and the dialog's
+                         suggested ranges for a laptop and a desktop, CONFIRM_BYTES, and the popovers'
                          texts (#123) (no DOM; tested in Node)
-  adviceControl.js       The settings dialog's range hints and their popovers (#123)
+  adviceControl.js       The Grid popover's range hints and their popovers (#123)
+  hudSettings.js         Every mode's settings in the HUD (#130): the Mode popover, from the HUD panel's
+                         title gear or the control bar's, and the precomputed modes' Grid, Seed and Rules
+                         popovers, whose Apply runs initSimulation() again, asking first above a high
+                         memory estimate (#123); each mode keeps its own settings
   gpu/device.js          WebGPU status ('ready', 'no-webgpu', 'no-adapter', 'device-failed') and the one GPUDevice
   gpu/engine.js          Game of Life 3D (bounded) and Rule 30 (1D, 2D) on the GPU: evolveOnGpu() yields each generation
   gpu/computeControl.js  The GPU compute toggle: its GPU/CPU badge, the remembered choice, the "why not" popover
@@ -130,7 +134,7 @@ src/
   contests/              The Contests mode (#77): the contests on the page
   contests/contests.js   isContests(), startContests() and stopContests(): an empty scene, the panel, nothing drawn
   contests/panel.js      The panel in the middle of the screen: the list (the kinds in ON_PAGE), a contest's page
-                         with its Hall of Fame; Methuselah's with its entry (#94), Load seed… and its refusals,
+                         with its Hall of Fame; Methuselah's with its entry (#94), Load simulation… and its refusals,
                          shared with Classic Methuselah's, which adds its ships and its fifth ending (#102),
                          the run (Speed: countdown, statistics, a chart of generations over time; a Discovery run:
                          the generation out of the budget, statistics, a chart of live cells), the results card
@@ -159,14 +163,16 @@ src/
                          (seedPicture()), and what Watch found (selfVerifiedText()) (tested in Node)
   contests/contests-check.html Not bundled: a dev page (/src/contests/contests-check.html under `npm run dev`) that
                          clicks through the Contests mode in a frame holding the lab, two real Speed runs,
-                         Submit by email and a staged Hall of Fame included, and Methuselah's page, Load seed…
+                         Submit by email and a staged Hall of Fame included, and Methuselah's page, Load simulation…
                          and its runs, and a Classic Methuselah run whose ship leaves, marking each check ✔ or ✖, and
                          lists what to check by hand
   explore/               The Game of Life 3D (unbounded) mode, called Explore until #116 (the code keeps `explore`): the unbounded engine on the page (#37)
   explore/explore.js     Starts and drives the run, the control bar's commands in Game of Life 3D (unbounded), the HUD box and notices
                          (ships leaving, #103), and the save popover
   explore/save.js        Save this generation (a result file with the generation's cells, as a contest entry is,
-                         refused once a ship has left, #103) and Save seed, and reading either back for Load…
+                         refused once a ship has left, #103), Save simulation (a seed and its rules) and
+                         Save seed (its cells only, #130), and reading them back for Load simulation… and
+                         the Seed box's File
                          (tested in Node)
   explore/view.js        ExploreView: the growing point cloud, chunk boxes past RENDER_BUDGET, the arena (dashed when
                          it wraps, brighter with walls) and chunk grid
@@ -178,19 +184,19 @@ src/
                          arena, what happens at its edge (the run ends, ships leave, #103, it wraps, #115, or
                          walls with their own rules, #119) and the memory limit; what each HUD box shows,
                          what is locked, each popover's change or the reason it is refused, the config
-                         startExplore() takes and the Worker's world (worldOf()), and a contest's entry from
-                         the seed in use (contestEntry(), #95) or its arena and ships (contestArena(), #94)
+                         startExplore() takes and the Worker's world (worldOf()), the simulation in use
+                         (simulationOf(), #130), and a contest's arena and ships for its Design a seed…
+                         (contestArena(), #94)
                          (tested in Node)
-  explore/hud.js         The gears in the Seed, Rules and Limits boxes' titles and their popovers, whose Apply changes
-                         `state.explore` and restarts the run; startFromSetup(); openSeedEditor() (Design… from
-                         a contest's page); the Seed popover's Use in a contest (#95), into either Methuselah
-                         contest (#102), through controls.js;
-                         and folding every HUD box to its title, in every mode
+  explore/hud.js         The gears in the Simulation, Seed, Rules and Limits boxes' titles and their popovers,
+                         whose Apply changes `state.explore` and restarts the run, and the save icons;
+                         startFromSetup(); openSeedEditor() (Design a seed… from a contest's page); and
+                         folding every HUD box to its title, in every mode
   explore/popover.js     One HUD popover open at a time, beside its box: Esc, a click or focus outside closes it,
                          and focus goes back to its button. The save popover opens through it too
   explore/hud-check.html Not bundled: a dev page (/src/explore/hud-check.html under `npm run dev`) that clicks
-                         through the unbounded mode's settings in the HUD in a frame holding the lab, Use in a contest
-                         (both Methuselah contests) and each choice at the arena's edge included, marking each check
+                         through every mode's settings in the HUD in a frame holding the lab, the Mode and
+                         Simulation popovers and each choice at the arena's edge included, marking each check
                          ✔ or ✖
   explore/editorModel.js The seed editor's model (#70): the 10³ seed box as bytes, the cursor, the selection, switching,
                          random fill, undo and redo, seeds in and out, and which axis each movement key takes from
@@ -198,7 +204,8 @@ src/
   explore/editorView.js  The seed editor's 3D view: its own scene, camera and orbit controls, drawn into the lab's
                          renderer (never a second WebGL context), and only when something changes; picks a cell
   explore/editor.js      The seed editor: opening over the unbounded mode's view and closing, the panel, the keys, the touch
-                         buttons, Load… and Export; Use goes through setup.js's useDesign()
+                         buttons, Load… and Export (a seed file, cells only); Use goes through setup.js's
+                         useDesign()
   explore/editor-check.html Not bundled: a dev page (/src/explore/editor-check.html under `npm run dev`) that clicks
                          through the seed editor in a frame holding the lab, marking each check ✔ or ✖, and lists
                          what to check by hand
@@ -232,12 +239,12 @@ src/
   (16³ cells by default), and a chunk exists only where there are live cells or cells that can
   be born. The Game of Life 3D (unbounded) mode (`src/explore/`) shows it.
 - **Changing a setting rebuilds.** Mode, size, seed or rules all go through `initSimulation()`
-  again (from `controls.js`).
+  again (from `hudSettings.js`'s popovers, or `controls.js`).
 - **Mode flags.** `state.simulationMode` names the mode, and the booleans `useRule30`,
   `useRule30_2D`, `useSineWave` and `useSandpile` steer `generateSimulation()`. Size and
   generations are remembered per mode in `state.modeValues`.
 - **Game of Life 3D (unbounded) streams instead.** `simulationMode === 'explore'` never reaches `initSimulation()`
-  or `generateSimulation()`: on the dialog's Apply, or a HUD popover's, `controls.js` calls
+  or `generateSimulation()`: on the Mode popover's Apply, or another HUD popover's, `controls.js` calls
   `startFromSetup()` (`hud.js`), which calls `startExplore()` with the unbounded mode's settings, and
   leaving the mode calls `stopExplore()`. `animate()` calls `exploreFrame()` instead of
   advancing `currentGen`, and the play, step and reverse handlers check `isExplore()` first.
@@ -245,10 +252,10 @@ src/
   looks at the flags must check for Game of Life 3D (unbounded) first, as `computeControl.js` does. Its settings
   live in `state.explore`, a value from `setup.js` that is replaced, never edited, and only
   through `setup.js`'s changes, which check that it still makes a run. They are set from the
-  HUD's boxes; the settings dialog shows only the mode choice in Game of Life 3D (unbounded).
+  HUD's boxes.
 - **Contests is a mode that draws nothing.** `simulationMode === 'contests'` never reaches
   `initSimulation()` either: its banner, left of the company logo, calls `enterContests()`
-  (`controls.js`), which calls `startContests()`; it has no card in the settings dialog. In
+  (`controls.js`), which calls `startContests()`; the Mode popover has no Contests option. In
   Contests the banner stays, pressed, and a click on it or Esc calls `leaveContests()`, back to
   the mode it was opened from. Leaving the mode calls
   `stopContests()`, and `animate()` calls `contestsFrame()` and returns before rendering, so a

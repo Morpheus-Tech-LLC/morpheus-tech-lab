@@ -10,11 +10,11 @@
 // Text from a result file comes from strangers, so the panel only ever sets textContent: nothing
 // from a file is parsed as HTML. What it says is worked out in format.js. A Speed run is
 // speed.js's SpeedRun, and a Discovery run, Methuselah's or Classic Methuselah's (#102),
-// discovery.js's DiscoveryRun (#94), with the entry the visitor brought: a seed and its rules,
-// from Load seed… or from Explore (#95). The two Methuselah contests share a page, which says
+// discovery.js's DiscoveryRun (#94), with the entry the visitor brought: a simulation, a seed and
+// its rules (#130), from Load simulation…. The two Methuselah contests share a page, which says
 // where Classic Methuselah differs: ships may leave at the arena's edge.
 
-import { CONTESTS, contestById, runFor, methuselahWarnings } from '../unbounded/contests.js';
+import { CONTESTS, SEASON, contestById, runFor, methuselahWarnings } from '../unbounded/contests.js';
 import { MAX_RESULT_BYTES, readResult, ResultError } from '../unbounded/canonical.js';
 import hallOfFameData from '../unbounded/hall-of-fame.json';
 import labLogo from '../assets/images/morpheus-tech.png';
@@ -31,7 +31,7 @@ import {
 } from './format.js';
 import { SUBMIT_ADDRESS, emailSubject, emailBody, mailtoLink } from './submit.js';
 import { HALL_OF_FAME_TOP, readHallOfFame, rankEntries, dayText } from './hallOfFame.js';
-import { LOOKS, logo, verifyGlyph } from './looks.js';
+import { LOOKS, logo, lookOf, verifyGlyph } from './looks.js';
 
 /** The kinds of contest this page can run: Speed, and Methuselah's, Classic Methuselah included. */
 const ON_PAGE = ['speed', 'methuselah'];
@@ -55,7 +55,7 @@ const panel = {
   // Each Discovery contest's entry, by contest id: {rules, seed, source}, checked by runFor().
   // It stays while the page is open, so Run again runs it again
   entries: new Map(),
-  refused: null, // why the last seed file loaded was refused: {contest, message}
+  refused: null, // why the last simulation file loaded was refused: {contest, message}
   designInExplore: null, // leaves for Explore's seed editor (controls.js), from the mode's start
   resume: null, // the contest the visitor left to design an entry in, to come back to
 };
@@ -77,9 +77,10 @@ function h(tag, props = {}, ...children) {
   return node;
 }
 
-function button(text, onclick, { main = false, id } = {}) {
+function button(text, onclick, { main = false, id, title } = {}) {
   const attrs = { type: 'button' };
   if (id) attrs.id = id;
+  if (title) attrs.title = title;
   return h('button', { className: `glass-button contests-button${main ? ' contests-button--main' : ''}`, text, onclick, attrs });
 }
 
@@ -96,7 +97,7 @@ function verifyButton(label = 'Verify a result', { wide = false } = {}) {
   verifyGlyph(wide ? 28 : 20),
   h('span', { className: 'contests-verify-text' },
     h('span', { className: 'contests-verify-label', text: label }),
-    wide ? h('span', { className: 'contests-verify-sub', text: 'Replay a result file from any branch to check it, in your browser' }) : null));
+    wide ? h('span', { className: 'contests-verify-sub', text: 'Replay a result file from any contest to check it, in your browser' }) : null));
 }
 
 /** A definition list of [label, value] rows; values given as nodes are kept, ids too. */
@@ -139,10 +140,8 @@ function hud(name, state, generation) {
  * @param {object} [options]
  * @param {(contest: {note: string, arena: number, title: string, ships: boolean}) => void} [options.designInExplore]
  *   - leaves for Explore with the contest's arena and the seed editor open
- * @param {{contestId: string, rules: object, cells: Int32Array, source: string, note: string | null}} [options.entry]
- *   - from Explore's Use in a contest (#95): the panel opens on that contest with it as the entry
  */
-export function openPanel({ designInExplore = null, entry = null } = {}) {
+export function openPanel({ designInExplore = null } = {}) {
   panel.open = true;
   panel.designInExplore = designInExplore;
   el('contests-panel').hidden = false;
@@ -160,14 +159,7 @@ export function openPanel({ designInExplore = null, entry = null } = {}) {
   };
   const resume = panel.resume;
   panel.resume = null;
-  const brought = entry ? contestById(entry.contestId) : null;
-  if (brought) {
-    // Checked again, as a loaded file is: the contest's page shows any refusal before Run
-    const refusal = setEntry(brought, entry, entry.source, entry.note);
-    panel.refused = refusal ? { contest: brought.id, message: `Not used: ${refusal}` } : null;
-    showContest(brought);
-    if (!refusal) status(`Brought from Game of Life 3D (unbounded): ${entry.source.replace(/^Game of Life 3D \(unbounded\): /, '')}.`);
-  } else if (resume) showContest(resume);
+  if (resume) showContest(resume);
   else showList();
 }
 
@@ -215,11 +207,11 @@ function tile(contest) {
     onclick: () => showContest(contest),
     attrs: { type: 'button', id: `contests-open-${contest.id}` },
   },
-  logo(contest.kind, 56, 'contests-tile-logo'),
+  logo(lookOf(contest), 56, 'contests-tile-logo'),
   h('span', { className: 'contests-tile-name', text: contest.title }),
   h('span', { className: 'contests-tile-about', text: contest.summary }),
   h('span', { className: 'contests-tile-foot', text: 'Open' }));
-  node.style.setProperty('--contest-color', LOOKS[contest.kind].color);
+  node.style.setProperty('--contest-color', LOOKS[lookOf(contest)].color);
   return node;
 }
 
@@ -229,14 +221,14 @@ function showList() {
   panel.contest = null;
   hud('–', 'Choosing', '–');
   const tiles = h('div', { className: 'contests-tiles' }, ...CONTESTS.filter(onPage).map(tile));
-  show('list', 'The Contest', [
-    h('p', { text: 'One contest, in three branches. Each branch fixes its own rules, so everyone in it runs the same thing, and any result can be checked by anyone, by replaying it, in the lab or with scripts/verify.mjs. Season 1 runs on the CPU only, on the engine of Game of Life 3D (unbounded), so every entrant runs the same engine.', attrs: { id: 'contests-list-about' } }),
+  show('list', SEASON, [
+    h('p', { text: 'Three contests on the engine of Game of Life 3D (unbounded). Each fixes its own rules, and all run on the CPU, so every entrant runs the same thing. Anyone can check any result by replaying it.', attrs: { id: 'contests-list-about' } }),
     h('p', { className: 'contests-closes', text: closingText(CONTESTS), attrs: { id: 'contests-closes' } }),
     tiles,
     // Verify a result judges every contest: a bar across the panel under its own heading, apart
     // from the contests' cards
     h('div', { className: 'contests-judge' },
-      h('span', { className: 'contests-judge-title', text: 'For every branch' }),
+      h('span', { className: 'contests-judge-title', text: 'For every contest' }),
       verifyButton('Verify a result', { wide: true })),
   ]);
 }
@@ -274,12 +266,12 @@ function runButton(contest, sub, { disabled = false } = {}) {
 /** A contest's page's head: its logo, what it measures, and when entries close. */
 function pageHead(contest) {
   const header = h('div', { className: 'contests-page-head' },
-    logo(contest.kind, 64, 'contests-page-logo'),
+    logo(lookOf(contest), 64, 'contests-page-logo'),
     h('div', {},
-      h('p', { className: 'contests-page-kicker', text: 'A branch of the contest' }),
+      h('p', { className: 'contests-page-kicker', text: `A ${SEASON} contest` }),
       h('p', { className: 'contests-page-summary', text: `${contest.summary}.` }),
       h('p', { className: 'contests-closes', text: closingText([contest]) })));
-  header.style.setProperty('--contest-color', LOOKS[contest.kind].color);
+  header.style.setProperty('--contest-color', LOOKS[lookOf(contest)].color);
   return header;
 }
 
@@ -320,7 +312,7 @@ function showContest(contest) {
 
 /**
  * Methuselah's page, and Classic Methuselah's: the entry it will run (its seed, drawn, and its
- * rules) with Load seed…, Run, what the contest fixes, how a run ends and what scores, the Hall of
+ * rules) with Load simulation…, Run, what the contest fixes, how a run ends and what scores, the Hall of
  * Fame, and how it runs. Classic Methuselah's also says how it differs, and its ships' period.
  */
 function showMethuselah(contest) {
@@ -380,18 +372,21 @@ function endingsTable(contest) {
 }
 
 /**
- * The entry: its seed, drawn in the seed box with its cell count, and its rules, where they came
- * from, a warning for rules that can't score, and Load seed…; or, with none yet, how to bring one.
+ * The entry, a simulation: its seed, drawn in the seed box with its cell count, its rules and its
+ * file, a warning for rules that can't score, and Load simulation…; or, with none yet, a line on
+ * what it is. Kept short (#130): the buttons' titles say the rest.
  */
 function entrySection(contest, entry) {
-  const load = button(entry ? 'Load another seed…' : 'Load seed…', () => el('contests-seed-file').click(), { main: !entry, id: 'contests-load-seed' });
-  const design = panel.designInExplore ? button('Design a seed in Game of Life 3D (unbounded)', () => designSeed(contest), { id: 'contests-design-seed' }) : null;
+  const load = button(entry ? 'Load another simulation…' : 'Load simulation…', () => el('contests-seed-file').click(), { main: !entry, id: 'contests-load-seed' });
+  const design = panel.designInExplore ? button('Design a seed…', () => designSeed(contest), {
+    id: 'contests-design-seed', title: "Opens the seed editor in Game of Life 3D (unbounded), in this contest's arena",
+  }) : null;
   const refused = panel.refused?.contest === contest.id ? h('p', {
     className: 'contests-refused', text: panel.refused.message, attrs: { id: 'contests-entry-refused', role: 'alert' },
   }) : null;
   if (!entry) {
     return section('Your entry',
-      h('p', { text: 'A seed and its rules. Design a seed in Game of Life 3D (unbounded) opens its seed editor: place the cells, set the rules in its Rules box, and Export the design as a seed file (or Save seed from the Seed box). The Contest banner brings you back here, to Load seed….', attrs: { id: 'contests-entry-none' } }),
+      h('p', { text: 'A simulation file: a seed and its rules.', attrs: { id: 'contests-entry-none' } }),
       refused,
       h('div', { className: 'contests-actions' }, load, design));
   }
@@ -404,9 +399,8 @@ function entrySection(contest, entry) {
         facts([
           ['Seed', `${n(cells)} cell${cells === 1 ? '' : 's'}`],
           ['Rules', rulesText(entry.rules)],
-          ['From', entry.source],
+          ['File', entry.source],
         ], 'contests-entry'))),
-    entry.note ? h('p', { className: 'contests-note', text: entry.note, attrs: { id: 'contests-entry-arena' } }) : null,
     ...warnings.map((text) => h('p', { className: 'contests-warning', text, attrs: { id: 'contests-entry-warning', role: 'note' } })),
     refused,
     h('div', { className: 'contests-actions' }, load, design));
@@ -422,7 +416,7 @@ function designSeed(contest) {
   panel.resume = contest;
   const { arena } = contest.fixes;
   design({
-    note: `For ${contest.title}: the seed must lie in this 10³ box. Export saves it, with the Rules box's rules, as a seed file; then the Contest banner takes you back to ${contest.title}, to Load seed….`,
+    note: `For ${contest.title}: keep the seed in this 10³ box, Use it, and save the simulation with the Simulation box's save icon. The Contests banner brings you back.`,
     arena: arena.max[0] - arena.min[0] + 1,
     title: contest.title,
     ships: Boolean(contest.departures),
@@ -460,7 +454,7 @@ function seedSvg(seed, box) {
  * or a cell outside the seed box, with the reason. Seeds are never shifted.
  * @returns {string | null} why it was refused, or null
  */
-function setEntry(contest, { rules, cells }, source, note = null) {
+function setEntry(contest, { rules, cells }, source) {
   const seed = [];
   for (let i = 0; i < cells.length; i += 3) seed.push([cells[i], cells[i + 1], cells[i + 2]]);
   let run;
@@ -471,7 +465,7 @@ function setEntry(contest, { rules, cells }, source, note = null) {
     const outside = outsideCount(seed, contest.fixes.seedBox);
     return outside > 1 ? `${err.message} ${n(outside)} of its ${n(seed.length)} cells are outside it.` : err.message;
   }
-  panel.entries.set(contest.id, { rules: run.rules, seed: run.seed, source, note });
+  panel.entries.set(contest.id, { rules: run.rules, seed: run.seed, source });
   return null;
 }
 
@@ -479,21 +473,26 @@ function outsideCount(seed, box) {
   return seed.filter((cell) => cell.some((c, a) => c < box.min[a] || c > box.max[a])).length;
 }
 
-/** Load seed…: reads a seed file as untrusted data, and makes it the entry, or says why not. */
+/**
+ * Load simulation…: reads a simulation file as untrusted data, and makes it the entry, or says
+ * why not. A seed file has no rules (#130), so it can't be one.
+ */
 async function loadSeedFile(contest, file) {
   const view = panel.view;
   let refusal = null;
-  // A seed file holds at most a million cells, about 30 MB written out
+  // A simulation file holds at most a million cells, about 30 MB written out
   if (file.size > 64 * 1024 * 1024) {
-    refusal = "The file is larger than 64 MB, so it isn't a seed file. It wasn't read.";
+    refusal = "The file is larger than 64 MB, so it isn't a simulation file. It wasn't read.";
   } else {
     try {
       const text = await file.text();
       const seed = parseSeedFile(text);
-      refusal = setEntry(contest, seed, file.name);
+      refusal = seed.rules
+        ? setEntry(contest, seed, file.name)
+        : 'This is a seed file: it holds cells, but no rules, so it isn\'t a simulation, and an entry is one. In Game of Life 3D (unbounded), load it in the Seed box, set the rules, and save both with the Simulation box\'s save icon, as a simulation file.';
     } catch (err) {
       refusal = /"format"\s*:\s*"morpheus-tech-lab\/result"/.test(await file.slice(0, 4096).text().catch(() => ''))
-        ? 'This is a result file, not a seed file. Check one with Verify a result; load a seed saved with Save seed, or the seed editor\'s Export.'
+        ? 'This is a result file, not a simulation file. Check one with Verify a result; load a simulation saved with Save simulation.'
         : err?.message ?? String(err);
     }
   }
@@ -822,7 +821,7 @@ function startDiscovery(contest) {
   ring.append(
     svgNode('circle', { class: 'contests-clock-track', cx: 80, cy: 80, r: 72 }),
     svgNode('circle', { class: 'contests-clock-arc', cx: 80, cy: 80, r: 72, pathLength: 100, id: 'contests-clock-arc', style: 'stroke-dashoffset: 100' }));
-  ring.style.setProperty('--contest-color', LOOKS[contest.kind].color);
+  ring.style.setProperty('--contest-color', LOOKS[lookOf(contest)].color);
   show('running', `${contest.title}: running`, [
     h('div', { className: 'contests-run-top' },
       h('div', { className: 'contests-clock contests-clock--budget', attrs: { role: 'group', 'aria-label': 'Generation, out of the budget' } },
@@ -878,7 +877,7 @@ async function showResults(run, end) {
   panel.startedAt = 0;
   hud(contest.title, score ? 'Finished' : reason === 'stopped' || speed ? 'Stopped' : 'No score', n(stats.generation));
   const again = button('Run again', () => showContest(contest), { main: !score, id: 'contests-again' });
-  const back = button('Back to the contest', showList, { id: 'contests-back' });
+  const back = button(`Back to ${SEASON}`, showList, { id: 'contests-back' });
   const chart = createChart(chartSpec(contest), { table: true });
   const endingText = speed ? speedEndingText(reason, contest) : methuselahEndingText(reason, contest, end);
   const entryFacts = speed ? null : facts([
@@ -929,7 +928,7 @@ async function showResults(run, end) {
     h('p', { className: 'contests-note', text: 'Submit by email is ready once the result file is made.' }));
   show('results', `${contest.title}: your result`, [
     h('div', { className: 'contests-hero', attrs: { role: 'group', 'aria-label': `Your score: ${scoreWords}` } },
-      h('span', { className: 'contests-hero-kicker' }, logo(contest.kind, 22, 'contests-hero-logo'), document.createTextNode(`${contest.title} · your score`)),
+      h('span', { className: 'contests-hero-kicker' }, logo(lookOf(contest), 22, 'contests-hero-logo'), document.createTextNode(`${contest.title} · your score`)),
       h('span', { className: 'contests-hero-value', text: hero.value, attrs: { id: 'contests-score' } }),
       h('span', { className: 'contests-hero-unit', text: hero.unit, attrs: { id: 'contests-score-unit' } }),
       meta),
@@ -1112,7 +1111,7 @@ async function verifyFile(file) {
 function showVerdict(name, answer, back, text) {
   hud(undefined, answer.verdict === 'verified' ? 'Verified' : 'Checked');
   const rows = [['File', name]];
-  if (answer.contest !== undefined) rows.push(['Branch', answer.contest ?? 'none']);
+  if (answer.contest !== undefined) rows.push(['Contest', answer.contest ?? 'none']);
   if (answer.generation !== null && answer.generation !== undefined) rows.push(['Generation', n(answer.generation)]);
   if (answer.ending) rows.push(['Ended', answer.ending]);
   if (answer.score) {
@@ -1158,7 +1157,7 @@ function showVerdict(name, answer, back, text) {
       watchButton,
       verifyButton('Verify another'),
       back ? button(`Back to ${back.title}`, () => showContest(back), { id: 'contests-back' }) : null,
-      button('Back to the contest', showList, { id: 'contests-list' })),
+      button(`Back to ${SEASON}`, showList, { id: 'contests-list' })),
   ]);
 }
 

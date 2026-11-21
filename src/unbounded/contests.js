@@ -16,7 +16,7 @@
 // Speed (#40) fixes everything. The Discovery contests fix the arena, the seed box and the
 // budget, and leave the rules and the seed to the entry: Methuselah (#41) and Classic Methuselah
 // (#100), which is Methuselah with ships leaving at the edge (departures.js). Contained chaos
-// (#42) is a later season's. The pinned values come from #39's benchmarks (#44's Pinned values
+// (#42) is a later season's. They make up Season 0, and close together (SEASON_0_CLOSES). The pinned values come from #39's benchmarks (#44's Pinned values
 // table).
 //
 // Nothing here imports `state` or touches the page.
@@ -68,8 +68,9 @@ const deepFreeze = (value) => {
  *   must then lie in the seed box
  * @property {number} chunkSize - the chunk size its runs use: not in the hash, but fixed so every
  *   entrant runs the same engine
- * @property {string | null} closes - the day entries close, as YYYY-MM-DD, or null while it is
- *   still to be announced. It decides nothing about a result, so setting it needs no new id
+ * @property {string | null} closes - when entries close: a day, YYYY-MM-DD, or an instant with its
+ *   offset, such as Season 0's; or null while it is still to be announced. It decides nothing
+ *   about a result, so setting it needs no new id
  * @property {number} [seconds] - Speed: how long a run lasts
  * @property {number} [ceiling] - Speed: the generation that ends a run early (limits.generations)
  * @property {number} [budget] - Discovery: the generations a run has (limits.generations)
@@ -77,6 +78,13 @@ const deepFreeze = (value) => {
  *   (departures.js), up to this period. It isn't in the run's definition: a replay reads it from
  *   the contest, through run.contest (departuresFor())
  */
+
+/**
+ * Season 0 (#130): Speed, Methuselah and Classic Methuselah, each a contest of its own, close
+ * together at 11:59 PM Central Time on 31 December 2026, which is CST, six hours behind UTC.
+ */
+export const SEASON = 'Season 0';
+const SEASON_0_CLOSES = '2026-12-31T23:59:00-06:00';
 
 /**
  * Speed: generations completed in 6 seconds, on the visitor's own machine. It fixes everything,
@@ -97,7 +105,7 @@ const SPEED_1 = {
     limits: { cells: null, extent: null, generations: 1000 },
   },
   chunkSize: 16,
-  closes: null,
+  closes: SEASON_0_CLOSES,
   seconds: 6,
   ceiling: 1000,
 };
@@ -122,7 +130,7 @@ const METHUSELAH_1 = {
     limits: { cells: null, extent: null, generations: 10_000 },
   },
   chunkSize: 16,
-  closes: null,
+  closes: SEASON_0_CLOSES,
   budget: 10_000,
 };
 
@@ -145,7 +153,7 @@ const CLASSIC_METHUSELAH_1 = {
     limits: { cells: null, extent: null, generations: 10_000 },
   },
   chunkSize: 16,
-  closes: null,
+  closes: SEASON_0_CLOSES,
   budget: 10_000,
   departures: { period: 32 },
 };

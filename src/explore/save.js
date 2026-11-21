@@ -7,15 +7,19 @@
 //   generation, how the run stands, the hash of that generation's cells and of the seed, the run's
 //   details (statistics, chunk size, browser), and the generation's live cells. scripts/verify.mjs
 //   checks it by replaying the seed; the lab loads it and carries on from its generation.
-// - Save seed writes the seed the run started from, with its rules, as a seed file (seed.js).
+// - Save simulation writes the seed the run started from, with its rules, as a simulation file,
+//   and Save seed only the seed's cells, as a seed file (seed.js, #130).
 
 import {
   resultFromCells, resultText, readResult, checkResultHashes, ResultError, RESULT_FORMAT, RESULT_ENDINGS,
 } from '../unbounded/canonical.js';
 import { arenaBox, toSeedFile, parseSeedFile, MAX_FILE_CELLS, SeedError } from './seed.js';
 
-/** The file Save seed writes. */
+/** The file Save seed writes: cells only. */
 export const SEED_FILE_NAME = 'game-of-life-3d-seed.json';
+
+/** The file Save simulation writes: the seed and its rules. */
+export const SIMULATION_FILE_NAME = 'game-of-life-3d-simulation.json';
 
 /** The file Save this generation writes. */
 export function generationFileName(generation) {
@@ -62,7 +66,7 @@ export function savedEnding(status, reason) {
 export function shipsLeftReason(departed) {
   if (!departed) return null;
   const ships = departed === 1 ? 'A ship has' : `${departed.toLocaleString('en')} ships have`;
-  return `${ships} left the arena by this generation, and a saved generation can't record that ships leave at the edge, so its replay wouldn't reach it. Restart and save before the first one leaves; Save seed still saves the seed.`;
+  return `${ships} left the arena by this generation, and a saved generation can't record that ships leave at the edge, so its replay wouldn't reach it. Restart and save before the first one leaves; Save simulation still saves the seed and its rules.`;
 }
 
 /**
@@ -70,13 +74,13 @@ export function shipsLeftReason(departed) {
  * to say that a run wraps, and no contest wraps, so its replay would end where the pattern first
  * reached the arena's edge.
  */
-export const WRAP_SAVE_REASON = "This run's arena wraps around, and a saved generation can't record that, so its replay wouldn't reach this generation: no contest wraps. Save seed still saves the seed, and its rules.";
+export const WRAP_SAVE_REASON = "This run's arena wraps around, and a saved generation can't record that, so its replay wouldn't reach this generation: no contest wraps. Save simulation still saves the seed and its rules.";
 
 /**
  * Why Save this generation refuses while the arena has walls (#119): as for wrapping, a result
  * file has no way to say so, and no contest has walls.
  */
-export const WALLS_SAVE_REASON = "This run's arena has walls, with their own corner, edge and face rules, and a saved generation can't record them, so its replay wouldn't reach this generation: no contest has walls. Save seed still saves the seed, and its rules.";
+export const WALLS_SAVE_REASON = "This run's arena has walls, with their own corner, edge and face rules, and a saved generation can't record them, so its replay wouldn't reach this generation: no contest has walls. Save simulation still saves the seed and its rules.";
 
 /**
  * Save this generation's file.
@@ -107,8 +111,13 @@ export async function generationSave({ config, generation, cells, ending, stats 
   return { result, text: resultText(result) };
 }
 
-/** Save seed's file: the run's first seed and its rules. */
+/** Save seed's file: the run's first seed, its cells only. */
 export function seedSave(config) {
+  return toSeedFile({ cells: config.seed ?? config.cells });
+}
+
+/** Save simulation's file: the run's first seed and its rules. */
+export function simulationSave(config) {
   return toSeedFile({ rules: config.rules, cells: config.seed ?? config.cells });
 }
 
@@ -156,8 +165,8 @@ export async function readGenerationSave(text) {
 }
 
 /**
- * Reads what Load… was given: a seed file, or a file from Save this generation.
- * @returns {Promise<{kind: 'seed', rules: object, cells: Int32Array}
+ * Reads what Load… was given: a seed file, a simulation file, or a file from Save this generation.
+ * @returns {Promise<{kind: 'seed', rules: object | null, cells: Int32Array}
  *   | {kind: 'generation'} & Awaited<ReturnType<typeof readGenerationSave>>>}
  */
 export async function readSeedOrSave(text) {

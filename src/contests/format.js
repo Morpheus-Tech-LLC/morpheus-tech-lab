@@ -267,18 +267,30 @@ export function departuresText(departures) {
 }
 
 /**
- * When entries close: the earliest closing date among the contests, or that it is still to be
- * announced while none has one.
+ * When entries close: the earliest closing among the contests, or that it is still to be
+ * announced while none has one. A day ("2027-02-28") reads as that day; an instant with its offset
+ * ("2026-12-31T23:59:00-06:00") reads as the day and time in Central Time, where the lab is.
  * @param {{closes: string | null}[]} contests
  * @param {{short?: boolean}} [options] - short, for the banner: "Closes TBD", "Closes 28 Feb 2027"
  */
 export function closingText(contests, { short = false } = {}) {
-  const dates = contests.map((c) => c.closes).filter(Boolean).sort();
-  if (!dates.length) return short ? 'Closes TBD' : 'Closing date to be announced';
-  const [year, month, day] = dates[0].split('-').map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
-  const text = date.toLocaleDateString('en-GB', { day: 'numeric', month: short ? 'short' : 'long', year: 'numeric', timeZone: 'UTC' });
-  return short ? `Closes ${text}` : `Entries close ${text}`;
+  const closings = contests.map((c) => c.closes).filter(Boolean)
+    .sort((a, b) => closingDate(a) - closingDate(b));
+  if (!closings.length) return short ? 'Closes TBD' : 'Closing date to be announced';
+  const closes = closings[0];
+  const timed = closes.includes('T');
+  const timeZone = timed ? 'America/Chicago' : 'UTC';
+  const date = closingDate(closes);
+  const day = date.toLocaleDateString('en-GB', { day: 'numeric', month: short ? 'short' : 'long', year: 'numeric', timeZone });
+  if (short || !timed) return short ? `Closes ${day}` : `Entries close ${day}`;
+  const time = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone });
+  return `Entries close ${day}, ${time} Central Time`;
+}
+
+function closingDate(closes) {
+  if (closes.includes('T')) return new Date(closes);
+  const [year, month, day] = closes.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day));
 }
 
 /**

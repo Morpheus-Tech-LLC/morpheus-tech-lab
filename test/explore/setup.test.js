@@ -7,13 +7,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  initialSetup, makeShape, presetSeed, fileSeed, changeSeed, changeRules, changeArena, changeMemory,
+  initialSetup, makeShape, presetSeed, fileSeed, simulationFile, simulationOf, changeSeed, changeRules, changeArena, changeMemory,
   ownRules, configOf, boxesOf, lockOf, rulesOf, arenaOf, startOf, restartNote, seedLabel, SHAPES,
-  DEFAULT_RULES, DEFAULT_MEMORY_MB, DEFAULT_ARENA, deathCounts, designOf, presetCopy, designFile, useDesign,
-  contestArena, contestEntry,
+  DEFAULT_RULES, DEFAULT_MEMORY_MB, DEFAULT_ARENA, deathCounts, designOf, designFile, useDesign,
+  contestArena,
 } from '../../src/explore/setup.js';
 import { shapeSeed, toSeedFile, SeedError, arenaBox } from '../../src/explore/seed.js';
-import { contestById, runFor } from '../../src/unbounded/contests.js';
+import { contestById } from '../../src/unbounded/contests.js';
 import { readSeedOrSave, generationSave } from '../../src/explore/save.js';
 import { PRESETS, presetById } from '../../src/explore/presets.js';
 import { cubeOfSide, octahedronShape } from '../../src/shapeGenerators.js';
@@ -24,10 +24,10 @@ const NOISE = presetById('spreading-noise');
 const start = () => initialSetup({ size: 10, density: 1 });
 const B5 = { birth: [5], survival: [4, 5, 6] };
 
-/** A setup with a seed file of `cells` under B5 loaded. */
+/** A setup with a simulation file of `cells` under B5 loaded, with Load simulation… (#130). */
 async function withSeedFile(setup, cells = Int32Array.from([0, 0, 0, 1, 0, 0])) {
   const loaded = await readSeedOrSave(toSeedFile({ rules: B5, cells }));
-  return changeSeed(setup, fileSeed('mine.json', loaded));
+  return changeSeed(setup, simulationFile('mine.json', loaded));
 }
 
 /** A saved generation 412 of a run of `cells` under B5, in an arena of `arena`, as Load… reads it. */
@@ -40,7 +40,7 @@ async function savedGeneration(arena = 32) {
     cells,
     ending: 'stopped',
   });
-  return fileSeed('explore-generation-412.json', await readSeedOrSave(text));
+  return simulationFile('explore-generation-412.json', await readSeedOrSave(text));
 }
 
 /** Cells as sorted "x,y,z" keys, to compare sets of cells whatever their order. */
@@ -59,7 +59,7 @@ test('Explore opens on the cube under the default rules, with no arena and a 1,0
   assert.deepEqual(DEFAULT_RULES, state.explore.rules); // state.js's own default
   assert.equal(config.memoryMB, DEFAULT_MEMORY_MB);
   assert.equal(config.arena, null);
-  assert.equal(config.label, 'Cube, size 10, density 1');
+  assert.equal(config.label, 'Cube 10');
   assert.equal('seed' in config || 'from' in config, false);
 });
 
@@ -69,7 +69,7 @@ test('a shape gives its cells, centred as shapeSeed() lifts them, under the Rule
   const config = configOf(next);
   assert.deepEqual(keys(config.cells), keys(shapeSeed(octahedronShape(4, 1), 4)));
   assert.deepEqual(config.rules, B5);
-  assert.equal(config.label, 'Octahedron, size 4, density 1');
+  assert.equal(config.label, 'Octahedron 4');
 });
 
 test('a shape with the same settings keeps its cells, so a random density isn\'t drawn again', () => {
@@ -82,9 +82,9 @@ test('a shape with the same settings keeps its cells, so a random density isn\'t
 test('the noise shapes take a region, and the others don\'t', () => {
   const perlin = makeShape('perlin', { size: 10, density: 0.3, regionSize: 25 });
   assert.deepEqual(perlin.params, { size: 10, density: 0.3, regionSize: 25 });
-  assert.equal(seedLabel(perlin), 'Perlin noise, detail 10, fill 0.3, region 25');
+  assert.equal(seedLabel(perlin), 'Perlin 10, 30%');
   const worley = makeShape('worley', { size: 8, density: 0.5, regionSize: 0 });
-  assert.equal(seedLabel(worley), 'Worley noise, 8 points, distance 0.5');
+  assert.equal(seedLabel(worley), 'Worley 8, 50%');
   assert.deepEqual(makeShape('cube', { size: 3, density: 1, regionSize: 25 }).params, { size: 3, density: 1 });
 });
 
@@ -105,18 +105,18 @@ for (const preset of PRESETS) {
     const config = configOf(setup);
     assert.deepEqual(keys(config.cells), keys(preset.cells));
     assert.deepEqual(config.rules, B5);
-    assert.equal(config.label, `${preset.name}'s cells`);
+    assert.equal(config.label, preset.name);
     assert.equal(lockOf(setup), null);
   });
 }
 
-test('a seed file gives its cells, and its rules go into the Rules box, to edit', async () => {
+test('a simulation file gives its cells, and its rules go into the Rules box, to edit', async () => {
   const setup = await withSeedFile(start());
   const config = configOf(setup);
   assert.deepEqual(keys(config.cells), ['0,0,0', '1,0,0']);
   assert.deepEqual(config.rules, B5);
   assert.deepEqual(setup.rules, B5);
-  assert.equal(config.label, 'Seed file: mine.json');
+  assert.equal(config.label, 'mine.json');
   assert.equal(lockOf(setup), null);
   assert.deepEqual(rulesOf(changeRules(setup, '6', '5')), { birth: [6], survival: [5] });
 });
@@ -129,7 +129,7 @@ test('a saved generation carries on from its generation, with its first seed, ru
   assert.equal(config.from, 412);
   assert.deepEqual(config.rules, B5);
   assert.equal(config.arena, 32);
-  assert.equal(config.label, 'Saved generation 412: explore-generation-412.json');
+  assert.equal(config.label, 'Gen 412: explore-generation-412.json');
   assert.equal(startOf(setup), 412);
   assert.equal(restartNote(startOf(setup)), 'Applying restarts the run from generation 412.');
   assert.equal(restartNote(startOf(start())), 'Applying restarts the run from generation 0.');
@@ -181,7 +181,7 @@ test('Use your own rules on a saved generation keeps its cells, rules and arena,
   assert.deepEqual(config.rules, B5);
   assert.equal(config.arena, 32);
   assert.equal('from' in config || 'seed' in config, false);
-  assert.equal(config.label, 'Generation 412 of explore-generation-412.json');
+  assert.equal(config.label, 'Gen 412: explore-generation-412.json');
   // From the Limits popover: the arena changes, the rules stay
   const wider = changeArena(changeSeed(start(), await savedGeneration(32)), true, 48, { own: true });
   assert.equal(arenaOf(wider), 48);
@@ -251,7 +251,7 @@ test('bad memory limits are refused', () => {
 test('each box shows its source\'s text', async () => {
   const cube = boxesOf(start());
   assert.deepEqual(cube, {
-    seed: 'Cube, size 10, density 1', cells: 1000, rules: DEFAULT_RULES, lock: null,
+    seed: 'Cube 10', cells: 1000, rules: DEFAULT_RULES, lock: null,
     arena: null, arenaLocked: false, edge: 'end', walls: null, memoryMB: 1024,
   });
   const preset = boxesOf(changeSeed(start(), presetSeed('cube10')));
@@ -260,10 +260,10 @@ test('each box shows its source\'s text', async () => {
   assert.equal(preset.lock, 'with Cube10');
   assert.equal(preset.arenaLocked, false);
   assert.equal(boxesOf(changeSeed(start(), presetSeed('spreading-noise'))).seed, 'Spreading noise');
-  assert.equal(boxesOf(changeSeed(start(), makeShape('preset:cube10'))).seed, "Cube10's cells");
-  assert.equal(boxesOf(await withSeedFile(start())).seed, 'Seed file: mine.json');
+  assert.equal(boxesOf(changeSeed(start(), makeShape('preset:cube10'))).seed, 'Cube10');
+  assert.equal(boxesOf(await withSeedFile(start())).seed, 'mine.json');
   const saved = boxesOf(changeSeed(start(), await savedGeneration(32)));
-  assert.equal(saved.seed, 'Saved generation 412: explore-generation-412.json');
+  assert.equal(saved.seed, 'Gen 412: explore-generation-412.json');
   assert.equal(saved.cells, 2);
   assert.equal(saved.lock, 'with the saved generation');
   assert.equal(saved.arena, 32);
@@ -322,16 +322,6 @@ test('Design… opens on an empty box, saying why, for a seed outside the box or
   assert.match(saved.reason, /saved generation .* can't open as a design/);
 });
 
-test('Edit a copy… opens a preset with its rules; the preset is unchanged', () => {
-  const before = Int32Array.from(CUBE10.cells);
-  const copy = presetCopy('cube10');
-  assert.equal(copy.name, 'Cube10');
-  assert.deepEqual(copy.rules, CUBE10.rules);
-  copy.places.fill(0);
-  assert.deepEqual(Int32Array.from(CUBE10.cells), before);
-  assert.throws(() => presetCopy('nope'), SeedError);
-});
-
 test("Use makes the design a Custom seed with the given rules, unlocked; a preset's copy keeps its rules", () => {
   const cells = Int32Array.from([0, 0, 0, 1, 0, 0, 0, 1, 0]);
   const fromPreset = changeSeed(start(), presetSeed('cube10'));
@@ -339,7 +329,7 @@ test("Use makes the design a Custom seed with the given rules, unlocked; a prese
   assert.equal(next.seed.kind, 'design');
   assert.equal(lockOf(next), null);
   assert.deepEqual(rulesOf(next), CUBE10.rules);
-  assert.equal(seedLabel(next.seed), 'Design: 3 cells');
+  assert.equal(seedLabel(next.seed), 'Design');
   assert.deepEqual(boxesOf(next).cells, 3);
   assert.deepEqual(configOf(next).cells, cells);
   assert.equal(fromPreset.seed.kind, 'preset');
@@ -391,69 +381,52 @@ test("a contest's arena for designing an entry: on at its side, already so, or l
   assert.match(kept.note, /stays the saved generation's, so a run of it here may not end as Methuselah's would/);
 });
 
-// ---- Use in a contest (#95) ----
+// ---- A seed apart from its simulation (#130) ----
 
-const METHUSELAH = contestById('methuselah-1');
-const sortedTriples = (flat) => {
-  const cells = [];
-  for (let i = 0; i < flat.length; i += 3) cells.push([flat[i], flat[i + 1], flat[i + 2]]);
-  return cells.sort((a, b) => a[2] - b[2] || a[1] - b[1] || a[0] - b[0]);
-};
-
-/** The entry Use in a contest makes, and the run Methuselah makes of it: its seed must be the same cells. */
-function entered(setup) {
-  const found = contestEntry(setup, METHUSELAH);
-  assert.equal(found.reason, undefined, found.reason);
-  const { entry } = found;
-  const run = runFor(METHUSELAH, { rules: entry.rules, seed: sortedTriples(entry.cells) });
-  assert.deepEqual(run.seed, sortedTriples(setup.seed.cells), 'the seed goes in exactly as it is, never shifted');
-  assert.deepEqual(run.rules, rulesOf(setup));
-  return entry;
-}
-
-test('Use in a contest: the seed in use and its rules, from a shape, a preset, a design or a seed file', async () => {
-  // A shape: the 10³ cube fills the seed box, all 1,000 cells
-  const shape = entered(start());
-  assert.equal(shape.cells.length / 3, 1000);
-  assert.equal(shape.source, 'Game of Life 3D (unbounded): Cube, size 10, density 1');
-  // A preset, with its own rules
-  const preset = entered(changeSeed(start(), presetSeed('cube10')));
-  assert.deepEqual(preset.rules, CUBE10.rules);
-  assert.equal(preset.source, `Game of Life 3D (unbounded): ${CUBE10.name}`);
-  // A design, under the Rules box's rules
-  const designed = useDesign(changeRules(start(), '5', '4-6'), Int32Array.from([0, 0, 0, 1, 0, 0, -5, -5, -5, 4, 4, 4]), B5);
-  const design = entered(designed);
-  assert.deepEqual(design.rules, B5);
-  assert.equal(design.source, 'Game of Life 3D (unbounded): Design: 4 cells');
-  // A seed file, its rules in the Rules box
-  const file = entered(await withSeedFile(start()));
-  assert.deepEqual(file.rules, B5);
-  assert.equal(file.source, 'Game of Life 3D (unbounded): Seed file: mine.json');
-  // The entry is a copy: the setup's cells stay as they are
-  shape.cells[0] = 99;
-  assert.notEqual(start().seed.cells[0], 99);
+test('the simulation in use is named for a preset whenever its seed and rules are one, so the lab opens on Cube10', () => {
+  assert.deepEqual(simulationOf(start()), { name: 'Cube10', from: 'preset', id: 'cube10' });
+  assert.deepEqual(simulationOf(changeRules(start(), '5', '4-6')), { name: 'Custom', from: null });
+  const back = changeRules(changeRules(start(), '5', '4-6'), '9,10', '5-15');
+  assert.equal(simulationOf(back).name, 'Cube10', 'the same seed and rules again are Cube10 again');
+  assert.equal(simulationOf(changeSeed(start(), presetSeed('spreading-noise'))).name, 'Spreading noise');
+  // Spreading noise's cells under its own rules, set one part at a time
+  const parts = changeRules(changeSeed(start(), makeShape('preset:spreading-noise')), '7,13,14', '0,2-6,9,13,19,23,24');
+  assert.equal(simulationOf(parts).name, 'Spreading noise');
 });
 
-test('Use in a contest refuses a seed outside the box, saying which cells; an empty seed; and a saved generation', async () => {
-  const one = contestEntry(useDesign(start(), Int32Array.from([0, 0, 0]), B5), METHUSELAH);
-  assert.ok(one.entry);
-  const outside = (cells) => contestEntry(changeSeed(start(), fileSeed('wide.json', { kind: 'seed', rules: B5, cells: Int32Array.from(cells) })), METHUSELAH);
-  assert.equal(outside([0, 0, 0, 5, 0, 0]).reason,
-    'Its cell [5, 0, 0] lies outside the 10³ seed box, cells -5 to 4 on each axis. Seeds are never shifted: make it fit with a smaller shape, or Design….');
-  assert.match(outside([0, 0, 0, 5, 0, 0, 0, -6, 0]).reason, /^2 of its 3 cells lie outside the 10³ seed box, cells -5 to 4 on each axis, such as \[5, 0, 0\] and \[0, -6, 0\]\./);
-  assert.match(outside([5, 0, 0, 6, 0, 0, 7, 0, 0, 8, 0, 0]).reason, /^4 of its 4 cells lie outside .*, such as \[5, 0, 0\], \[6, 0, 0\], \[7, 0, 0\]\./);
-  // A cube wider than the box: its cells are refused, never shifted into it
-  const wide = changeSeed(start(), makeShape('cube', { size: 12, density: 1 }));
-  assert.match(contestEntry(wide, METHUSELAH).reason, /cells lie outside the 10³ seed box/);
-  // A saved generation isn't a starting seed
-  assert.match(contestEntry(changeSeed(start(), await savedGeneration(64)), METHUSELAH).reason, /^A saved generation carries on from generation 412, so it isn't a seed to start a contest from\./);
-  // An empty seed: Explore itself refuses one, so build it as a setup would hold it
-  assert.match(contestEntry({ ...start(), seed: { kind: 'design', cells: new Int32Array(0) } }, METHUSELAH).reason, /^The seed has no live cells/);
+test('a simulation file is named for its file while its rules are the ones it brought', async () => {
+  const setup = await withSeedFile(start());
+  assert.deepEqual(simulationOf(setup), { name: 'mine.json', from: 'file' });
+  assert.equal(simulationOf(changeRules(setup, '6', '5')).name, 'Custom');
+  assert.equal(simulationOf(changeSeed(start(), await savedGeneration(32))).from, 'saved');
 });
 
-test("Use in a contest says when Explore's arena isn't the contest's, which runs in its own", () => {
-  const off = changeArena(start(), false, 64);
-  assert.equal(contestEntry(off, METHUSELAH).entry.note, "Methuselah runs in its own 64³ arena, and the arena in Game of Life 3D (unbounded) was off, so a run here may end differently from one there.");
-  assert.match(contestEntry(changeArena(start(), true, 100), METHUSELAH).entry.note, /the arena in Game of Life 3D \(unbounded\) was 100³/);
-  assert.equal(contestEntry(changeArena(start(), true, 64), METHUSELAH).entry.note, null);
+test('Load seed… takes a file\'s cells alone, under the rules in use; a saved generation is refused', async () => {
+  const rules = changeRules(start(), '5', '4-6');
+  const simulation = await readSeedOrSave(toSeedFile({ rules: { birth: [7], survival: [] }, cells: Int32Array.from([0, 0, 0]) }));
+  const seedOnly = await readSeedOrSave(toSeedFile({ cells: Int32Array.from([1, 1, 1]) }));
+  assert.equal(seedOnly.rules, null);
+  for (const loaded of [simulation, seedOnly]) {
+    const next = changeSeed(rules, fileSeed('cells.json', loaded));
+    assert.deepEqual(next.rules, B5, 'the rules in use stay');
+    assert.equal(next.seed.rules, undefined);
+  }
+  const { text } = await generationSave({
+    config: { rules: B5, cells: Int32Array.from([0, 0, 0]), arena: null, memoryMB: 1024 }, generation: 3, cells: Int32Array.from([0, 0, 0]), ending: 'stopped',
+  });
+  const generation = await readSeedOrSave(text);
+  assert.throws(() => fileSeed('gen.json', generation), /is a saved generation.*Load simulation/);
+});
+
+test('Load simulation… refuses a seed file, which has no rules', async () => {
+  const seedOnly = await readSeedOrSave(toSeedFile({ cells: Int32Array.from([1, 1, 1]) }));
+  assert.throws(() => simulationFile('cells.json', seedOnly), /cells\.json is a seed file: it holds cells, but no rules/);
+});
+
+test('changing only the seed keeps the rules in use, a preset\'s too, now the visitor\'s own', () => {
+  const preset = changeSeed(start(), presetSeed('spreading-noise'));
+  const next = changeSeed(preset, makeShape('cube', { size: 4, density: 1 }));
+  assert.deepEqual(rulesOf(next), NOISE.rules);
+  assert.equal(lockOf(next), null);
+  assert.equal(simulationOf(next).name, 'Custom');
 });

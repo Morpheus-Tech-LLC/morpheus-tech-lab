@@ -43,245 +43,6 @@
       </div>
     </div>
   </div>
-  <!-- Shape Settings Modal -->
-  <div id="shapeModal" class="modal hidden">
-    <div class="modal-backdrop"></div>
-    <div class="modal-content glass-panel">
-      <h3 class="modal-title">Configuration</h3>
-      <div class="modal-body modal-grid">
-        <div class="sim-col" style="grid-column: 1 / -1; margin-bottom: 0.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid rgba(140, 140, 150, 0.25);">
-          <div class="rules-title">Simulation Mode</div>
-          <div class="mode-selector">
-            <button class="mode-card" data-mode="explore" id="mode-explore">
-              <span class="mode-name">Game of Life 3D</span>
-              <span class="mode-subtitle">Unbounded</span>
-            </button>
-            <button class="mode-card" data-mode="gameOfLife" id="mode-gameOfLife">
-              <span class="mode-name">Game of Life 3D</span>
-              <span class="mode-subtitle">Bounded</span>
-            </button>
-            <button class="mode-card" data-mode="rule30" id="mode-rule30">
-              <span class="mode-name">Rule 30</span>
-              <span class="mode-subtitle">Cellular</span>
-            </button>
-            <button class="mode-card" data-mode="sineWave" id="mode-sineWave">
-              <span class="mode-name">Sine Wave</span>
-              <span class="mode-subtitle">Continuous</span>
-            </button>
-            <button class="mode-card" data-mode="sandpile" id="mode-sandpile">
-              <span class="mode-name">Sandpile</span>
-              <span class="mode-subtitle">Abelian</span>
-            </button>
-        </div>
-          <div id="mode-description" class="mode-description">
-            <p>Conway's Game of Life in three dimensions, where each cell has 26 neighbours, in a world without walls: the pattern grows as far as it likes, for as long as you let it run. It computes on the CPU, in a background thread, keeping only the current generation, so its memory follows the live cells. A GPU needs a world of fixed size, which this one isn't, so it has no GPU path yet; Game of Life 3D (bounded) is the one on the GPU.</p>
-          </div>
-          <!-- Explore's settings are in the HUD's boxes (src/explore/hud.js); the Contests mode has
-               none, its contests fix everything (src/contests/) -->
-          <p id="explore-settings-note" class="explore-settings-note" hidden></p>
-        </div>
-        <div id="sim-params-section" class="sim-col" style="grid-column: 1;">
-          <div class="rules-title">
-            <span data-tooltip="Core simulation settings including grid dimensions and number of evolution steps to compute.">Simulation Parameters</span>
-          </div>
-          <div id="sim-size-row" class="modal-field-row">
-            <div class="label-row">
-              <label id="sim-size-label" class="modal-label" for="sim-size">
-                <span data-tooltip="The dimensions of the 3D simulation grid (N×N×N). Larger sizes provide more detail but require more computation.">Size</span>
-              </label>
-              <!-- Each range hint opens its advice (src/adviceControl.js, #123): the sizes that suit a
-                   laptop or a desktop, and the run's memory estimate; there is no hard cap -->
-              <button type="button" class="input-range-hint advice-hint" id="sim-size-range" popovertarget="sim-size-advice">
-                <span class="visually-hidden">Size advice, suggested range </span><span id="sim-size-range-text">1 - 200</span><span class="advice-hint-icon" aria-hidden="true">?</span>
-              </button>
-              <div id="sim-size-advice" class="advice-popover" popover role="note" aria-label="Size advice"></div>
-            </div>
-            <input type="number" id="sim-size" class="glass-input" min="1" step="1" />
-          </div>
-          <div class="modal-field-row">
-            <div class="label-row">
-              <label class="modal-label" for="sim-generations">
-                <span data-tooltip="The number of simulation steps to compute. Each generation represents one evolution cycle of the cellular automaton.">Generations</span>
-              </label>
-              <button type="button" class="input-range-hint advice-hint" id="sim-generations-range" popovertarget="sim-generations-advice">
-                <span class="visually-hidden">Generations advice, suggested range </span><span id="sim-generations-range-text">1 - 100</span><span class="advice-hint-icon" aria-hidden="true">?</span>
-              </button>
-              <div id="sim-generations-advice" class="advice-popover" popover role="note" aria-label="Generations advice"></div>
-            </div>
-            <input type="number" id="sim-generations" class="glass-input" min="1" step="1" />
-          </div>
-          <div id="rule30-2d-toggle-row" class="modal-field-row" style="display: none;">
-            <label class="modal-label" for="rule30-2d-checkbox" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-              <input type="checkbox" id="rule30-2d-checkbox" style="width: auto; cursor: pointer;" />
-              <span data-tooltip="When checked, Rule 30 in 3D is toggled. When unchecked, uses 2D mode (original)">3D Mode</span>
-            </label>
-          </div>
-        </div>
-
-        <div id="seed-section" class="seed-col">
-          <div class="rules-title">
-            <span data-tooltip="Configuration for the initial state of the simulation. Choose a shape pattern and set its size and density to determine starting conditions.">Initial Seed</span>
-          </div>
-          <div class="modal-field-row seed-shape-row">
-            <label class="modal-label" for="modal-shape-select">
-              <span data-tooltip="The geometric pattern used as the initial state. Options include procedural noise patterns (Perlin, Worley) and geometric shapes (Cube, Tetrahedron, Octahedron).">Shape</span>
-            </label>
-          <select id="modal-shape-select" class="glass-select">
-            <option value="perlin">Perlin</option>
-            <option value="worley">Worley</option>
-            <option value="cube">Cube</option>
-            <option value="tetrahedron">Tetrahedron</option>
-            <option value="octahedron">Octahedron</option>
-            <!-- <option value="rule30">Rule 30</option> -->
-          </select>
-          </div>
-          <div class="modal-field-row seed-shape-row">
-            <div class="label-row">
-              <label id="shape-size-label" class="modal-label" for="shape-size">
-                <span id="shape-size-label-text" data-tooltip="The size of the initial seed shape within the simulation grid. Must be smaller than the simulation size.">Size</span>
-              </label>
-              <span class="input-range-hint" id="shape-size-range">min: 1</span>
-            </div>
-            <input type="number" id="shape-size" class="glass-input" min="1" step="1" />
-          </div>
-          <div class="modal-field-row seed-shape-row">
-            <div class="label-row">
-              <label id="shape-density-label" class="modal-label" for="shape-density">
-                <span id="shape-density-label-text" data-tooltip="The probability (0.0 to 1.0) that a cell within the seed shape will be initially alive. Higher values create denser initial patterns.">Density</span>
-              </label>
-              <span class="input-range-hint" id="shape-density-range">0 - 1</span>
-            </div>
-            <input type="number" id="shape-density" class="glass-input" min="0" max="1" step="0.01" />
-          </div>
-          <div class="modal-field-row seed-shape-row hidden" id="shape-region-size-row">
-            <div class="label-row">
-              <label id="shape-region-size-label" class="modal-label" for="shape-region-size">
-                <span id="shape-region-size-label-text" data-tooltip="Controls the scale of noise features for Perlin and Worley patterns. Larger values create smoother, larger-scale variations.">Region Size</span>
-              </label>
-              <span class="input-range-hint" id="shape-region-size-range">min: 1</span>
-            </div>
-            <input type="number" id="shape-region-size" class="glass-input" min="1" step="1" />
-          </div>
-        </div>
-
-        <div id="rules-section" class="rules-col">
-          <div class="rules-title">
-            <span data-tooltip="Rules that govern how cells evolve between generations. Birth rules determine when dead cells become alive, and survival rules determine when living cells stay alive. Enter values as list or range (e.g., 9,10 or 5-15). Isolation and overcrowding are calculated automatically.">Evolution Rules</span>
-          </div>
-          <div class="modal-field-row">
-            <div class="label-row">
-              <label class="modal-label" for="rule-birth">
-                <span data-tooltip="Neighbor counts that cause a dead cell to become alive. Enter as comma-separated list (e.g., 9,10) or range (e.g., 5-15).">Birth</span>
-              </label>
-              <span class="input-range-hint" id="rule-birth-range">0 - 26</span>
-            </div>
-            <input type="text" id="rule-birth" class="glass-input" placeholder="" />
-          </div>
-          <div class="modal-field-row">
-            <div class="label-row">
-              <label class="modal-label" for="rule-survival">
-                <span data-tooltip="Neighbor counts that allow a living cell to stay alive. Enter as comma-separated list (e.g., 5,6,7) or range (e.g., 5-15).">Survival</span>
-              </label>
-              <span class="input-range-hint" id="rule-survival-range">0 - 26</span>
-            </div>
-            <input type="text" id="rule-survival" class="glass-input" placeholder="" />
-          </div>
-        </div>
-
-        <div id="boundary-rules-section" class="boundary-col">
-          <div class="rules-title">
-            <span data-tooltip="Rules for cells at the grid boundaries. When grid wrapping is disabled, boundary cells (corner, edge, face) have fewer neighbors and can use different evolution rules than interior cells.">Boundary Rules</span>
-          </div>
-          <div class="modal-field-row" id="grid-wrapping-label">
-            <label class="modal-label" for="grid-wrapping-checkbox" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-            <input type="checkbox" id="grid-wrapping-checkbox" checked style="width: auto; cursor: pointer;" />
-              <span data-tooltip="When enabled, the grid edges wrap around (toroidal topology). When disabled, boundary cells have fewer neighbors and use different rules.">Grid Wrapping</span>
-          </label>
-          </div>
-          <div id="boundary-rules-inputs" style="display: none;">
-            <div style="margin-bottom: 15px;">
-              <div class="rules-title" style="font-size: 0.9em; margin-bottom: 10px;">Corner (7 neighbors)</div>
-              <div class="modal-field-row">
-                <label class="modal-label" for="boundary-corner-birth">
-                  <span data-tooltip="Neighbor counts that cause a dead corner cell to become alive. Corner cells have 7 neighbors.">Birth</span>
-                </label>
-              <input type="text" id="boundary-corner-birth" class="glass-input" placeholder="2,3" />
-              </div>
-              <div class="modal-field-row">
-                <label class="modal-label" for="boundary-corner-survival">
-                  <span data-tooltip="Neighbor counts that allow a living corner cell to stay alive. Corner cells have 7 neighbors.">Survival</span>
-                </label>
-              <input type="text" id="boundary-corner-survival" class="glass-input" placeholder="2-4" />
-              </div>
-            </div>
-            <div style="margin-bottom: 15px;">
-              <div class="rules-title" style="font-size: 0.9em; margin-bottom: 10px;">Edge (11 neighbors)</div>
-              <div class="modal-field-row">
-                <label class="modal-label" for="boundary-edge-birth">
-                  <span data-tooltip="Neighbor counts that cause a dead edge cell to become alive. Edge cells have 11 neighbors.">Birth</span>
-                </label>
-              <input type="text" id="boundary-edge-birth" class="glass-input" placeholder="4" />
-              </div>
-              <div class="modal-field-row">
-                <label class="modal-label" for="boundary-edge-survival">
-                  <span data-tooltip="Neighbor counts that allow a living edge cell to stay alive. Edge cells have 11 neighbors.">Survival</span>
-                </label>
-              <input type="text" id="boundary-edge-survival" class="glass-input" placeholder="2-6" />
-              </div>
-            </div>
-            <div style="margin-bottom: 15px;">
-              <div class="rules-title" style="font-size: 0.9em; margin-bottom: 10px;">Face (17 neighbors)</div>
-              <div class="modal-field-row">
-                <label class="modal-label" for="boundary-face-birth">
-                  <span data-tooltip="Neighbor counts that cause a dead face cell to become alive. Face cells have 17 neighbors.">Birth</span>
-                </label>
-              <input type="text" id="boundary-face-birth" class="glass-input" placeholder="6" />
-              </div>
-              <div class="modal-field-row">
-                <label class="modal-label" for="boundary-face-survival">
-                  <span data-tooltip="Neighbor counts that allow a living face cell to stay alive. Face cells have 17 neighbors.">Survival</span>
-                </label>
-              <input type="text" id="boundary-face-survival" class="glass-input" placeholder="3-9" />
-              </div>
-            </div>
-          </div>
-        </div>
-        <div id="sandpile-section" class="sandpile-col" style="display: none;">
-          <div class="rules-title">
-            <span data-tooltip="Configuration for the Abelian Sandpile Model. Controls the initial sand distribution and toppling behavior.">Sandpile Parameters</span>
-          </div>
-          <div class="modal-field-row">
-            <div class="label-row">
-              <label class="modal-label" for="sandpile-initial-sand">
-                <span data-tooltip="Optional initial amount of sand to place at the center before starting the simulation. Leave at 0 to start empty and add 1 grain per generation.">Initial Sand</span>
-              </label>
-              <button type="button" class="input-range-hint advice-hint" id="sandpile-initial-sand-range" popovertarget="sandpile-sand-advice">
-                <span class="visually-hidden">Initial Sand, allowed range </span><span>0 - 255</span><span class="advice-hint-icon" aria-hidden="true">?</span>
-              </button>
-              <div id="sandpile-sand-advice" class="advice-popover" popover role="note" aria-label="Initial Sand advice"></div>
-            </div>
-            <input type="number" id="sandpile-initial-sand" class="glass-input" min="0" max="255" step="1" value="0" />
-          </div>
-        </div>
-      </div>
-      <div class="modal-actions">
-        <div id="tooltip-display" class="tooltip-display"></div>
-        <div class="modal-actions-buttons">
-        <button id="shapeCancel" class="glass-button">Cancel</button>
-        <button id="shapeConfirm" class="glass-button">Apply</button>
-        </div>
-      </div>
-      <!-- Above a high memory estimate, Apply asks first (#123) -->
-      <div id="memory-confirm" class="memory-confirm" role="alertdialog" aria-labelledby="memory-confirm-text" hidden>
-        <p id="memory-confirm-text"></p>
-        <div class="modal-actions-buttons">
-          <button type="button" id="memory-confirm-back" class="glass-button">Change settings</button>
-          <button type="button" id="memory-confirm-run" class="glass-button">Run anyway</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <!-- Company Info Modal -->
   <div id="company-modal" class="modal hidden">
     <div class="modal-content company-modal-content">
@@ -328,143 +89,274 @@
     </div>
   </div>
   <div class="glass-display-container" id="glass-display-container">
-    <!-- The mode box: which simulation runs, in every mode, with Change for the settings dialog.
-         The other boxes belong to it, so they sit inside it; each box folds down to its title -->
-    <section id="glass-info-mode" class="glass-display glass-display--compact" aria-labelledby="hud-panel-title">
-      <div class="box-title"><span class="box-title-text" id="hud-panel-title">Simulation</span><button type="button" class="hud-collapse" aria-expanded="true" aria-label="Collapse the Simulation box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></div>
+    <!-- The HUD panel, in every mode: the mode is its title, and its gear changes it (#130). The
+         other boxes belong to it, so they sit inside it; each box folds down to its title -->
+    <section id="glass-info-mode" class="glass-display glass-display--compact" aria-labelledby="hud-mode-name">
+      <!-- The panel is the mode (#130): its title names it, and its gear changes it -->
+      <div class="box-title"><span class="hud-mode-title"><span class="box-title-text hud-mode-name" id="hud-mode-name">Game of Life 3D</span><span id="hud-mode-kind" class="hud-mode-kind">Unbounded</span></span><span class="box-title-tools"><button type="button" id="hud-change-mode" class="hud-gear" aria-label="Change the mode" title="Change the mode" aria-haspopup="dialog" aria-expanded="false" aria-controls="mode-popover"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.14,12.94a7.43,7.43,0,0,0,.05-.94,7.43,7.43,0,0,0-.05-.94l2.11-1.65a.5.5,0,0,0,.12-.64l-2-3.46a.5.5,0,0,0-.6-.22l-2.49,1a7.28,7.28,0,0,0-1.63-.94l-.38-2.65A.5.5,0,0,0,13.64,2H10.36a.5.5,0,0,0-.5.42L9.48,5.07a7.28,7.28,0,0,0-1.63.94l-2.49-1a.5.5,0,0,0-.6.22l-2,3.46a.5.5,0,0,0,.12.64L4.91,11.06a7.43,7.43,0,0,0-.05.94,7.43,7.43,0,0,0,.05.94L2.8,14.59a.5.5,0,0,0-.12.64l2,3.46a.5.5,0,0,0,.6.22l2.49-1a7.28,7.28,0,0,0,1.63.94l.38,2.65a.5.5,0,0,0,.5.42h3.28a.5.5,0,0,0,.5-.42l.38-2.65a7.28,7.28,0,0,0,1.63-.94l2.49,1a.5.5,0,0,0,.6-.22l2-3.46a.5.5,0,0,0-.12-.64ZM12,15.5A3.5,3.5,0,1,1,15.5,12,3.5,3.5,0,0,1,12,15.5Z"/></svg></button><button type="button" class="hud-collapse" aria-expanded="true" aria-label="Collapse the HUD panel"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></span></div>
+      <!-- The mode (src/hudSettings.js, #130): each mode keeps its own settings -->
+      <form id="mode-popover" class="explore-popover" tabindex="-1" role="dialog" aria-label="Change the mode" novalidate>
+        <div id="mode-popover-list" class="mode-option-list" role="group" aria-label="Modes"></div>
+        <p id="mode-popover-about" class="explore-popover-text"></p>
+        <p id="mode-popover-note" class="explore-popover-text explore-popover-quiet"></p>
+        <p class="explore-error" role="alert" hidden></p>
+      <div class="explore-save-actions">
+        <button type="submit" class="glass-button explore-small-button">Apply</button>
+        <button type="button" class="glass-button explore-small-button" data-cancel>Cancel</button>
+      </div>
+      </form>
       <div class="hud-mode-children">
-        <!-- The mode: which simulation runs; its gear opens the settings dialog -->
-        <div id="glass-info-modename" class="glass-display glass-display--compact">
-          <div class="box-title"><span class="box-title-text">Mode</span><span class="box-title-tools"><button type="button" id="hud-change-mode" class="hud-gear" aria-label="Change the mode" title="Change the mode" aria-haspopup="dialog"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.14,12.94a7.43,7.43,0,0,0,.05-.94,7.43,7.43,0,0,0-.05-.94l2.11-1.65a.5.5,0,0,0,.12-.64l-2-3.46a.5.5,0,0,0-.6-.22l-2.49,1a7.28,7.28,0,0,0-1.63-.94l-.38-2.65A.5.5,0,0,0,13.64,2H10.36a.5.5,0,0,0-.5.42L9.48,5.07a7.28,7.28,0,0,0-1.63.94l-2.49-1a.5.5,0,0,0-.6.22l-2,3.46a.5.5,0,0,0,.12.64L4.91,11.06a7.43,7.43,0,0,0-.05.94,7.43,7.43,0,0,0,.05.94L2.8,14.59a.5.5,0,0,0-.12.64l2,3.46a.5.5,0,0,0,.6.22l2.49-1a7.28,7.28,0,0,0,1.63.94l.38,2.65a.5.5,0,0,0,.5.42h3.28a.5.5,0,0,0,.5-.42l.38-2.65a7.28,7.28,0,0,0,1.63-.94l2.49,1a.5.5,0,0,0,.6-.22l2-3.46a.5.5,0,0,0-.12-.64ZM12,15.5A3.5,3.5,0,1,1,15.5,12,3.5,3.5,0,0,1,12,15.5Z"/></svg></button><button type="button" class="hud-collapse" aria-expanded="true" aria-label="Collapse the Mode box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></span></div>
-          <div id="hud-mode-name" class="hud-mode-name">Game of Life 3D (unbounded)</div>
-          <div id="hud-mode-about" class="hud-mode-about">Without walls, or in an arena; on the CPU</div>
+        <!-- The simulation (#130): a seed and its rules, its two parts. Each part changes on its
+             own, from its box; in Game of Life 3D (unbounded), the Simulation gear sets both together -->
+        <div id="glass-info-simulation" class="glass-display glass-display--compact">
+          <div class="box-title"><span class="box-title-text">Simulation</span><span class="box-title-tools"><button type="button" id="explore-save-simulation" class="hud-gear hud-gear--explore hud-save" aria-label="Save simulation" title="Save simulation" aria-haspopup="dialog" aria-expanded="false" aria-controls="explore-save-popover" disabled><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></button><button type="button" id="explore-change-simulation" class="hud-gear hud-gear--explore" aria-label="Change the simulation: its seed and rules together" title="Change the simulation: its seed and rules together" aria-haspopup="dialog" aria-expanded="false" aria-controls="explore-simulation-popover"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.14,12.94a7.43,7.43,0,0,0,.05-.94,7.43,7.43,0,0,0-.05-.94l2.11-1.65a.5.5,0,0,0,.12-.64l-2-3.46a.5.5,0,0,0-.6-.22l-2.49,1a7.28,7.28,0,0,0-1.63-.94l-.38-2.65A.5.5,0,0,0,13.64,2H10.36a.5.5,0,0,0-.5.42L9.48,5.07a7.28,7.28,0,0,0-1.63.94l-2.49-1a.5.5,0,0,0-.6.22l-2,3.46a.5.5,0,0,0,.12.64L4.91,11.06a7.43,7.43,0,0,0-.05.94,7.43,7.43,0,0,0,.05.94L2.8,14.59a.5.5,0,0,0-.12.64l2,3.46a.5.5,0,0,0,.6.22l2.49-1a7.28,7.28,0,0,0,1.63.94l.38,2.65a.5.5,0,0,0,.5.42h3.28a.5.5,0,0,0,.5-.42l.38-2.65a7.28,7.28,0,0,0,1.63-.94l2.49,1a.5.5,0,0,0,.6-.22l2-3.46a.5.5,0,0,0-.12-.64ZM12,15.5A3.5,3.5,0,1,1,15.5,12,3.5,3.5,0,0,1,12,15.5Z"/></svg></button><button type="button" class="hud-collapse" aria-expanded="true" aria-label="Collapse the Simulation box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></span></div>
+          <!-- Explore only (src/explore/hud.js, #130): the simulation in use, a seed and its rules
+               together, named for the preset or file it came from, or Custom; its gear sets both -->
+          <div id="hud-simulation" class="hud-simulation">
+            <div id="hud-simulation-name" class="hud-simulation-name">Cube10</div>
+          </div>
+          <form id="explore-simulation-popover" class="explore-popover" tabindex="-1" role="dialog" aria-label="Change the simulation" aria-describedby="explore-simulation-help" novalidate>
+            <label class="explore-field" for="explore-preset"><span class="explore-field-label">Preset</span></label>
+            <select id="explore-preset" class="glass-select"></select>
+            <div class="explore-popover-or" aria-hidden="true">or</div>
+            <button type="button" id="explore-load-simulation" class="glass-button explore-small-button">Load simulation…</button>
+            <input type="file" id="explore-simulation-file" accept=".json,application/json" hidden />
+            <p id="explore-simulation-status" class="explore-popover-text" role="status"></p>
+            <p id="explore-simulation-error" class="explore-error" role="alert" hidden></p>
+            <div class="explore-save-actions">
+              <button type="submit" id="explore-simulation-apply" class="glass-button explore-small-button">Apply</button>
+              <button type="button" class="glass-button explore-small-button" data-cancel>Cancel</button>
+            </div>
+            <!-- What the control pointed at or focused does (#130), as the old settings dialog's foot
+                 said it: the popover itself stays short -->
+            <p id="explore-simulation-help" class="popover-help" aria-live="polite"></p>
+          </form>
+          <div class="hud-simulation-parts" role="group" aria-label="The simulation's parts: its seed and its rules">
+            <div id="glass-info-shape" class="glass-display glass-display--compact">
+              <div class="box-title"><span class="box-title-text">Seed</span><span class="box-title-tools"><button type="button" id="explore-save-seed" class="hud-gear hud-gear--explore hud-save" aria-label="Save seed" title="Save seed" aria-haspopup="dialog" aria-expanded="false" aria-controls="explore-save-popover" disabled><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></button><button type="button" id="life-change-seed" class="hud-gear hud-gear--life" aria-label="Change the seed" title="Change the seed" aria-haspopup="dialog" aria-expanded="false" aria-controls="life-seed-popover"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.14,12.94a7.43,7.43,0,0,0,.05-.94,7.43,7.43,0,0,0-.05-.94l2.11-1.65a.5.5,0,0,0,.12-.64l-2-3.46a.5.5,0,0,0-.6-.22l-2.49,1a7.28,7.28,0,0,0-1.63-.94l-.38-2.65A.5.5,0,0,0,13.64,2H10.36a.5.5,0,0,0-.5.42L9.48,5.07a7.28,7.28,0,0,0-1.63.94l-2.49-1a.5.5,0,0,0-.6.22l-2,3.46a.5.5,0,0,0,.12.64L4.91,11.06a7.43,7.43,0,0,0-.05.94,7.43,7.43,0,0,0,.05.94L2.8,14.59a.5.5,0,0,0-.12.64l2,3.46a.5.5,0,0,0,.6.22l2.49-1a7.28,7.28,0,0,0,1.63.94l.38,2.65a.5.5,0,0,0,.5.42h3.28a.5.5,0,0,0,.5-.42l.38-2.65a7.28,7.28,0,0,0,1.63-.94l2.49,1a.5.5,0,0,0,.6-.22l2-3.46a.5.5,0,0,0-.12-.64ZM12,15.5A3.5,3.5,0,1,1,15.5,12,3.5,3.5,0,0,1,12,15.5Z"/></svg></button><button type="button" id="explore-change-seed" class="hud-gear hud-gear--explore" aria-label="Change the seed" title="Change the seed" aria-haspopup="dialog" aria-expanded="false" aria-controls="explore-seed-popover"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.14,12.94a7.43,7.43,0,0,0,.05-.94,7.43,7.43,0,0,0-.05-.94l2.11-1.65a.5.5,0,0,0,.12-.64l-2-3.46a.5.5,0,0,0-.6-.22l-2.49,1a7.28,7.28,0,0,0-1.63-.94l-.38-2.65A.5.5,0,0,0,13.64,2H10.36a.5.5,0,0,0-.5.42L9.48,5.07a7.28,7.28,0,0,0-1.63.94l-2.49-1a.5.5,0,0,0-.6.22l-2,3.46a.5.5,0,0,0,.12.64L4.91,11.06a7.43,7.43,0,0,0-.05.94,7.43,7.43,0,0,0,.05.94L2.8,14.59a.5.5,0,0,0-.12.64l2,3.46a.5.5,0,0,0,.6.22l2.49-1a7.28,7.28,0,0,0,1.63.94l.38,2.65a.5.5,0,0,0,.5.42h3.28a.5.5,0,0,0,.5-.42l.38-2.65a7.28,7.28,0,0,0,1.63-.94l2.49,1a.5.5,0,0,0,.6-.22l2-3.46a.5.5,0,0,0-.12-.64ZM12,15.5A3.5,3.5,0,1,1,15.5,12,3.5,3.5,0,0,1,12,15.5Z"/></svg></button><button type="button" class="hud-collapse" aria-expanded="true" aria-label="Collapse the Seed box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></span></div>
+              <div class="info-line hud-shape-line"><span class="label">Shape</span><span id="shape-name-value" class="value">cube</span></div>
+              <div class="info-line hud-shape-line"><span class="label">Density</span><span id="shape-density-value" class="value">1</span></div>
+              <div class="info-line hud-shape-line"><span class="label">Size</span><span id="shape-size-value" class="value">10</span></div>
+              <!-- Explore only (src/explore/hud.js): the seed the run started from, its cells alone, and
+                   Save seed (the save popover is shared, below); the gear in the title changes the seed -->
+              <!-- Game of Life 3D (bounded)'s seed (src/hudSettings.js, #130): a shape -->
+              <form id="life-seed-popover" class="explore-popover" tabindex="-1" role="dialog" aria-label="Change the seed" novalidate>
+                <label class="explore-field" for="life-shape"><span class="explore-field-label">Shape</span></label>
+                <select id="life-shape" class="glass-select"></select>
+                <div class="explore-field">
+                  <label class="explore-field-label" for="life-shape-size" id="life-shape-size-label">Size</label>
+                  <span class="explore-field-hint" id="life-shape-size-hint">1 - 50</span>
+                </div>
+                <input type="number" id="life-shape-size" class="glass-input" min="1" step="1" />
+                <div class="explore-field">
+                  <label class="explore-field-label" for="life-shape-density" id="life-shape-density-label">Density</label>
+                  <span class="explore-field-hint">0 - 1</span>
+                </div>
+                <input type="number" id="life-shape-density" class="glass-input" min="0" max="1" step="0.01" />
+                <div id="life-shape-region-row">
+                  <div class="explore-field">
+                    <label class="explore-field-label" for="life-shape-region">Region size</label>
+                    <span class="explore-field-hint" id="life-shape-region-hint">1 - 50</span>
+                  </div>
+                  <input type="number" id="life-shape-region" class="glass-input" min="1" step="1" />
+                </div>
+                <p id="life-shape-about" class="explore-popover-text explore-popover-quiet"></p>
+                <p id="life-seed-note" class="explore-popover-text explore-popover-quiet"></p>
+                <p class="explore-error" role="alert" hidden></p>
+              <div class="explore-save-actions">
+                <button type="submit" class="glass-button explore-small-button">Apply</button>
+                <button type="button" class="glass-button explore-small-button" data-cancel>Cancel</button>
+              </div>
+              </form>
+              <div id="explore-seed-label" class="explore-hud-name">Cube 10</div>
+              <form id="explore-seed-popover" class="explore-popover" tabindex="-1" role="dialog" aria-label="Change the seed" novalidate>
+                <div id="explore-seed-custom-part" class="explore-popover-part">
+                  <div class="explore-field-label explore-source-label" aria-hidden="true">Cells from</div>
+                  <div class="explore-seed-kind explore-seed-kind--source" role="group" aria-label="Where the cells come from">
+                    <button type="button" id="explore-source-shape" class="seed-kind-option" aria-pressed="true" title="Cells from one of the shapes, or a preset's cells">Shape</button>
+                    <button type="button" id="explore-source-file" class="seed-kind-option" aria-pressed="false" title="Cells from a seed file, or from a simulation file without its rules">File</button>
+                    <button type="button" id="explore-source-design" class="seed-kind-option" aria-pressed="false" title="Cells you place one by one, in the seed editor">Design</button>
+                  </div>
+                  <div id="explore-seed-shape-part" class="explore-popover-part">
+                    <label class="explore-field" for="explore-shape"><span class="explore-field-label">Shape</span></label>
+                    <select id="explore-shape" class="glass-select"></select>
+                    <div id="explore-shape-params">
+                      <div class="explore-field">
+                        <label class="explore-field-label" for="explore-shape-size" id="explore-shape-size-label">Size</label>
+                        <span class="explore-field-hint" id="explore-shape-size-hint">1 - 100</span>
+                      </div>
+                      <input type="number" id="explore-shape-size" class="glass-input" min="1" max="100" step="1" />
+                      <div class="explore-field">
+                        <label class="explore-field-label" for="explore-shape-density" id="explore-shape-density-label">Density</label>
+                        <span class="explore-field-hint">0 - 1</span>
+                      </div>
+                      <input type="number" id="explore-shape-density" class="glass-input" min="0" max="1" step="0.01" />
+                      <div id="explore-shape-region-row">
+                        <div class="explore-field">
+                          <label class="explore-field-label" for="explore-shape-region">Region size</label>
+                          <span class="explore-field-hint">0 - 200</span>
+                        </div>
+                        <input type="number" id="explore-shape-region" class="glass-input" min="0" max="200" step="1" />
+                      </div>
+                      <p id="explore-shape-about" class="explore-popover-text explore-popover-quiet"></p>
+                    </div>
+                  </div>
+                  <div id="explore-seed-file-part" class="explore-popover-part" hidden>
+                    <button type="button" id="explore-load-seed" class="glass-button explore-small-button">Load seed…</button>
+                    <input type="file" id="explore-seed-file" accept=".json,application/json" hidden />
+                    <p id="explore-seed-status" class="explore-popover-text" role="status"></p>
+                  </div>
+                  <div id="explore-seed-design-part" class="explore-popover-part" hidden>
+                    <button type="button" id="explore-design" class="glass-button explore-small-button">Design…</button>
+                    <p id="explore-design-status" class="explore-popover-text"></p>
+                  </div>
+                </div>
+                <p id="explore-seed-note" class="explore-popover-text explore-popover-quiet"></p>
+                <p id="explore-seed-error" class="explore-error" role="alert" hidden></p>
+                <div class="explore-save-actions">
+                  <button type="submit" class="glass-button explore-small-button">Apply</button>
+                  <button type="button" class="glass-button explore-small-button" data-cancel>Cancel</button>
+                </div>
+              </form>
+            </div>
+            <div id="glass-info-rules" class="glass-display glass-display--compact">
+              <div class="box-title"><span class="box-title-text">Rules</span><span class="box-title-tools"><button type="button" id="life-change-rules" class="hud-gear hud-gear--life" aria-label="Change the rules" title="Change the rules" aria-haspopup="dialog" aria-expanded="false" aria-controls="life-rules-popover"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.14,12.94a7.43,7.43,0,0,0,.05-.94,7.43,7.43,0,0,0-.05-.94l2.11-1.65a.5.5,0,0,0,.12-.64l-2-3.46a.5.5,0,0,0-.6-.22l-2.49,1a7.28,7.28,0,0,0-1.63-.94l-.38-2.65A.5.5,0,0,0,13.64,2H10.36a.5.5,0,0,0-.5.42L9.48,5.07a7.28,7.28,0,0,0-1.63.94l-2.49-1a.5.5,0,0,0-.6.22l-2,3.46a.5.5,0,0,0,.12.64L4.91,11.06a7.43,7.43,0,0,0-.05.94,7.43,7.43,0,0,0,.05.94L2.8,14.59a.5.5,0,0,0-.12.64l2,3.46a.5.5,0,0,0,.6.22l2.49-1a7.28,7.28,0,0,0,1.63.94l.38,2.65a.5.5,0,0,0,.5.42h3.28a.5.5,0,0,0,.5-.42l.38-2.65a7.28,7.28,0,0,0,1.63-.94l2.49,1a.5.5,0,0,0,.6-.22l2-3.46a.5.5,0,0,0-.12-.64ZM12,15.5A3.5,3.5,0,1,1,15.5,12,3.5,3.5,0,0,1,12,15.5Z"/></svg></button><button type="button" id="explore-change-rules" class="hud-gear hud-gear--explore" aria-label="Change the rules" title="Change the rules" aria-haspopup="dialog" aria-expanded="false" aria-controls="explore-rules-popover"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.14,12.94a7.43,7.43,0,0,0,.05-.94,7.43,7.43,0,0,0-.05-.94l2.11-1.65a.5.5,0,0,0,.12-.64l-2-3.46a.5.5,0,0,0-.6-.22l-2.49,1a7.28,7.28,0,0,0-1.63-.94l-.38-2.65A.5.5,0,0,0,13.64,2H10.36a.5.5,0,0,0-.5.42L9.48,5.07a7.28,7.28,0,0,0-1.63.94l-2.49-1a.5.5,0,0,0-.6.22l-2,3.46a.5.5,0,0,0,.12.64L4.91,11.06a7.43,7.43,0,0,0-.05.94,7.43,7.43,0,0,0,.05.94L2.8,14.59a.5.5,0,0,0-.12.64l2,3.46a.5.5,0,0,0,.6.22l2.49-1a7.28,7.28,0,0,0,1.63.94l.38,2.65a.5.5,0,0,0,.5.42h3.28a.5.5,0,0,0,.5-.42l.38-2.65a7.28,7.28,0,0,0,1.63-.94l2.49,1a.5.5,0,0,0,.6-.22l2-3.46a.5.5,0,0,0-.12-.64ZM12,15.5A3.5,3.5,0,1,1,15.5,12,3.5,3.5,0,0,1,12,15.5Z"/></svg></button><button type="button" class="hud-collapse" aria-expanded="true" aria-label="Collapse the Rules box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></span></div>
+              <div class="info-line"><span class="label">Birth</span><span id="rules-birth" class="value">9,10</span></div>
+              <div class="info-line"><span class="label">Survival</span><span id="rules-survival" class="value">5-15</span></div>
+              <div class="info-line hud-derived-line"><span class="label">Isolation</span><span id="rules-isolation" class="value">0-4</span></div>
+              <div class="info-line hud-derived-line"><span class="label">Overcrowding</span><span id="rules-overcrowd" class="value">16-26</span></div>
+              <!-- Game of Life 3D (bounded)'s rules (src/hudSettings.js, #130); its walls' are the Grid's -->
+              <form id="life-rules-popover" class="explore-popover" tabindex="-1" role="dialog" aria-label="Change the rules" novalidate>
+                <div class="explore-field">
+                  <label class="explore-field-label" for="life-rule-birth">Birth</label>
+                  <span class="explore-field-hint">0 - 26</span>
+                </div>
+                <input type="text" id="life-rule-birth" class="glass-input" placeholder="9,10" />
+                <div class="explore-field">
+                  <label class="explore-field-label" for="life-rule-survival">Survival</label>
+                  <span class="explore-field-hint">0 - 26</span>
+                </div>
+                <input type="text" id="life-rule-survival" class="glass-input" placeholder="5-15" />
+                <div class="info-line"><span class="label">Isolation</span><span id="life-rules-isolation" class="value"></span></div>
+                <div class="info-line"><span class="label">Overcrowding</span><span id="life-rules-overcrowding" class="value"></span></div>
+                <p class="explore-popover-text explore-popover-quiet">Counts of the 26 neighbours, as a list or ranges, such as 9,10 or 5-15. A live cell dies below and above every survival count.</p>
+                <p id="life-rules-note" class="explore-popover-text explore-popover-quiet"></p>
+                <p class="explore-error" role="alert" hidden></p>
+              <div class="explore-save-actions">
+                <button type="submit" class="glass-button explore-small-button">Apply</button>
+                <button type="button" class="glass-button explore-small-button" data-cancel>Cancel</button>
+              </div>
+              </form>
+              <!-- Explore only (src/explore/hud.js): what locks the rules, if anything; the gear in the
+                   title changes them -->
+              <form id="explore-rules-popover" class="explore-popover" tabindex="-1" role="dialog" aria-label="Change the rules" novalidate>
+                <div id="explore-rules-locked" class="explore-popover-locked" hidden>
+                  <p id="explore-rules-locked-text" class="explore-popover-text"></p>
+                  <button type="button" id="explore-rules-own" class="glass-button explore-small-button">Use your own rules</button>
+                </div>
+                <div class="explore-field">
+                  <label class="explore-field-label" for="explore-rule-birth">Birth</label>
+                  <span class="explore-field-hint">1 - 26</span>
+                </div>
+                <input type="text" id="explore-rule-birth" class="glass-input" autocomplete="off" spellcheck="false" aria-describedby="explore-rule-birth-hint" />
+                <p id="explore-rule-birth-hint" class="explore-popover-text explore-popover-quiet">The neighbour counts that bring a dead cell to life, as a list or ranges, such as 9,10 or 5-15. A count of 0 isn't allowed: it would fill all of space at once.</p>
+                <div class="explore-field">
+                  <label class="explore-field-label" for="explore-rule-survival">Survival</label>
+                  <span class="explore-field-hint">0 - 26</span>
+                </div>
+                <input type="text" id="explore-rule-survival" class="glass-input" autocomplete="off" spellcheck="false" aria-describedby="explore-rule-survival-hint" />
+                <p id="explore-rule-survival-hint" class="explore-popover-text explore-popover-quiet">The neighbour counts that keep a live cell alive. A live cell dies with any other count:</p>
+                <div id="explore-rules-derived" class="explore-rules-derived" aria-live="polite">
+                  <div class="explore-derived-line"><span>Isolation</span><span id="explore-rules-isolation">–</span></div>
+                  <div class="explore-derived-line"><span>Overcrowding</span><span id="explore-rules-overcrowding">–</span></div>
+                  <div class="explore-derived-line" id="explore-rules-gaps-line" hidden><span>Also dies at</span><span id="explore-rules-gaps">–</span></div>
+                </div>
+                <p id="explore-rules-note" class="explore-popover-text explore-popover-quiet"></p>
+                <p id="explore-rules-error" class="explore-error" role="alert" hidden></p>
+                <div class="explore-save-actions">
+                  <button type="submit" class="glass-button explore-small-button">Apply</button>
+                  <button type="button" class="glass-button explore-small-button" data-cancel>Cancel</button>
+                </div>
+              </form>
+            </div>
+          </div>
         </div>
         <div id="glass-info-sim" class="glass-display glass-display--compact">
-          <div class="box-title"><span class="box-title-text">Grid</span><button type="button" class="hud-collapse" aria-expanded="true" aria-label="Collapse the Grid box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></div>
+          <div class="box-title"><span class="box-title-text">Grid</span><span class="box-title-tools"><button type="button" id="grid-change" class="hud-gear hud-gear--precomputed" aria-label="Change the grid: its size, generations and edge" title="Change the grid: its size, generations and edge" aria-haspopup="dialog" aria-expanded="false" aria-controls="grid-popover"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.14,12.94a7.43,7.43,0,0,0,.05-.94,7.43,7.43,0,0,0-.05-.94l2.11-1.65a.5.5,0,0,0,.12-.64l-2-3.46a.5.5,0,0,0-.6-.22l-2.49,1a7.28,7.28,0,0,0-1.63-.94l-.38-2.65A.5.5,0,0,0,13.64,2H10.36a.5.5,0,0,0-.5.42L9.48,5.07a7.28,7.28,0,0,0-1.63.94l-2.49-1a.5.5,0,0,0-.6.22l-2,3.46a.5.5,0,0,0,.12.64L4.91,11.06a7.43,7.43,0,0,0-.05.94,7.43,7.43,0,0,0,.05.94L2.8,14.59a.5.5,0,0,0-.12.64l2,3.46a.5.5,0,0,0,.6.22l2.49-1a7.28,7.28,0,0,0,1.63.94l.38,2.65a.5.5,0,0,0,.5.42h3.28a.5.5,0,0,0,.5-.42l.38-2.65a7.28,7.28,0,0,0,1.63-.94l2.49,1a.5.5,0,0,0,.6-.22l2-3.46a.5.5,0,0,0-.12-.64ZM12,15.5A3.5,3.5,0,1,1,15.5,12,3.5,3.5,0,0,1,12,15.5Z"/></svg></button><button type="button" class="hud-collapse" aria-expanded="true" aria-label="Collapse the Grid box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></span></div>
           <div class="info-line"><span class="label">Generations</span><span id="sim-generations-value" class="value">0</span></div>
           <div class="info-line"><span class="label">Size</span><span id="sim-size-value" class="value">0</span></div>
-        </div>
-        <div id="glass-info-shape" class="glass-display glass-display--compact">
-          <div class="box-title"><span class="box-title-text">Seed</span><span class="box-title-tools"><button type="button" id="explore-change-seed" class="hud-gear hud-gear--explore" aria-label="Change the seed" title="Change the seed" aria-haspopup="dialog" aria-expanded="false" aria-controls="explore-seed-popover"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.14,12.94a7.43,7.43,0,0,0,.05-.94,7.43,7.43,0,0,0-.05-.94l2.11-1.65a.5.5,0,0,0,.12-.64l-2-3.46a.5.5,0,0,0-.6-.22l-2.49,1a7.28,7.28,0,0,0-1.63-.94l-.38-2.65A.5.5,0,0,0,13.64,2H10.36a.5.5,0,0,0-.5.42L9.48,5.07a7.28,7.28,0,0,0-1.63.94l-2.49-1a.5.5,0,0,0-.6.22l-2,3.46a.5.5,0,0,0,.12.64L4.91,11.06a7.43,7.43,0,0,0-.05.94,7.43,7.43,0,0,0,.05.94L2.8,14.59a.5.5,0,0,0-.12.64l2,3.46a.5.5,0,0,0,.6.22l2.49-1a7.28,7.28,0,0,0,1.63.94l.38,2.65a.5.5,0,0,0,.5.42h3.28a.5.5,0,0,0,.5-.42l.38-2.65a7.28,7.28,0,0,0,1.63-.94l2.49,1a.5.5,0,0,0,.6-.22l2-3.46a.5.5,0,0,0-.12-.64ZM12,15.5A3.5,3.5,0,1,1,15.5,12,3.5,3.5,0,0,1,12,15.5Z"/></svg></button><button type="button" class="hud-collapse" aria-expanded="true" aria-label="Collapse the Seed box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></span></div>
-          <div class="info-line hud-shape-line"><span class="label">Shape</span><span id="shape-name-value" class="value">cube</span></div>
-          <div class="info-line hud-shape-line"><span class="label">Density</span><span id="shape-density-value" class="value">1</span></div>
-          <div class="info-line hud-shape-line"><span class="label">Size</span><span id="shape-size-value" class="value">10</span></div>
-          <!-- Explore only (src/explore/hud.js): what the run started from, and Save seed (the save
-               popover is shared, below); the gear in the title changes the seed -->
-          <div id="explore-seed-label" class="explore-hud-name">Cube, size 10, density 1</div>
-          <div class="info-line explore-hud-line"><span class="label">Cells</span><span id="explore-seed-cells" class="value">1,000</span></div>
-          <div class="explore-box-actions explore-box-actions--shared">
-            <button type="button" id="explore-save-seed" class="glass-button explore-small-button" aria-haspopup="dialog" aria-expanded="false" aria-controls="explore-save-popover" disabled>Save seed</button>
-          </div>
-          <form id="explore-seed-popover" class="explore-popover" tabindex="-1" role="dialog" aria-label="Change the seed" novalidate>
-            <div class="explore-seed-kind" role="group" aria-label="Kind of seed">
-              <button type="button" id="explore-seed-custom" class="seed-kind-option" aria-pressed="true" title="A shape, or a file, with the rules in the Rules box">Custom</button>
-              <button type="button" id="explore-seed-preset" class="seed-kind-option" aria-pressed="false" title="A ready-made seed that brings its own rules">Preset</button>
+          <div class="info-line grid-line grid-line--gameOfLife"><span class="label">Edge</span><span id="grid-edge-value" class="value">wraps around</span></div>
+          <div class="info-line grid-line grid-line--rule30"><span class="label">3D</span><span id="grid-3d-value" class="value">off</span></div>
+          <div class="info-line grid-line grid-line--sandpile"><span class="label">Initial sand</span><span id="grid-sand-value" class="value">0</span></div>
+          <!-- The precomputed modes' grid (src/hudSettings.js, #130); the advice hints are adviceControl.js's -->
+          <form id="grid-popover" class="explore-popover" tabindex="-1" role="dialog" aria-label="Change the grid" novalidate>
+            <div class="explore-field">
+              <label class="explore-field-label" for="sim-generations">Generations</label>
+              <button type="button" class="input-range-hint advice-hint" id="sim-generations-range" popovertarget="sim-generations-advice">
+                <span class="visually-hidden">Generations advice, suggested range </span><span id="sim-generations-range-text">1 - 100</span><span class="advice-hint-icon" aria-hidden="true">?</span>
+              </button>
+              <div id="sim-generations-advice" class="advice-popover" popover role="note" aria-label="Generations advice"></div>
             </div>
-            <div id="explore-seed-preset-part" class="explore-popover-part" hidden>
-              <label class="explore-field" for="explore-preset"><span class="explore-field-label">Preset</span></label>
-              <select id="explore-preset" class="glass-select"></select>
-              <p id="explore-preset-description" class="explore-popover-text"></p>
-              <p id="explore-preset-rules" class="explore-popover-text explore-popover-quiet"></p>
-              <button type="button" id="explore-edit-copy" class="glass-button explore-small-button explore-popover-button">Edit a copy…</button>
-              <p id="explore-edit-copy-note" class="explore-popover-text explore-popover-quiet"></p>
-            </div>
-            <div id="explore-seed-custom-part" class="explore-popover-part">
-              <div class="explore-field-label explore-source-label" aria-hidden="true">Cells from</div>
-              <div class="explore-seed-kind explore-seed-kind--source" role="group" aria-label="Where the cells come from">
-                <button type="button" id="explore-source-shape" class="seed-kind-option" aria-pressed="true" title="Cells from one of the shapes">Shape</button>
-                <button type="button" id="explore-source-file" class="seed-kind-option" aria-pressed="false" title="Cells from a seed file or a saved generation">File</button>
-                <button type="button" id="explore-source-design" class="seed-kind-option" aria-pressed="false" title="Cells you place one by one, in the seed editor">Design</button>
+            <input type="number" id="sim-generations" class="glass-input" min="1" step="1" />
+            <div id="grid-size-row">
+              <div class="explore-field">
+                <label class="explore-field-label" for="sim-size">Size, in cells a side</label>
+                <button type="button" class="input-range-hint advice-hint" id="sim-size-range" popovertarget="sim-size-advice">
+                  <span class="visually-hidden">Size advice, suggested range </span><span id="sim-size-range-text">1 - 200</span><span class="advice-hint-icon" aria-hidden="true">?</span>
+                </button>
+                <div id="sim-size-advice" class="advice-popover" popover role="note" aria-label="Size advice"></div>
               </div>
-              <div id="explore-seed-shape-part" class="explore-popover-part">
-                <label class="explore-field" for="explore-shape"><span class="explore-field-label">Shape</span></label>
-                <select id="explore-shape" class="glass-select"></select>
-                <div id="explore-shape-params">
-                  <div class="explore-field">
-                    <label class="explore-field-label" for="explore-shape-size" id="explore-shape-size-label">Size</label>
-                    <span class="explore-field-hint" id="explore-shape-size-hint">1 - 100</span>
-                  </div>
-                  <input type="number" id="explore-shape-size" class="glass-input" min="1" max="100" step="1" />
-                  <div class="explore-field">
-                    <label class="explore-field-label" for="explore-shape-density" id="explore-shape-density-label">Density</label>
-                    <span class="explore-field-hint">0 - 1</span>
-                  </div>
-                  <input type="number" id="explore-shape-density" class="glass-input" min="0" max="1" step="0.01" />
-                  <div id="explore-shape-region-row">
-                    <div class="explore-field">
-                      <label class="explore-field-label" for="explore-shape-region">Region size</label>
-                      <span class="explore-field-hint">0 - 200</span>
-                    </div>
-                    <input type="number" id="explore-shape-region" class="glass-input" min="0" max="200" step="1" />
-                  </div>
-                  <p id="explore-shape-about" class="explore-popover-text explore-popover-quiet"></p>
+              <input type="number" id="sim-size" class="glass-input" min="1" step="1" />
+              <p id="grid-size-about" class="explore-popover-text explore-popover-quiet"></p>
+            </div>
+            <div id="grid-rule30-row">
+              <label class="explore-check" for="rule30-3d"><input type="checkbox" id="rule30-3d" /> 3D mode</label>
+              <p id="grid-rule30-about" class="explore-popover-text explore-popover-quiet"></p>
+            </div>
+            <div id="grid-sand-row">
+              <div class="explore-field">
+                <label class="explore-field-label" for="sandpile-initial-sand">Initial sand, at the centre</label>
+                <button type="button" class="input-range-hint advice-hint" id="sandpile-initial-sand-range" popovertarget="sandpile-sand-advice">
+                  <span class="visually-hidden">Initial sand, allowed range </span><span>0 - 255</span><span class="advice-hint-icon" aria-hidden="true">?</span>
+                </button>
+                <div id="sandpile-sand-advice" class="advice-popover" popover role="note" aria-label="Initial sand advice"></div>
+              </div>
+              <input type="number" id="sandpile-initial-sand" class="glass-input" min="0" max="255" step="1" />
+            </div>
+            <div id="grid-edge-row" role="radiogroup" aria-label="At the grid's edge">
+              <div class="explore-field-label">At the edge</div>
+              <label class="explore-check" for="grid-edge-wrap"><input type="radio" name="grid-edge" id="grid-edge-wrap" /> It wraps around</label>
+              <label class="explore-check" for="grid-edge-walls"><input type="radio" name="grid-edge" id="grid-edge-walls" /> Walls, with their own rules</label>
+              <div id="grid-walls" class="explore-walls-rules">
+                <div class="explore-wall-kind">Corner <span class="explore-popover-quiet">(7 neighbours)</span></div>
+                <div class="explore-wall-row">
+                  <label class="explore-field-label" for="wall-corner-birth">Birth</label>
+                  <input type="text" id="wall-corner-birth" class="glass-input" />
+                  <label class="explore-field-label" for="wall-corner-survival">Survival</label>
+                  <input type="text" id="wall-corner-survival" class="glass-input" />
+                </div>
+                <div class="explore-wall-kind">Edge <span class="explore-popover-quiet">(11 neighbours)</span></div>
+                <div class="explore-wall-row">
+                  <label class="explore-field-label" for="wall-edge-birth">Birth</label>
+                  <input type="text" id="wall-edge-birth" class="glass-input" />
+                  <label class="explore-field-label" for="wall-edge-survival">Survival</label>
+                  <input type="text" id="wall-edge-survival" class="glass-input" />
+                </div>
+                <div class="explore-wall-kind">Face <span class="explore-popover-quiet">(17 neighbours)</span></div>
+                <div class="explore-wall-row">
+                  <label class="explore-field-label" for="wall-face-birth">Birth</label>
+                  <input type="text" id="wall-face-birth" class="glass-input" />
+                  <label class="explore-field-label" for="wall-face-survival">Survival</label>
+                  <input type="text" id="wall-face-survival" class="glass-input" />
                 </div>
               </div>
-              <div id="explore-seed-file-part" class="explore-popover-part" hidden>
-                <button type="button" id="explore-load-seed" class="glass-button explore-small-button">Load…</button>
-                <input type="file" id="explore-seed-file" accept=".json,application/json" hidden />
-                <p id="explore-seed-status" class="explore-popover-text" role="status"></p>
-              </div>
-              <div id="explore-seed-design-part" class="explore-popover-part" hidden>
-                <button type="button" id="explore-design" class="glass-button explore-small-button">Design…</button>
-                <p id="explore-design-status" class="explore-popover-text"></p>
-              </div>
             </div>
-            <p id="explore-seed-note" class="explore-popover-text explore-popover-quiet"></p>
-            <p id="explore-seed-error" class="explore-error" role="alert" hidden></p>
-            <div class="explore-save-actions">
-              <button type="submit" class="glass-button explore-small-button">Apply</button>
-              <button type="button" class="glass-button explore-small-button" data-cancel>Cancel</button>
-            </div>
-            <!-- Use in a contest (#95): the seed in use and its rules, into a Discovery contest,
-                 Methuselah or Classic Methuselah (#102) -->
-            <div class="explore-popover-contest">
-              <div class="explore-contest-row">
-                <select id="explore-contest-choice" class="glass-select" aria-label="The contest to use it in"></select>
-                <button type="button" id="explore-use-in-contest" class="glass-button explore-small-button">Use in a contest</button>
-              </div>
-              <p id="explore-contest-status" class="explore-popover-text explore-popover-quiet"></p>
-              <p id="explore-contest-error" class="explore-error" role="alert" hidden></p>
-            </div>
-          </form>
-        </div>
-        <div id="glass-info-rules" class="glass-display glass-display--compact">
-          <div class="box-title"><span class="box-title-text">Rules</span><span class="box-title-tools"><button type="button" id="explore-change-rules" class="hud-gear hud-gear--explore" aria-label="Change the rules" title="Change the rules" aria-haspopup="dialog" aria-expanded="false" aria-controls="explore-rules-popover"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.14,12.94a7.43,7.43,0,0,0,.05-.94,7.43,7.43,0,0,0-.05-.94l2.11-1.65a.5.5,0,0,0,.12-.64l-2-3.46a.5.5,0,0,0-.6-.22l-2.49,1a7.28,7.28,0,0,0-1.63-.94l-.38-2.65A.5.5,0,0,0,13.64,2H10.36a.5.5,0,0,0-.5.42L9.48,5.07a7.28,7.28,0,0,0-1.63.94l-2.49-1a.5.5,0,0,0-.6.22l-2,3.46a.5.5,0,0,0,.12.64L4.91,11.06a7.43,7.43,0,0,0-.05.94,7.43,7.43,0,0,0,.05.94L2.8,14.59a.5.5,0,0,0-.12.64l2,3.46a.5.5,0,0,0,.6.22l2.49-1a7.28,7.28,0,0,0,1.63.94l.38,2.65a.5.5,0,0,0,.5.42h3.28a.5.5,0,0,0,.5-.42l.38-2.65a7.28,7.28,0,0,0,1.63-.94l2.49,1a.5.5,0,0,0,.6-.22l2-3.46a.5.5,0,0,0-.12-.64ZM12,15.5A3.5,3.5,0,1,1,15.5,12,3.5,3.5,0,0,1,12,15.5Z"/></svg></button><button type="button" class="hud-collapse" aria-expanded="true" aria-label="Collapse the Rules box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></span></div>
-          <div class="info-line"><span class="label">Birth</span><span id="rules-birth" class="value">9,10</span></div>
-          <div class="info-line"><span class="label">Survival</span><span id="rules-survival" class="value">5-15</span></div>
-          <div class="info-line hud-derived-line"><span class="label">Isolation</span><span id="rules-isolation" class="value">0-4</span></div>
-          <div class="info-line hud-derived-line"><span class="label">Overcrowding</span><span id="rules-overcrowd" class="value">16-26</span></div>
-          <!-- Explore only (src/explore/hud.js): what locks the rules, if anything; the gear in the
-               title changes them -->
-          <div id="explore-rules-lock" class="explore-hud-name explore-hud-lock" hidden></div>
-          <form id="explore-rules-popover" class="explore-popover" tabindex="-1" role="dialog" aria-label="Change the rules" novalidate>
-            <div id="explore-rules-locked" class="explore-popover-locked" hidden>
-              <p id="explore-rules-locked-text" class="explore-popover-text"></p>
-              <button type="button" id="explore-rules-own" class="glass-button explore-small-button">Use your own rules</button>
-            </div>
-            <div class="explore-field">
-              <label class="explore-field-label" for="explore-rule-birth">Birth</label>
-              <span class="explore-field-hint">1 - 26</span>
-            </div>
-            <input type="text" id="explore-rule-birth" class="glass-input" autocomplete="off" spellcheck="false" aria-describedby="explore-rule-birth-hint" />
-            <p id="explore-rule-birth-hint" class="explore-popover-text explore-popover-quiet">The neighbour counts that bring a dead cell to life, as a list or ranges, such as 9,10 or 5-15. A count of 0 isn't allowed: it would fill all of space at once.</p>
-            <div class="explore-field">
-              <label class="explore-field-label" for="explore-rule-survival">Survival</label>
-              <span class="explore-field-hint">0 - 26</span>
-            </div>
-            <input type="text" id="explore-rule-survival" class="glass-input" autocomplete="off" spellcheck="false" aria-describedby="explore-rule-survival-hint" />
-            <p id="explore-rule-survival-hint" class="explore-popover-text explore-popover-quiet">The neighbour counts that keep a live cell alive. A live cell dies with any other count:</p>
-            <div id="explore-rules-derived" class="explore-rules-derived" aria-live="polite">
-              <div class="explore-derived-line"><span>Isolation</span><span id="explore-rules-isolation">–</span></div>
-              <div class="explore-derived-line"><span>Overcrowding</span><span id="explore-rules-overcrowding">–</span></div>
-              <div class="explore-derived-line" id="explore-rules-gaps-line" hidden><span>Also dies at</span><span id="explore-rules-gaps">–</span></div>
-            </div>
-            <p id="explore-rules-note" class="explore-popover-text explore-popover-quiet"></p>
-            <p id="explore-rules-error" class="explore-error" role="alert" hidden></p>
-            <div class="explore-save-actions">
-              <button type="submit" class="glass-button explore-small-button">Apply</button>
-              <button type="button" class="glass-button explore-small-button" data-cancel>Cancel</button>
-            </div>
+            <p id="grid-note" class="explore-popover-text explore-popover-quiet"></p>
+            <p class="explore-error" role="alert" hidden></p>
+          <div class="explore-save-actions">
+            <button type="submit" class="glass-button explore-small-button">Apply</button>
+            <button type="button" class="glass-button explore-small-button" data-cancel>Cancel</button>
+          </div>
           </form>
         </div>
         <!-- Explore only (src/explore/hud.js): what limits a run, the arena and the memory limit -->
@@ -493,10 +385,10 @@
               <label class="explore-check" for="explore-edge-ships"><input type="radio" name="explore-edge" id="explore-edge-ships" value="ships" /> Ships leave</label>
               <p class="explore-popover-text explore-popover-quiet">As in Classic Methuselah: a ship of period up to 32 heading out through a wall leaves the arena, and the run goes on; anything else at the edge still ends it.</p>
               <label class="explore-check" for="explore-edge-wrap"><input type="radio" name="explore-edge" id="explore-edge-wrap" value="wrap" /> It wraps around</label>
-              <p class="explore-popover-text explore-popover-quiet">Opposite walls meet: a pattern that crosses one comes back in through the other, and the run never reaches the edge. No contest wraps, so Save this generation is off while it does; Save seed still works.</p>
+              <p class="explore-popover-text explore-popover-quiet">Opposite walls meet: a pattern that crosses one comes back in through the other, and the run never reaches the edge. No contest wraps, so Save this generation is off while it does; Save simulation still works.</p>
               <!-- Walls (#119): the old Game of Life 3D mode's corner, edge and face rules -->
               <label class="explore-check" for="explore-edge-walls"><input type="radio" name="explore-edge" id="explore-edge-walls" value="walls" /> Walls</label>
-              <p class="explore-popover-text explore-popover-quiet">The arena is closed: past its walls is empty, so a cell on a wall counts only the neighbours inside, and follows its own rules, here. Nothing is born outside, so the run never reaches the edge. No contest has walls, so Save this generation is off with them; Save seed still works.</p>
+              <p class="explore-popover-text explore-popover-quiet">The arena is closed: past its walls is empty, so a cell on a wall counts only the neighbours inside, and follows its own rules, here. Nothing is born outside, so the run never reaches the edge. No contest has walls, so Save this generation is off with them; Save simulation still works.</p>
               <div id="explore-walls-rules" class="explore-walls-rules" hidden>
                 <div class="explore-wall-kind">Corner <span class="explore-popover-quiet">(7 neighbours)</span></div>
                 <div class="explore-wall-row">
@@ -538,7 +430,7 @@
           </form>
         </div>
         <div id="glass-info-explore" class="glass-display glass-display--compact">
-          <div class="box-title"><span class="box-title-text">Run</span><button type="button" class="hud-collapse" aria-expanded="true" aria-label="Collapse the Run box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></div>
+          <div class="box-title"><span class="box-title-text">Run</span><span class="box-title-tools"><button type="button" id="explore-save-generation" class="hud-gear hud-gear--explore hud-save" aria-label="Save this generation" title="Save this generation" aria-haspopup="dialog" aria-expanded="false" aria-controls="explore-save-popover" disabled><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></button><button type="button" class="hud-collapse" aria-expanded="true" aria-label="Collapse the Run box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></span></div>
           <div class="info-line"><span class="label">Generation</span><span id="explore-generation" class="value">0</span></div>
           <div class="info-line"><span class="label">Gen/s</span><span id="explore-rate" class="value">0</span></div>
           <div class="info-line"><span class="label">Live cells</span><span id="explore-live" class="value">0</span></div>
@@ -552,12 +444,9 @@
                has reserved, of the limit in the Limits box -->
           <div class="info-line"><span class="label">Memory in use</span><span id="explore-memory-live" class="value">0 KB</span></div>
           <div class="info-line"><span class="label">Reserved</span><span id="explore-memory-used" class="value">0 MB</span></div>
-          <!-- Save this generation opens the save popover, which Save seed in the Seed box shares: it
-               moves beside the box whose button opened it, and says what the file holds and where it
-               goes -->
-          <div class="explore-box-actions">
-            <button type="button" id="explore-save-generation" class="glass-button explore-small-button" aria-haspopup="dialog" aria-expanded="false" aria-controls="explore-save-popover" disabled>Save this generation</button>
-          </div>
+          <!-- Save this generation, the save icon in the Run box's title, opens the save popover, which
+               Save simulation and Save seed share: it moves beside the box whose icon opened it, and
+               says what the file holds and where it goes -->
           <div id="explore-save-popover" class="explore-popover explore-save-popover" role="dialog" aria-labelledby="explore-save-title" tabindex="-1">
             <div id="explore-save-title" class="explore-popover-title"></div>
             <p id="explore-save-what" class="explore-save-text"></p>
@@ -574,7 +463,7 @@
              the panel in the middle of the screen does the rest -->
         <div id="glass-info-contest" class="glass-display glass-display--compact">
           <div class="box-title"><span class="box-title-text">Contest</span><button type="button" class="hud-collapse" aria-expanded="true" aria-label="Collapse the Contest box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></button></div>
-          <div class="info-line"><span class="label">Branch</span><span id="contest-hud-name" class="value">–</span></div>
+          <div class="info-line"><span class="label">Contest</span><span id="contest-hud-name" class="value">–</span></div>
           <div class="info-line"><span class="label">Status</span><span id="contest-hud-status" class="value">Choosing</span></div>
           <div class="info-line"><span class="label">Generation</span><span id="contest-hud-generation" class="value">–</span></div>
         </div>
@@ -584,26 +473,26 @@
   <!-- The Contests banner (#77), left of the company logo in every mode: one click opens the
        Contests mode, and in it, shown as pressed, one click (or Esc) goes back. controls.js fills in
        the date entries close, from src/unbounded/contests.js -->
-  <button type="button" id="contests-banner" class="contests-banner" aria-pressed="false" title="Open the contest">
+  <button type="button" id="contests-banner" class="contests-banner" aria-pressed="false" title="Open the contests">
     <svg class="contests-banner-trophy" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <path d="M7 3.5 H17 V9 A5 5 0 0 1 7 9 Z"></path>
       <path d="M7 5.5 H4.5 A2.5 2.5 0 0 0 7.2 10.5 M17 5.5 H19.5 A2.5 2.5 0 0 1 16.8 10.5"></path>
       <path d="M12 14 V17 M9.5 17 H14.5 V20.5 H9.5 Z"></path>
     </svg>
-    <span class="contests-banner-name">Contest</span>
+    <span class="contests-banner-name">Contests</span>
     <span id="contests-banner-closes" class="contests-banner-closes">Closes TBD</span>
   </button>
   <!-- The Contests mode's panel (src/contests/panel.js, #77): the list of contests, a contest's
        page, its run, its results and Verify a result. panel.js fills it; nothing is drawn in 3D
        behind it -->
   <section id="contests-panel" class="contests-panel" aria-labelledby="contests-panel-title" hidden>
-    <h2 id="contests-panel-title" class="contests-panel-title">The Contest</h2>
+    <h2 id="contests-panel-title" class="contests-panel-title">Season 0</h2>
     <div id="contests-panel-body" class="contests-panel-body"></div>
     <p id="contests-panel-status" class="contests-panel-status" role="status" aria-live="polite"></p>
   </section>
   <input type="file" id="contests-verify-file" accept=".json,application/json" hidden>
-  <!-- Load seed… on a Discovery contest's page (#94): a seed file from Explore's Save seed or the
-       seed editor's Export -->
+  <!-- Load simulation… on a Discovery contest's page (#94): a simulation file from Explore's Save
+       simulation (#130) -->
   <input type="file" id="contests-seed-file" accept=".json,application/json" hidden>
   <!-- Watch (src/contests/watch.js, #78): a result played back in 3D, in place of the panel. The
        control bar plays, pauses, steps and sets the speed; this bar, above it, scrubs to any
@@ -696,7 +585,7 @@
     <div class="explore-popover-section">File</div>
     <div class="seed-editor-row">
       <button type="button" class="glass-button explore-small-button" data-action="load" title="Open a seed file that fits the 10³ box">Load…</button>
-      <button type="button" class="glass-button explore-small-button" data-action="export" title="Save the design as a seed file">Export</button>
+      <button type="button" class="glass-button explore-small-button" data-action="export" title="Save the design as a seed file: its cells, without rules">Export</button>
       <input type="file" id="seed-editor-file" accept=".json,application/json" hidden />
     </div>
     <p class="explore-popover-text explore-popover-quiet">Load takes seed files only: a saved generation brings its own rules and arena, so it can't open as a design.</p>
@@ -715,7 +604,7 @@
     <div id="bottom-controls-container" class="footer-center">
       <!-- Configuration Button Panel -->
       <div id="config-controls-panel" class="bottom-controls-panel">
-        <button id="seedConfigButton" class="glass-button" aria-label="Configure seed">
+        <button id="seedConfigButton" class="glass-button" aria-label="Change the mode" title="Change the mode">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
             <path d="M19.14,12.94a7.43,7.43,0,0,0,.05-.94,7.43,7.43,0,0,0-.05-.94l2.11-1.65a.5.5,0,0,0,.12-.64l-2-3.46a.5.5,0,0,0-.6-.22l-2.49,1a7.28,7.28,0,0,0-1.63-.94l-.38-2.65A.5.5,0,0,0,13.64,2H10.36a.5.5,0,0,0-.5.42L9.48,5.07a7.28,7.28,0,0,0-1.63.94l-2.49-1a.5.5,0,0,0-.6.22l-2,3.46a.5.5,0,0,0,.12.64L4.91,11.06a7.43,7.43,0,0,0-.05.94,7.43,7.43,0,0,0,.05.94L2.8,14.59a.5.5,0,0,0-.12.64l2,3.46a.5.5,0,0,0,.6.22l2.49-1a7.28,7.28,0,0,0,1.63.94l.38,2.65a.5.5,0,0,0,.5.42h3.28a.5.5,0,0,0,.5-.42l.38-2.65a7.28,7.28,0,0,0,1.63-.94l2.49,1a.5.5,0,0,0,.6-.22l2-3.46a.5.5,0,0,0-.12-.64ZM12,15.5A3.5,3.5,0,1,1,15.5,12,3.5,3.5,0,0,1,12,15.5Z"/>
           </svg>
@@ -1169,7 +1058,7 @@
   #glass-info-explore.glass-display--compact,
   #glass-info-contest.glass-display--compact,
   #glass-info-limits.glass-display--compact,
-  #glass-info-modename.glass-display--compact,
+  #glass-info-simulation.glass-display--compact,
   #glass-info-mode.glass-display--compact {
     padding: 10px 12px;
     border-radius: 12px;
@@ -2128,36 +2017,6 @@
   /* With the panel open, the Contests banner and panel make way */
   body.company-modal-open .contests-banner,
   body.company-modal-open .contests-panel { display: none; }
-  .modal-backdrop { 
-    position: absolute; 
-    inset: 0; 
-    background: rgba(0,0,0,0.98);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-  }
-  .modal-backdrop::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-image: 
-      repeating-linear-gradient(0deg, rgba(255,255,255,0.03) 0px, transparent 1px, transparent 2px, rgba(255,255,255,0.03) 3px),
-      repeating-linear-gradient(90deg, rgba(255,255,255,0.03) 0px, transparent 1px, transparent 2px, rgba(255,255,255,0.03) 3px);
-    background-size: 4px 4px;
-    opacity: 0.4;
-    pointer-events: none;
-  }
-  .modal-backdrop::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: 
-      radial-gradient(circle at 20% 50%, rgba(255,255,255,0.02) 0%, transparent 50%),
-      radial-gradient(circle at 80% 80%, rgba(255,255,255,0.02) 0%, transparent 50%),
-      radial-gradient(circle at 40% 20%, rgba(255,255,255,0.02) 0%, transparent 50%);
-    opacity: 0.5;
-    pointer-events: none;
-    mix-blend-mode: overlay;
-  }
   .glass-panel { 
     background: rgba(30, 30, 35, 0.98); 
     border: 1px solid rgba(120, 120, 130, 0.3); 
@@ -2191,61 +2050,9 @@
     overflow: hidden;
     background: rgba(30, 30, 35, 0.98);
   }
-  .modal-title { 
-    margin: 0 0 10px; 
-    color: rgba(240, 240, 245, 0.98); 
-    border-bottom: 1px solid rgba(140, 140, 150, 0.3); 
-    padding-bottom: 6px; 
-    font-weight: 600; 
-    font-size: 20px;
-    letter-spacing: 0.3px;
-  }
-  .modal-body { 
-    display: flex; 
-    flex-direction: column; 
-    gap: 2px; 
-    overflow-y: auto;
-    overflow-x: hidden;
-    flex: 1;
-    min-height: 0;
-    padding-right: 4px;
-  }
-  .modal-body::-webkit-scrollbar {
-    width: 8px;
-  }
-  .modal-body::-webkit-scrollbar-track {
-    background: rgba(25, 25, 30, 0.6);
-    border-radius: 4px;
-  }
-  .modal-body::-webkit-scrollbar-thumb {
-    background: rgba(140, 140, 150, 0.4);
-    border-radius: 4px;
-  }
-  .modal-body::-webkit-scrollbar-thumb:hover {
-    background: rgba(160, 160, 170, 0.6);
-  }
-  .modal-grid { 
-    display: grid; 
-    grid-template-columns: repeat(4, 1fr); 
-    gap: 4px 12px; 
-    align-items: start; 
-    position: relative; 
-    min-width: 0;
-  }
   @media (max-width: 900px) {
     .modal-content {
       min-width: 90vw;
-    }
-    .modal-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
-    .modal-grid .rules-col,
-    .modal-grid .boundary-col {
-      border-left: none;
-      border-top: 1px solid rgba(140, 140, 150, 0.25);
-      padding-left: 0;
-      padding-top: 10px;
-      margin-top: 6px;
     }
   }
   @media (max-width: 600px) {
@@ -2255,282 +2062,6 @@
     }
     /* The company panel keeps its own narrow width, with a gutter on each side */
     #company-modal .modal-content { min-width: min(300px, calc(100vw - 64px)); }
-    .modal-grid {
-      grid-template-columns: 1fr;
-    }
-    .modal-grid .seed-col,
-    .modal-grid .rules-col,
-    .modal-grid .boundary-col {
-      border-left: none;
-      border-top: 1px solid rgba(140, 140, 150, 0.25);
-      padding-left: 0;
-      padding-top: 10px;
-      margin-top: 6px;
-      width: 100%;
-    }
-    .modal-field-row .glass-input,
-    .modal-field-row .glass-select {
-      max-width: 100%;
-    }
-  }
-  .modal-grid .sim-col { 
-    grid-column: 1 / -1; 
-    display: flex; 
-    flex-direction: column; 
-    gap: 3px; 
-    margin-bottom: 2px;
-  }
-  .modal-grid .sim-col:not(:first-child) {
-    grid-column: 1;
-    margin-bottom: 0;
-    border-left: none;
-    padding-left: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-    width: 100%;
-    box-sizing: border-box;
-  }
-  .modal-grid .seed-col { 
-    grid-column: 2; 
-    display: flex; 
-    flex-direction: column; 
-    gap: 2px; 
-    border-left: 1px solid rgba(140, 140, 150, 0.25); 
-    padding-left: 12px; 
-    min-width: 0;
-    width: 100%;
-    box-sizing: border-box;
-  }
-  .modal-grid .rules-col { 
-    grid-column: 3; 
-    display: flex; 
-    flex-direction: column; 
-    gap: 2px; 
-    border-left: 1px solid rgba(140, 140, 150, 0.25); 
-    padding-left: 12px; 
-    min-width: 0;
-    width: 100%;
-    box-sizing: border-box;
-  }
-  .modal-grid .boundary-col { 
-    grid-column: 4; 
-    display: flex; 
-    flex-direction: column; 
-    gap: 2px; 
-    border-left: 1px solid rgba(140, 140, 150, 0.25); 
-    padding-left: 12px; 
-    padding-right: 0;
-    min-width: 0;
-    width: 100%;
-    box-sizing: border-box;
-  }
-  @media (max-width: 1200px) {
-    .modal-grid .sim-col:not(:first-child) { grid-column: 1; }
-    .modal-grid .seed-col { grid-column: 1; }
-    .modal-grid .rules-col { grid-column: 2; }
-    .modal-grid .boundary-col { grid-column: 1 / -1; }
-  }
-  @media (max-width: 768px) {
-    .modal-grid .sim-col:not(:first-child),
-    .modal-grid .seed-col,
-    .modal-grid .rules-col,
-    .modal-grid .boundary-col {
-      grid-column: 1;
-    }
-  }
-  .rules-title { 
-    color: var(--color-title); 
-    font-weight: 700; 
-    font-size: 16px; 
-    margin-bottom: 4px; 
-    border-bottom: 1px solid rgba(140, 140, 150, 0.25); 
-    padding-bottom: 2px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    letter-spacing: 0.3px;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-  }
-  .mode-selector {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin-top: 4px;
-  }
-  .mode-card {
-    flex: 1;
-    padding: 8px 10px;
-    border-radius: 6px;
-    border: 1px solid rgba(140, 140, 150, 0.3);
-    background: rgba(40, 40, 45, 0.5);
-    color: rgba(230, 230, 235, 0.95);
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 3px;
-    outline: none;
-  }
-  .mode-card:hover {
-    transform: translateY(-1px);
-    border-color: rgba(120, 180, 255, 0.4);
-    background: rgba(35, 45, 60, 0.6);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  }
-  .mode-card.active {
-    border-color: rgba(120, 180, 255, 0.6);
-    background: rgba(40, 60, 90, 0.7);
-    box-shadow: 
-      0 4px 16px rgba(0, 0, 0, 0.4),
-      inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    color: rgba(220, 235, 255, 1);
-  }
-  .mode-card[data-mode="gameOfLife"] {
-    border-left: 3px solid rgba(100, 180, 255, 0.6);
-  }
-  .mode-card[data-mode="gameOfLife"].active {
-    border-left: 3px solid rgba(120, 200, 255, 0.9);
-    background: rgba(40, 70, 110, 0.7);
-  }
-  .mode-card[data-mode="rule30"] {
-    border-left: 3px solid rgba(100, 200, 150, 0.6);
-  }
-  .mode-card[data-mode="rule30"].active {
-    border-left: 3px solid rgba(120, 220, 170, 0.9);
-    background: rgba(40, 90, 70, 0.7);
-  }
-  .mode-card[data-mode="sineWave"] {
-    border-left: 3px solid rgba(180, 140, 220, 0.6);
-  }
-  .mode-card[data-mode="sineWave"].active {
-    border-left: 3px solid rgba(200, 160, 240, 0.9);
-    background: rgba(80, 60, 100, 0.7);
-  }
-  .mode-card[data-mode="sandpile"] {
-    border-left: 3px solid rgba(220, 160, 100, 0.6);
-  }
-  .mode-card[data-mode="sandpile"].active {
-    border-left: 3px solid rgba(240, 180, 120, 0.9);
-    background: rgba(100, 70, 50, 0.7);
-  }
-  .mode-name {
-    font-weight: 600;
-    font-size: 15px;
-    letter-spacing: 0.2px;
-  }
-  .mode-description {
-    margin-top: 6px;
-    padding: 10px 14px;
-    background: rgba(40, 40, 45, 0.5);
-    border: 1px solid rgba(140, 140, 150, 0.25);
-    border-radius: 6px;
-    color: rgba(230, 230, 235, 0.95);
-    font-size: 16px;
-    line-height: 1.7;
-    letter-spacing: 0.3px;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    white-space: normal;
-  }
-  .mode-description p {
-    margin: 0;
-  }
-  .mode-subtitle {
-    font-size: 12px;
-    opacity: 0.75;
-    font-weight: 400;
-    letter-spacing: 0.2px;
-  }
-  .modal-field-row {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-    margin-bottom: 3px;
-    min-width: 0;
-    padding: 0;
-    border-radius: 0;
-    background: transparent;
-    border: none;
-    transition: none;
-  }
-  
-  .modal-field-row:hover {
-    background: transparent;
-    border-color: transparent;
-  }
-  .modal-field-row .modal-label {
-    min-width: 0;
-    flex-shrink: 0;
-    white-space: nowrap;
-    font-size: 14px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding-right: 2px;
-    margin-top: 0;
-    padding-top: 0;
-    width: auto;
-  }
-  .modal-field-row .glass-input,
-  .modal-field-row .glass-select {
-    width: 100%;
-    min-width: 0;
-    max-width: 100%;
-    flex-shrink: 0;
-    margin-left: 0;
-    box-sizing: border-box;
-    position: relative;
-    z-index: 1;
-  }
-  .modal-field-row > div[style*="flex-direction: column"] {
-    margin-left: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
-    width: 100%;
-    min-width: 0;
-    max-width: 100%;
-    margin-top: 0;
-    padding-top: 0;
-  }
-  
-  .modal-field-row .label-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    gap: 8px;
-    pointer-events: none;
-  }
-  
-  .modal-field-row .label-row * {
-    pointer-events: auto;
-  }
-  
-  .modal-field-row .input-range-hint {
-    margin-left: auto;
-    flex-shrink: 0;
-  }
-  .modal-field-row > div[style*="flex-direction: column"] .glass-input {
-    width: 100%;
-    margin-left: 0;
-    margin-top: 0;
-    margin-bottom: 0;
-    align-self: stretch;
-  }
-  .modal-label { 
-    color: rgba(230, 230, 235, 0.95); 
-    font-weight: 600; 
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 14px;
-    letter-spacing: 0.3px;
   }
   .input-range-hint {
     font-size: 11px;
@@ -2634,9 +2165,6 @@
   .memory-confirm p {
     margin: 0 0 10px;
   }
-  .memory-confirm .modal-actions-buttons {
-    justify-content: flex-end;
-  }
   /* Tooltip styles for elements with data-tooltip attribute */
   [data-tooltip] {
     position: relative;
@@ -2669,11 +2197,6 @@
   .tooltip-display:empty {
     opacity: 0;
   }
-  
-  .modal-actions-buttons {
-    display: flex;
-    gap: 12px;
-  }
   .glass-input { 
     padding: 6px 8px; 
     border-radius: 8px; 
@@ -2683,13 +2206,6 @@
     outline: none; 
     font-size: 15px;
     font-weight: 500;
-  }
-  .modal-field-row .glass-select { 
-    padding: 6px 8px; 
-    font-size: 15px; 
-    border-radius: 8px;
-    appearance: none;
-    -webkit-appearance: none;
   }
   .modal-actions { 
     display: flex; 
@@ -2836,13 +2352,7 @@
   }
 
   /* ==== Explore (src/explore/) ==== */
-  .mode-card[data-mode="explore"] {
-    border-left: 3px solid rgba(240, 110, 140, 0.6);
-  }
-  .mode-card[data-mode="explore"].active {
-    border-left: 3px solid rgba(255, 130, 160, 0.9);
-    background: rgba(100, 45, 60, 0.7);
-  }
+
   .explore-small-button {
     padding: 5px 10px;
   }
@@ -2853,21 +2363,8 @@
   .explore-small-button[hidden] {
     display: none;
   }
-  /* In Explore, the dialog holds only the mode choice, and says where Explore's settings are */
-  .explore-settings-note {
-    margin: 8px 0 0;
-    padding: 8px 10px;
-    border-radius: 6px;
-    border: 1px solid rgba(120, 180, 255, 0.35);
-    background: rgba(120, 180, 255, 0.1);
-    color: rgba(200, 220, 255, 0.95);
-    font-size: 13px;
-    line-height: 1.4;
-  }
-  .explore-settings-note[hidden] {
-    display: none;
-  }
-  /* Custom / Preset: drawn like the control bar's 3D / 2D switch */
+  /* A two- or three-way switch (the Seed popover's Shape / File / Design, the seed editor's),
+     drawn like the control bar's 3D / 2D switch */
   .explore-seed-kind {
     display: flex;
     width: 100%;
@@ -2974,7 +2471,6 @@
      rules, a Change button at the foot of each box, which itself lets clicks through, and Save
      this generation and Save seed beside them */
   .explore-hud-name,
-  .explore-hud-line,
   body.mode-explore #glass-info-shape .hud-shape-line {
     display: none;
   }
@@ -2991,14 +2487,171 @@
   body.mode-explore .explore-hud-name[hidden] {
     display: none;
   }
-  body.mode-explore .explore-hud-lock {
+  /* The Simulation box (#130): a simulation is a seed and its rules, so the Seed and Rules boxes
+     sit inside it as its two parts. In Explore it also names the simulation in use, and its gear
+     sets both parts together */
+  .hud-simulation {
+    display: none;
+  }
+  body.mode-explore .hud-simulation {
+    display: block;
+    margin: 2px 0 8px;
+  }
+  .hud-simulation-parts {
+    display: flex;
+    flex-direction: column;
+    margin-top: 2px;
+  }
+  #glass-info-simulation .hud-simulation-parts > .glass-display {
+    width: auto;
+    margin: 0;
+    padding: 6px 0 4px;
+    border: none;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+  }
+  #glass-info-simulation .hud-simulation-parts > .glass-display.has-popover {
+    background: rgba(77, 163, 255, 0.12);
+  }
+  /* A part's title is the parent's, quieter: smaller, lighter, in the info text's colour, led by a
+     short line like a branch from the Simulation title above */
+  #glass-info-simulation .hud-simulation-parts .box-title {
+    margin-bottom: 2px;
+    padding-bottom: 0;
+    border-bottom: none;
+    color: var(--color-info-display-text);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.4px;
+  }
+  #glass-info-simulation .hud-simulation-parts .box-title-text::before {
+    content: "";
+    display: inline-block;
+    width: 10px;
+    height: 1px;
+    margin-right: 6px;
+    background: var(--color-title);
+    vertical-align: middle;
+  }
+  #glass-info-simulation .hud-simulation-parts .box-title .hud-collapse {
+    color: var(--color-info-display-text);
+  }
+  /* The panel's title is the mode: its name in the blue band, and what it is under it */
+  #glass-info-mode > .box-title {
+    align-items: flex-start;
+  }
+  .hud-mode-title {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  /* The name's line is as tall as the gear and the chevron, so it lines up with them */
+  #glass-info-mode > .box-title .hud-mode-name {
+    margin: 0;
+    color: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 24px;
+    letter-spacing: 0.4px;
+  }
+  .hud-mode-kind {
+    margin-top: -2px;
     color: var(--color-info-display-text);
     font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.4px;
+    text-transform: none;
   }
-  body.mode-explore #glass-info-shape .explore-hud-line {
+  .hud-mode-kind:empty {
+    display: none;
+  }
+  #glass-info-mode > .hud-mode-children {
+    margin-top: 8px;
+  }
+  .hud-simulation-name {
+    margin: 2px 0;
+    color: var(--color-control-font);
+    font-size: 16px;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  }
+  /* Which boxes, lines and gears each mode shows (#130): body[data-mode] is the mode
+     (controls.js). The precomputed modes set their grid from the Grid box's gear; only the
+     bounded mode has a seed and rules to set; Explore's Run box reports its generation, so it has
+     no Grid box */
+  .hud-gear.hud-gear--precomputed,
+  .hud-gear.hud-gear--life {
+    display: none;
+  }
+  body[data-mode="gameOfLife"] .hud-gear--precomputed,
+  body[data-mode="rule30"] .hud-gear--precomputed,
+  body[data-mode="sineWave"] .hud-gear--precomputed,
+  body[data-mode="sandpile"] .hud-gear--precomputed,
+  body[data-mode="gameOfLife"] .hud-gear--life {
+    display: inline-flex;
+  }
+  #glass-info-sim .grid-line {
+    display: none;
+  }
+  body[data-mode="gameOfLife"] #glass-info-sim .grid-line--gameOfLife,
+  body[data-mode="rule30"] #glass-info-sim .grid-line--rule30,
+  body[data-mode="sandpile"] #glass-info-sim .grid-line--sandpile {
     display: flex;
   }
-  /* The Simulation panel (every mode): the HUD's boxes as its sections, Mode first */
+  body[data-mode="explore"] #glass-info-sim,
+  body[data-mode="rule30"] #glass-info-simulation,
+  body[data-mode="sineWave"] #glass-info-simulation,
+  body[data-mode="sandpile"] #glass-info-simulation {
+    display: none;
+  }
+  #glass-info-simulation,
+  #glass-info-sim {
+    position: relative;
+  }
+  /* The Mode popover's list of modes, one button each, the running one pressed */
+  .mode-option-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .mode-option {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 6px 8px;
+    border: 1px solid rgba(120, 180, 255, 0.3);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--color-control-font);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .mode-option:hover {
+    border-color: rgba(120, 180, 255, 0.6);
+  }
+  .mode-option[aria-pressed="true"] {
+    border-color: rgba(120, 180, 255, 0.95);
+    background: rgba(77, 163, 255, 0.3);
+    color: #fff;
+  }
+  .mode-option:focus-visible {
+    outline: 2px solid rgba(120, 180, 255, 0.8);
+    outline-offset: 1px;
+  }
+  .mode-option-name {
+    font-weight: 600;
+  }
+  .mode-option-kind {
+    font-size: 12px;
+    opacity: 0.8;
+  }
+  .hud-confirm .explore-save-actions {
+    justify-content: flex-end;
+  }
+  /* The Simulation box (every mode): the HUD's boxes as its sections, Mode first */
   #glass-info-mode {
     position: relative;
   }
@@ -3031,10 +2684,6 @@
     color: var(--color-control-font);
     font-size: 16px;
     font-weight: 700;
-  }
-  .hud-mode-about {
-    color: var(--color-info-display-text);
-    font-size: 12px;
   }
   /* One panel: the boxes that belong to the mode are its sections, each under one dividing line
      that runs the panel's width, with no border of their own */
@@ -3127,27 +2776,61 @@
     align-items: center;
     gap: 2px;
   }
+  /* The gear changes its box's settings (#130): a small square in the lab's blue, the colour of the
+     popover it opens, so it reads as a control and not as the title's text */
   .hud-gear {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
+    width: 22px;
+    height: 22px;
     padding: 0;
-    border: 1px solid transparent;
+    border: 1px solid rgba(120, 180, 255, 0.45);
     border-radius: 5px;
-    background: transparent;
-    color: var(--color-control-font);
+    background: rgba(77, 163, 255, 0.12);
+    color: rgb(150, 200, 255);
     cursor: pointer;
     pointer-events: auto;
   }
   .hud-gear:hover {
-    border-color: rgba(120, 180, 255, 0.5);
-    background: rgba(77, 163, 255, 0.15);
+    border-color: rgba(120, 180, 255, 0.85);
+    background: rgba(77, 163, 255, 0.25);
+    color: #fff;
   }
   .hud-gear:focus-visible {
     outline: 2px solid rgba(120, 180, 255, 0.8);
     outline-offset: 1px;
+  }
+  /* A save icon (#130) sits before its box's gear, in a colour of its own: violet, which sits
+     between the lab's blue and its titles' orange without being either, and is no readout's green.
+     It opens the save popover, which says what it saves. Off until the run has started */
+  .hud-gear.hud-save {
+    margin-right: 4px;
+    border-color: rgba(180, 150, 255, 0.5);
+    background: rgba(160, 120, 255, 0.12);
+    color: rgb(196, 176, 255);
+  }
+  .hud-gear.hud-save:hover {
+    border-color: rgba(180, 150, 255, 0.9);
+    background: rgba(160, 120, 255, 0.28);
+    color: #fff;
+  }
+  .hud-gear.hud-save.is-active {
+    border-color: rgba(190, 165, 255, 0.95);
+    background: rgba(160, 120, 255, 0.4);
+    color: #fff;
+  }
+  .hud-gear.hud-save:focus-visible {
+    outline-color: rgba(190, 165, 255, 0.9);
+  }
+  .hud-gear:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+  .hud-gear.hud-save:disabled:hover {
+    border-color: rgba(180, 150, 255, 0.5);
+    background: rgba(160, 120, 255, 0.12);
+    color: rgb(196, 176, 255);
   }
   .hud-gear.is-active {
     border-color: rgba(120, 180, 255, 0.95);
@@ -3182,29 +2865,6 @@
     background: rgba(77, 163, 255, 0.12);
     box-shadow: inset 3px 0 0 rgba(120, 180, 255, 0.9);
   }
-  .explore-box-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-top: 8px;
-  }
-  /* The Seed and Rules boxes show in every mode; their Change and Save seed only in Explore */
-  body:not(.mode-explore) .explore-box-actions--shared {
-    display: none;
-  }
-  .explore-box-actions .glass-button {
-    flex: 1 1 auto;
-    pointer-events: auto;
-  }
-  .explore-box-actions .glass-button.is-active {
-    border-color: rgba(120, 180, 255, 0.95);
-    background: rgba(77, 163, 255, 0.35);
-    color: #fff;
-  }
-  .explore-box-actions .glass-button:focus-visible {
-    outline: 2px solid rgba(120, 180, 255, 0.8);
-    outline-offset: 2px;
-  }
   #glass-info-explore,
   #glass-info-shape,
   #glass-info-rules,
@@ -3238,8 +2898,8 @@
     white-space: normal;
     user-select: text;
     z-index: 50;
-    /* Hidden with display, not visibility: a control with `transition: all` (the Custom / Preset
-       switch) would otherwise fade its own visibility in, and refuse focus until it had */
+    /* Hidden with display, not visibility: a control with `transition: all` (a switch such as
+       Shape / File / Design) would otherwise fade its own visibility in, and refuse focus until it had */
     display: none;
   }
   .explore-popover.is-open {
@@ -3284,21 +2944,26 @@
   .explore-popover-quiet:empty {
     display: none;
   }
-  /* Use in a contest: apart from the draft above it, since it takes the seed in use */
-  .explore-popover-contest {
-    margin-top: 12px;
-    padding-top: 10px;
+  /* A popover's foot (#130): what the control pointed at or focused does, so the popover itself
+     keeps only its controls; tall enough for a few lines, so it doesn't jump as the text changes */
+  .popover-help {
+    min-height: 4.2em;
+    margin: 10px 0 0;
+    padding-top: 8px;
     border-top: 1px solid rgba(255, 255, 255, 0.12);
+    color: var(--color-info-display-text);
+    font-size: 12px;
+    line-height: 1.4;
   }
-  .explore-contest-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
+  /* The Simulation popover's one page (#130): a preset from the list, or a file */
+  .explore-popover-or {
+    margin: 8px 0 6px;
+    color: var(--color-info-display-text);
+    font-size: 12px;
+    text-align: center;
   }
-  .explore-contest-row select {
-    flex: 1 1 140px;
-    min-width: 0;
+  #explore-simulation-status:empty {
+    display: none;
   }
   .explore-popover-locked {
     margin-bottom: 8px;
@@ -3467,9 +3132,6 @@
   body.mode-explore #glass-info-sim {
     display: none;
   }
-  .explore-popover-button {
-    margin-top: 8px;
-  }
   /* ==== The Contests mode (src/contests/, #77) ==== */
   /* The Contests banner, left of the company logo, glowing gold. In Contests it stays, pressed:
      a click there (or Esc) goes back */
@@ -3564,6 +3226,7 @@
     display: block;
   }
   body.mode-contests #glass-info-sim,
+  body.mode-contests #glass-info-simulation,
   body.mode-contests #glass-info-shape,
   body.mode-contests #glass-info-rules {
     display: none;
@@ -3631,13 +3294,15 @@
   }
   .contests-tile {
     --contest-color: #f2c14e;
+    /* From the top, so every card's logo and name line up, however long its line about it;
+       Open keeps to the foot */
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 6px;
     aspect-ratio: 1;
-    padding: 14px;
+    padding: 18px 14px 14px;
     box-sizing: border-box;
     border: 1px solid color-mix(in srgb, var(--contest-color) 65%, transparent);
     border-radius: 14px;
@@ -3674,7 +3339,7 @@
     line-height: 1.35;
   }
   .contests-tile-foot {
-    margin-top: 4px;
+    margin-top: auto;
     color: var(--contest-color);
     font-size: 13px;
     font-weight: 700;
@@ -3806,13 +3471,28 @@
     gap: 8px;
     margin-top: 12px;
   }
+  /* The panel's buttons read as buttons, not text (#130): filled in the lab's blue, as the HUD's
+     gears are, and the page's main one in the contests' gold */
   .contests-button {
-    padding: 6px 14px;
+    padding: 7px 14px;
+    border-color: rgba(120, 180, 255, 0.6);
+    background: rgba(77, 163, 255, 0.18);
+    color: #fff;
     font-size: 14px;
+    font-weight: 600;
+  }
+  .contests-button:hover:not([disabled]) {
+    border-color: rgba(120, 180, 255, 0.95);
+    background: rgba(77, 163, 255, 0.32);
   }
   .contests-button--main {
-    border-color: rgba(255, 205, 90, 0.8);
+    border-color: rgba(255, 205, 90, 0.85);
+    background: rgba(255, 205, 90, 0.16);
     color: #fff;
+  }
+  .contests-button--main:hover:not([disabled]) {
+    border-color: rgba(255, 205, 90, 1);
+    background: rgba(255, 205, 90, 0.28);
   }
   .contests-button:focus-visible {
     outline: 2px solid rgba(120, 180, 255, 0.8);

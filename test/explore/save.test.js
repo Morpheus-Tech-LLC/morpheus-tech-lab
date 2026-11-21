@@ -7,7 +7,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  generationSave, seedSave, readSeedOrSave, readGenerationSave, runDefinition, savedEnding,
+  generationSave, seedSave, simulationSave, SIMULATION_FILE_NAME, readSeedOrSave, readGenerationSave, runDefinition, savedEnding,
   generationFileName, SEED_FILE_NAME,
 } from '../../src/explore/save.js';
 import { parseSeedFile, toSeedFile, SeedError, MAX_FILE_CELLS } from '../../src/explore/seed.js';
@@ -136,8 +136,11 @@ test('past a million live cells, a generation is not saved', async () => {
   );
 });
 
-test('Save seed saves the seed the run started from, with its rules', async () => {
-  assert.deepEqual(parseSeedFile(seedSave(CONFIG)), { rules: GROWING, cells: SEED });
+test('Save simulation saves the seed the run started from, with its rules; Save seed only its cells (#130)', async () => {
+  assert.deepEqual(parseSeedFile(simulationSave(CONFIG)), { rules: GROWING, cells: SEED });
+  assert.deepEqual(parseSeedFile(seedSave(CONFIG)), { rules: null, cells: SEED });
+  assert.ok(!seedSave(CONFIG).includes('"rules"'), 'a seed file has no rules');
+  assert.equal(SIMULATION_FILE_NAME, 'game-of-life-3d-simulation.json');
   const world = runTo(SEED, 30);
   const carried = { ...CONFIG, cells: world.cells(), seed: SEED, from: 30 };
   assert.deepEqual(parseSeedFile(seedSave(carried)).cells, SEED, 'not the generation it carried on from');

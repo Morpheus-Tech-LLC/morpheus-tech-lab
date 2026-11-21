@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 // Explore's seeds and rules, apart from the page: the existing seed shapes lifted into the
-// unbounded world, rules read from the dialog's text, and the seed file a visitor saves and
-// loads back. Nothing here touches the page, so the tests run it in Node.
+// unbounded world, rules read from the dialog's text, and the files a visitor saves and loads
+// back. A seed is only cells; a simulation is a seed and its rules (#130). Both files share one
+// format: a seed file has no rules, a simulation file has them. Files saved before #130 always
+// had rules, so they read as simulation files. Nothing here touches the page, so the tests run it
+// in Node.
 
 import { Grid3D } from '../grid3D.js';
 import { validateRules, MAX_NEIGHBOURS } from '../unbounded/rules.js';
@@ -92,9 +95,9 @@ export function arenaBox(side) {
 }
 
 /**
- * A seed and its rules as the text of a seed file.
- * @param {{rules: {birth: number[], survival: number[]}, cells: ArrayLike<number>}} seed - cells
- *   as x, y, z triples
+ * A seed as the text of a seed file, or a simulation, a seed with its rules, as a simulation file.
+ * @param {{rules?: {birth: number[], survival: number[]} | null, cells: ArrayLike<number>}} seed -
+ *   cells as x, y, z triples; no rules for a seed file
  * @throws {SeedError} past MAX_FILE_CELLS cells, which parseSeedFile() wouldn't read back
  */
 export function toSeedFile({ rules, cells }) {
@@ -104,14 +107,15 @@ export function toSeedFile({ rules, cells }) {
   }
   const lines = new Array(count);
   for (let i = 0; i < count; i++) lines[i] = `    [${cells[3 * i]}, ${cells[3 * i + 1]}, ${cells[3 * i + 2]}]`;
-  const head = JSON.stringify({ format: SEED_FILE_FORMAT, version: SEED_FILE_VERSION, rules }, null, 2);
+  const head = JSON.stringify({ format: SEED_FILE_FORMAT, version: SEED_FILE_VERSION, ...(rules && { rules }) }, null, 2);
   // One cell per line keeps a big file readable and diffable
   return `${head.slice(0, -2)},\n  "cells": [\n${lines.join(',\n')}\n  ]\n}\n`;
 }
 
 /**
- * Reads a seed file back.
- * @returns {{rules: {birth: number[], survival: number[]}, cells: Int32Array}}
+ * Reads a seed file or a simulation file back.
+ * @returns {{rules: {birth: number[], survival: number[]} | null, cells: Int32Array}} - no rules
+ *   for a seed file
  * @throws {SeedError | import('../unbounded/rules.js').RuleError} saying what's wrong with it
  */
 export function parseSeedFile(text) {
@@ -119,16 +123,16 @@ export function parseSeedFile(text) {
   try {
     data = JSON.parse(text);
   } catch {
-    throw new SeedError("This isn't a seed file: it isn't JSON.");
+    throw new SeedError("This isn't a seed or simulation file: it isn't JSON.");
   }
-  if (data?.format !== SEED_FILE_FORMAT) throw new SeedError("This isn't a seed file for Game of Life 3D (unbounded).");
+  if (data?.format !== SEED_FILE_FORMAT) throw new SeedError("This isn't a seed or simulation file for Game of Life 3D (unbounded).");
   if (data.version !== SEED_FILE_VERSION) {
-    throw new SeedError(`This seed file is version ${data.version}; this page reads version ${SEED_FILE_VERSION}.`);
+    throw new SeedError(`This file is version ${data.version}; this page reads version ${SEED_FILE_VERSION}.`);
   }
-  const rules = validateRules(data.rules);
-  if (!Array.isArray(data.cells)) throw new SeedError("The seed file's cells must be a list.");
+  const rules = data.rules === undefined ? null : validateRules(data.rules);
+  if (!Array.isArray(data.cells)) throw new SeedError("The file's cells must be a list.");
   if (data.cells.length > MAX_FILE_CELLS) {
-    throw new SeedError(`The seed file has ${data.cells.length.toLocaleString('en')} cells; the most it can have is ${MAX_FILE_CELLS.toLocaleString('en')}.`);
+    throw new SeedError(`The file has ${data.cells.length.toLocaleString('en')} cells; the most it can have is ${MAX_FILE_CELLS.toLocaleString('en')}.`);
   }
   const cells = new Int32Array(3 * data.cells.length);
   const seen = new Set();
@@ -136,10 +140,10 @@ export function parseSeedFile(text) {
     const ok = Array.isArray(cell) && cell.length === 3
       && cell.every((c) => Number.isInteger(c) && c >= -COORDINATE_LIMIT && c < COORDINATE_LIMIT);
     if (!ok) {
-      throw new SeedError(`Cell ${i + 1} of the seed file isn't [x, y, z] in whole numbers from ${-COORDINATE_LIMIT} to ${COORDINATE_LIMIT - 1}.`);
+      throw new SeedError(`Cell ${i + 1} of the file isn't [x, y, z] in whole numbers from ${-COORDINATE_LIMIT} to ${COORDINATE_LIMIT - 1}.`);
     }
     const key = cell.join(',');
-    if (seen.has(key)) throw new SeedError(`Cell ${i + 1} of the seed file, [${key}], is listed twice.`);
+    if (seen.has(key)) throw new SeedError(`Cell ${i + 1} of the file, [${key}], is listed twice.`);
     seen.add(key);
     cells.set(cell, 3 * i);
   });

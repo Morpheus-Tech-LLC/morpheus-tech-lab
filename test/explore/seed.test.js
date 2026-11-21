@@ -120,7 +120,7 @@ test('an exported seed loads back, and runs the same', () => {
 test('a seed file that is wrong is refused, saying why', () => {
   const file = (fields) => JSON.stringify({ format: SEED_FILE_FORMAT, version: 1, rules: RULES, cells: [[0, 0, 0]], ...fields });
   assert.throws(() => parseSeedFile('not json'), /isn't JSON/);
-  assert.throws(() => parseSeedFile(file({ format: 'something else' })), /isn't a seed file for Game of Life 3D \(unbounded\)/);
+  assert.throws(() => parseSeedFile(file({ format: 'something else' })), /isn't a seed or simulation file for Game of Life 3D \(unbounded\)/);
   assert.throws(() => parseSeedFile(file({ version: 2 })), /version 2/);
   assert.throws(() => parseSeedFile(file({ rules: { birth: [0], survival: [] } })), RuleError);
   assert.throws(() => parseSeedFile(file({ cells: [[0, 0]] })), /Cell 1/);
@@ -128,6 +128,10 @@ test('a seed file that is wrong is refused, saying why', () => {
   assert.throws(() => parseSeedFile(file({ cells: [[0, 0, 2 ** 20]] })), /Cell 1/);
   assert.throws(() => parseSeedFile(file({ cells: [[1, 2, 3], [1, 2, 3]] })), /listed twice/);
   assert.equal(parseSeedFile(file({ cells: [] })).cells.length, 0);
+  // A seed file has no rules (#130); one written before #130 has them, as a simulation file does
+  const { rules, ...noRules } = JSON.parse(file({}));
+  assert.equal(parseSeedFile(JSON.stringify(noRules)).rules, null);
+  assert.deepEqual(parseSeedFile(file({})).rules, RULES);
 });
 
 // Save this generation (#66): the cells a run holds at generation N, and its rules, as a seed file

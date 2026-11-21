@@ -76,6 +76,8 @@ export const state = {
   simulationModel: null,
   controlsInitialized: false,
   shapeKey: "cube",
+  // Game of Life 3D (bounded)'s shape, kept while Rule 30 runs on its own (src/hudSettings.js)
+  lifeShapeKey: "cube",
   simulationMode: "explore", // the lab opens in Explore (src/explore/)
   useRule30: false,
   useRule30_2D: false,
