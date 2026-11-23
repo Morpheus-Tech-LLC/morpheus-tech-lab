@@ -3977,25 +3977,72 @@
   .contests-self-verified[data-verdict="verified"] { color: #9be3b0; }
   .contests-self-verified[data-verdict="mismatch"] { color: #ffb4ad; }
   .contests-self-verified[data-verdict="not-checked"] { color: #f0d890; }
-  /* Submit by email (#79), at the foot of the results card: the link, what to attach by hand,
-     and the address, subject and text with Copy, for webmail */
+  /* Submit by email (#79, #140), at the foot of the results card: three numbered steps (save the
+     result file, open the email, attach the file), then, folded away, the address, subject and
+     text with Copy, for webmail */
   .contests-submit {
     margin: 18px 0 0;
   }
-  .contests-submit > p {
-    margin: 0 0 10px;
-  }
-  .contests-submit-go {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px 14px;
-    margin: 0 0 12px;
-  }
-  .contests-submit .contests-submit-go p {
-    flex: 1 1 220px;
+  .contests-submit p {
     margin: 0;
+  }
+  .contests-submit .contests-submit-lead {
+    margin: 0 0 12px;
     color: #f0d890;
+    font-weight: 600;
+  }
+  .contests-submit-steps {
+    display: grid;
+    gap: 10px;
+    margin: 0 0 12px;
+    padding: 0;
+    list-style: none;
+    counter-reset: submit-step;
+  }
+  .contests-submit-step {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr);
+    align-items: start;
+    gap: 6px 12px;
+    padding: 10px 12px;
+    border: 1px solid rgba(255, 205, 90, 0.35);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.25);
+    counter-increment: submit-step;
+  }
+  .contests-submit-step::before {
+    content: counter(submit-step);
+    grid-row: 1 / span 3;
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: rgba(255, 205, 90, 0.9);
+    color: #1a1406;
+    font-weight: 700;
+  }
+  .contests-submit-step[data-done="true"] {
+    border-color: rgba(155, 227, 176, 0.45);
+  }
+  .contests-submit-step[data-done="true"]::before {
+    content: "\2713";
+    background: #9be3b0;
+  }
+  .contests-submit-step > * {
+    grid-column: 2;
+    justify-self: start;
+  }
+  .contests-submit-file {
+    color: #fff;
+    overflow-wrap: anywhere;
+  }
+  .contests-submit-done {
+    color: #9be3b0;
+    font-size: 13px;
+  }
+  .contests-submit-wait {
+    color: rgba(200, 220, 255, 0.7);
     font-size: 13px;
   }
   a.contests-submit-button {
@@ -4006,9 +4053,19 @@
     font-weight: 600;
     text-decoration: none;
   }
+  a.contests-submit-button[aria-disabled="true"] {
+    border-color: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.45);
+    cursor: not-allowed;
+  }
   a.contests-submit-button:focus-visible {
     outline: 2px solid rgba(120, 180, 255, 0.8);
     outline-offset: 2px;
+  }
+  .contests-submit-webmail > summary {
+    cursor: pointer;
+    color: var(--color-info-display-text);
+    font-size: 13px;
   }
   .contests-submit-copy {
     display: grid;

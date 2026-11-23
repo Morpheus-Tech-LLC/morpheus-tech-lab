@@ -19,7 +19,7 @@ import { MAX_RESULT_BYTES, readResult, ResultError } from '../unbounded/canonica
 import hallOfFameData from '../unbounded/hall-of-fame.json';
 import labLogo from '../assets/images/morpheus-tech.png';
 import { detectBrowser } from '../browser.js';
-import { writeJsonFile, download } from '../explore/explore.js';
+import { writeJsonFile } from '../explore/explore.js';
 import { parseSeedFile } from '../explore/seed.js';
 import { SpeedRun, verifyInWorker } from './speed.js';
 import { DiscoveryRun } from './discovery.js';
@@ -924,8 +924,8 @@ async function showResults(run, end) {
   const copy = button('Copy', null, { id: 'contests-copy-hash' });
   copy.disabled = true;
   const submitBox = h('section', { className: 'contests-section contests-submit', attrs: { id: 'contests-submit', 'aria-labelledby': 'contests-submit-title' } },
-    h('h3', { className: 'contests-section-title', text: 'Enter it', attrs: { id: 'contests-submit-title' } }),
-    h('p', { className: 'contests-note', text: 'Submit by email is ready once the result file is made.' }));
+    h('h3', { className: 'contests-section-title', text: 'Submit by email', attrs: { id: 'contests-submit-title' } }),
+    h('p', { className: 'contests-note', text: 'Ready once the result file is made.' }));
   show('results', `${contest.title}: your result`, [
     h('div', { className: 'contests-hero', attrs: { role: 'group', 'aria-label': `Your score: ${scoreWords}` } },
       h('span', { className: 'contests-hero-kicker' }, logo(lookOf(contest), 22, 'contests-hero-logo'), document.createTextNode(`${contest.title} · your score`)),
@@ -966,12 +966,14 @@ async function showResults(run, end) {
   hash.textContent = made.result.hash;
   copy.disabled = false;
   copy.onclick = () => copyText(made.result.hash, 'hash');
-  submitBox.replaceChildren(submitBox.firstChild, ...submitParts({
-    contest, score, browser: made.result.details.browser, hash: made.result.hash, text: made.text,
-    ending: reason, run: made.result.run, departures: made.result.departures,
-  }));
+  const submit = submitParts({ contest, score, browser: made.result.details.browser, text: made.text, ending: reason });
+  submitBox.replaceChildren(submitBox.firstChild, ...submit.parts);
   exportButton.disabled = false;
-  exportButton.onclick = () => exportResult(contest, score, made.text);
+  // Export result saves the same file, so it readies the email too
+  exportButton.onclick = async () => {
+    const saved = await saveResult(contest, score, made.text);
+    if (saved) submit.saved(saved);
+  };
   watchButton.disabled = false;
   watchButton.onclick = () => watchResult(made.result, `${contest.title}: ${scoreWords}`, watchButton, verified);
   // Export is what comes next, unless the visitor has moved on to another button meanwhile
@@ -980,12 +982,18 @@ async function showResults(run, end) {
   }
 }
 
-async function exportResult(contest, score, text) {
+/**
+ * Saves the result file, with the browser's save dialog where it has one, and says where it went.
+ * @returns {Promise<string | null>} what was said, or null if it wasn't saved
+ */
+async function saveResult(contest, score, text) {
   try {
-    status(await writeJsonFile(resultFileName(contest, score), text, `Contest result, ${contest.title}`));
+    const said = await writeJsonFile(resultFileName(contest, score), text, `Contest result, ${contest.title}`);
+    status(said);
+    return said;
   } catch (err) {
-    if (err?.name === 'AbortError') return; // the visitor cancelled the save dialog
-    status(`Not saved: ${err.message}`);
+    if (err?.name !== 'AbortError') status(`Not saved: ${err.message}`); // AbortError: the visitor cancelled the save dialog
+    return null;
   }
 }
 
@@ -1002,24 +1010,66 @@ async function copyText(text, what) {
 // ---- Submit by email ----
 
 /**
- * The results card's Submit by email: the link that downloads the result file and opens the
- * email, what must be attached by hand, and the address, subject and text with Copy, for webmail.
- * The link is a plain mailto: link, so the browser opens the mail app as it would for any other;
- * clicking it downloads the file first, in the same click.
+ * The results card's Submit by email, as three numbered steps (#140): save the result file, open
+ * the email, attach the file. The entry is the file, so the email opens only once it is saved,
+ * by step 1 or by Export result. Saving and opening are separate clicks: done in one, a mailto:
+ * link's hand-off to the mail app can lose the download (#140). The email opens in a new tab, so
+ * a browser that sends mailto: to webmail doesn't navigate away from the results card. Under them, folded away, the
+ * address, subject and text with Copy, for webmail.
+ * @returns {{parts: Node[], saved: (said: string) => void}} the section's contents, and what
+ *   Export result calls once it has saved the file
  */
-function submitParts({ contest, score, browser, hash, text, ending, run, departures }) {
+function submitParts({ contest, score, browser, text, ending }) {
   const fileName = resultFileName(contest, score);
   const subject = emailSubject(contest, score, ending);
-  const body = emailBody({ contest, score, browser, hash, fileName, ending, run, departures });
+  const body = emailBody({ contest, browser, fileName });
+  const fileWords = () => h('strong', { className: 'contests-submit-file', text: fileName });
+
+  const savedLine = h('p', { className: 'contests-submit-done', attrs: { id: 'contests-submit-saved' } });
+  savedLine.hidden = true;
+  const saveButton = button('Save result file', null, { id: 'contests-submit-save' });
   const link = h('a', {
     className: 'glass-button contests-button contests-submit-button',
-    text: 'Submit by email',
-    attrs: { href: mailtoLink(subject, body), id: 'contests-submit-email' },
+    text: 'Open the email',
+    // A new tab: where mailto: goes to webmail, the email opens beside the lab, not in place of it
+    attrs: { id: 'contests-submit-email', target: '_blank', rel: 'noopener', 'aria-disabled': 'true', 'aria-describedby': 'contests-submit-wait' },
   });
-  link.onclick = () => {
-    download(fileName, text);
-    status(`Downloaded ${fileName}. Attach it to the email, and a picture if you like.`);
+  const wait = h('p', { className: 'contests-submit-wait', text: 'Save the result file first.', attrs: { id: 'contests-submit-wait' } });
+  const step = (...content) => h('li', { className: 'contests-submit-step' }, ...content);
+  const saveStep = step(
+    h('p', {}, document.createTextNode('Save your result file, '), fileWords(), document.createTextNode('.')),
+    saveButton, savedLine);
+  const emailStep = step(
+    h('p', { text: `Open the email to ${SUBMIT_ADDRESS}, with its text filled in.` }),
+    link, wait);
+
+  const saved = (said) => {
+    savedLine.textContent = said;
+    savedLine.hidden = false;
+    saveStep.dataset.done = 'true';
+    link.href = mailtoLink(subject, body);
+    link.removeAttribute('aria-disabled');
+    link.removeAttribute('aria-describedby');
+    wait.hidden = true;
+    status(`${said} Now open the email, and attach ${fileName} to it.`);
   };
+  saveButton.onclick = async () => {
+    const said = await saveResult(contest, score, text);
+    if (said) {
+      saved(said);
+      link.focus({ preventScroll: true });
+    }
+  };
+  link.onclick = (event) => {
+    if (link.hasAttribute('href')) {
+      emailStep.dataset.done = 'true';
+      return;
+    }
+    event.preventDefault();
+    status('Save the result file first: the email needs it attached.');
+    saveButton.focus({ preventScroll: true });
+  };
+
   const copyRow = (label, value, id, what) => h('div', { className: 'contests-submit-row' },
     h('span', { className: 'contests-submit-label', text: label }),
     h('span', { className: 'contests-submit-value', text: value, attrs: { id } }),
@@ -1029,20 +1079,28 @@ function submitParts({ contest, score, browser, hash, text, ending, run, departu
     attrs: { id: 'contests-submit-body', readonly: '', rows: '8', spellcheck: 'false', 'aria-label': 'The email\'s text' },
   });
   textBox.value = body;
-  return [
-    h('p', { text: `Submit by email downloads your result file, ${fileName}, and opens an email to ${SUBMIT_ADDRESS} with its text filled in: add the name to show, and keep or delete the Hall of Fame line.` }),
-    h('div', { className: 'contests-submit-go' },
-      link,
-      h('p', { className: 'contests-submit-attach', text: `An email link can't attach files: attach ${fileName}, and a picture if you like, by hand.`, attrs: { id: 'contests-submit-attach' } })),
-    h('p', { className: 'contests-note', text: 'No mail app? Send it from webmail, with these:' }),
-    h('div', { className: 'contests-submit-copy' },
-      copyRow('To', SUBMIT_ADDRESS, 'contests-submit-to', 'address'),
-      copyRow('Subject', subject, 'contests-submit-subject', 'subject'),
-      h('div', { className: 'contests-submit-row contests-submit-row--text' },
-        h('span', { className: 'contests-submit-label', text: 'Text' }),
-        textBox,
-        button('Copy', () => copyText(body, 'text'), { id: 'contests-submit-body-copy' }))),
-  ];
+  return {
+    saved,
+    parts: [
+      h('p', { className: 'contests-submit-lead', text: "Your entry is an email with your result file attached. Without the file, it can't be verified or listed." }),
+      h('ol', { className: 'contests-submit-steps' },
+        saveStep,
+        emailStep,
+        step(
+          h('p', { attrs: { id: 'contests-submit-attach' } },
+            h('strong', { text: 'Attach ' }), fileWords(), h('strong', { text: ' to the email' }),
+            document.createTextNode(" by hand: an email link can't attach it for you. Add a picture if you like, fill in the name to show, keep or delete the Hall of Fame line, and send it.")))),
+      h('details', { className: 'contests-submit-webmail', attrs: { id: 'contests-submit-webmail' } },
+        h('summary', { text: 'No mail app? Copy the address, subject and text into webmail' }),
+        h('div', { className: 'contests-submit-copy' },
+          copyRow('To', SUBMIT_ADDRESS, 'contests-submit-to', 'address'),
+          copyRow('Subject', subject, 'contests-submit-subject', 'subject'),
+          h('div', { className: 'contests-submit-row contests-submit-row--text' },
+            h('span', { className: 'contests-submit-label', text: 'Text' }),
+            textBox,
+            button('Copy', () => copyText(body, 'text'), { id: 'contests-submit-body-copy' })))),
+    ],
+  };
 }
 
 // ---- Watch ----
