@@ -1,0 +1,166 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!--
+  Not bundled: a dev page (/src/contests/race-bench.html under `npm run dev`) that measures what
+  racing the Hall of Fame's #1 (#149) costs a Speed run. It runs Speed in a frame holding the lab,
+  alternating runs with the race (the Hall of Fame as it is) and without it (the frame's copy of
+  hall-of-fame.json emptied, so the run screen is as it was before #149), and reports each run's
+  score, each kind's mean and spread, and whether the difference is within the run-to-run noise.
+  It changes only the lab in its frame. ?runs=N sets the runs of each kind (10 by default).
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Race bench</title>
+  <style>
+    :root { color-scheme: dark; }
+    body { margin: 0; padding: 16px; background: #14181f; color: #d8e2ee; font: 14px/1.45 system-ui, sans-serif; }
+    h1 { font-size: 18px; margin: 0 0 4px; }
+    p { margin: 0 0 12px; color: #9fb0c4; max-width: 900px; }
+    .layout { display: flex; gap: 16px; align-items: flex-start; }
+    .frame-box { flex: none; position: sticky; top: 16px; }
+    iframe { display: block; border: 1px solid #33404f; border-radius: 6px; background: #000; transform-origin: 0 0; }
+    table { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+    th, td { padding: 2px 10px; text-align: right; border-bottom: 1px solid #2a3442; }
+    th:first-child, td:first-child { text-align: left; }
+    #verdict { font-weight: 600; margin: 8px 0; }
+    #verdict.pass { color: #b9e8c6; }
+    #verdict.fail { color: #ffb4ad; }
+    pre { background: #0d1117; padding: 8px; border-radius: 6px; max-width: 560px; white-space: pre-wrap; }
+    button { font: inherit; padding: 4px 10px; }
+  </style>
+</head>
+<body>
+  <h1>Racing #1: what it costs a Speed run (#149)</h1>
+  <p>Runs on its own: Speed, alternately with the race and without it, about 10 seconds a run. Keep
+  this tab in front and the machine otherwise idle. For a 4-core measurement on a bigger machine,
+  start the browser on four cores, such as <code>taskset -c 0-3 chromium</code> or
+  <code>taskset -c 0-3 firefox</code> on Linux. <button id="again" type="button">Run again</button></p>
+  <div id="status">Starting…</div>
+  <div id="verdict"></div>
+  <div class="layout">
+    <div class="frame-box"><iframe id="lab" title="The lab" width="1280" height="800"></iframe></div>
+    <div>
+      <table id="runs"><thead><tr><th>Run</th><th>Race</th><th>Generations</th><th>Card shown</th></tr></thead><tbody></tbody></table>
+      <pre id="report"></pre>
+    </div>
+  </div>
+  <script type="module">
+    const frame = document.getElementById('lab');
+    function fitFrame() {
+      const [w, h] = [Number(frame.width) + 2, Number(frame.height) + 2];
+      const scale = Math.min(1, (innerWidth - 32 - 16 - 520) / w, (innerHeight - 32) / h);
+      frame.style.transform = scale < 1 ? `scale(${scale})` : '';
+      frame.parentElement.style.width = `${w * scale}px`;
+      frame.parentElement.style.height = `${h * scale}px`;
+    }
+    addEventListener('resize', fitFrame);
+    document.getElementById('again').onclick = () => location.reload();
+    const say = (text) => { document.getElementById('status').textContent = text; };
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const RUNS = Math.max(2, Number(new URLSearchParams(location.search).get('runs')) || 10);
+
+    let win;
+    let doc;
+    const el = (id) => doc.getElementById(id);
+    const text = (id) => el(id)?.textContent.trim() ?? '';
+    const visible = (id) => {
+      const e = el(id);
+      return Boolean(e) && e.getClientRects().length > 0 && win.getComputedStyle(e).visibility !== 'hidden';
+    };
+    async function until(fn, ms) {
+      const end = performance.now() + ms;
+      while (performance.now() < end) {
+        if (fn()) return true;
+        await sleep(100);
+      }
+      return Boolean(fn());
+    }
+
+    const mean = (xs) => xs.reduce((a, b) => a + b, 0) / xs.length;
+    const sd = (xs) => {
+      const m = mean(xs);
+      return Math.sqrt(xs.reduce((a, b) => a + (b - m) ** 2, 0) / (xs.length - 1));
+    };
+
+    async function bench() {
+      fitFrame();
+      frame.src = `/?bench=${Date.now()}`;
+      await new Promise((r) => frame.addEventListener('load', r, { once: true }));
+      win = frame.contentWindow;
+      doc = frame.contentDocument;
+      await sleep(2500);
+      // The frame's copy of the Hall of Fame: kept for the runs with the race, emptied for those
+      // without. Vite serves the panel's import of a JSON file with ?import: the same module
+      const board = (await win.eval("import('/src/unbounded/hall-of-fame.json?import')")).default;
+      const real = board.entries.slice();
+      if (!real.some((entry) => entry.contest === 'speed-1')) {
+        say("Speed's Hall of Fame has no entry, so there is no #1 to race.");
+        return;
+      }
+      el('contests-banner').click();
+      await sleep(1200);
+      el('contests-open-speed-1').click();
+      await sleep(500);
+
+      const scores = { with: [], without: [] };
+      const body = document.querySelector('#runs tbody');
+      for (let i = 0; i < 2 * RUNS; i++) {
+        // With and without in turn, so drift (heat, background work) falls on both alike
+        const racing = i % 2 === 0;
+        board.entries.length = 0;
+        if (racing) board.entries.push(...real);
+        say(`Run ${i + 1} of ${2 * RUNS}, ${racing ? 'with' : 'without'} the race…`);
+        el('contests-run').click();
+        await until(() => visible('contests-stop'), 10000);
+        const card = visible('contests-race');
+        const ended = await until(() => /: (your result|no score)$/.test(text('contests-panel-title')), 30000);
+        if (text('contests-score-unit').includes('ceiling')) {
+          say(`Run ${i + 1} reached the ceiling, where the score is a time, not generations: this machine is too fast for the bench. Start the browser on fewer cores.`);
+          return;
+        }
+        const generations = Number(text('contests-score').replace(/[^0-9]/g, ''));
+        if (!ended || !text('contests-panel-title').endsWith('your result') || !generations) {
+          say(`Run ${i + 1} didn't score (${text('contests-panel-title')}): stopped.`);
+          return;
+        }
+        (racing ? scores.with : scores.without).push(generations);
+        body.insertAdjacentHTML('beforeend', `<tr><td>${i + 1}</td><td>${racing ? 'with' : 'without'}</td><td>${generations}</td><td>${card ? 'yes' : 'no'}</td></tr>`);
+        if (card !== racing) {
+          say(`Run ${i + 1}: the race card was ${card ? 'shown' : 'missing'}, but this run was ${racing ? 'with' : 'without'} the race: stopped.`);
+          return;
+        }
+        // The result file is made, and its Worker gone, before the next run
+        await until(() => el('contests-export') && !el('contests-export').disabled, 30000);
+        el('contests-again').click();
+        await sleep(2000);
+      }
+      board.entries.length = 0;
+      board.entries.push(...real);
+
+      const [mw, mo] = [mean(scores.with), mean(scores.without)];
+      const [sw, so] = [sd(scores.with), sd(scores.without)];
+      // Welch's t: the difference of the means over its standard error
+      const se = Math.sqrt(sw ** 2 / scores.with.length + so ** 2 / scores.without.length);
+      const diff = mw - mo;
+      const t = se > 0 ? diff / se : (diff === 0 ? 0 : Infinity);
+      const same = Math.abs(t) < 2;
+      const verdict = document.getElementById('verdict');
+      verdict.className = same ? 'pass' : 'fail';
+      verdict.textContent = same
+        ? `✔ The same within the run-to-run noise: ${diff >= 0 ? '+' : ''}${diff.toFixed(1)} generations with the race (|t| = ${Math.abs(t).toFixed(2)} < 2).`
+        : `✖ The race changes the score: ${diff >= 0 ? '+' : ''}${diff.toFixed(1)} generations (|t| = ${Math.abs(t).toFixed(2)}).`;
+      document.getElementById('report').textContent = [
+        `Browser: ${navigator.userAgent}`,
+        `Cores the browser sees: ${navigator.hardwareConcurrency}`,
+        `With the race:    n = ${scores.with.length}, mean ${mw.toFixed(1)}, sd ${sw.toFixed(1)}  [${scores.with.join(', ')}]`,
+        `Without the race: n = ${scores.without.length}, mean ${mo.toFixed(1)}, sd ${so.toFixed(1)}  [${scores.without.join(', ')}]`,
+        `Difference: ${diff >= 0 ? '+' : ''}${diff.toFixed(1)}, standard error ${se.toFixed(1)}, Welch's t ${t.toFixed(2)}`,
+      ].join('\n');
+      say('Done. Copy the report into the pull request.');
+    }
+    bench().catch((err) => say(`The bench stopped: ${err?.message ?? err}`));
+  </script>
+</body>
+</html>

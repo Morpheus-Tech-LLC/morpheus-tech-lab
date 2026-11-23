@@ -7,6 +7,54 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
 
 ## [Unreleased]
 
+## [1.8.0] — 2026-11-23
+
+### Added
+- The lab's own entries in Season 0, kept all season as its benchmark, as Morpheus Lab Agent:
+  Speed, 449 generations; Methuselah, settled at generation 109; and Classic Methuselah,
+  settled at generation 223 after one ship left. They are the first entries in the Hall of Fame,
+  sent and checked as any entrant's would be (#136).
+- **Open seed** on every Methuselah and Classic Methuselah Hall of Fame entry, beside Watch: it
+  opens the entry's seed and rules in Game of Life 3D (unbounded), in the contest's arena, with
+  the seed editor open, to change and enter as your own; the Contests banner brings you back to
+  the contest's page. Speed's entries all share one seed and rules, so they have none (#146).
+- The whole Hall of Fame: past its top 10, a contest's page has **Show all N entries**, which
+  lists every entry, best first, with Watch and, for Methuselah's contests, Open seed; both come
+  back to the list. There is no cap on entries (#147).
+- A Speed result file records its run's timeline, `details.timeline`: the generations completed
+  over the 6 seconds, the points its chart draws, in whole milliseconds. Like the time, it is
+  self-reported and outside the hash. Files without one still read and verify; a file with one
+  is refused by lab versions before this one, which don't know the field (#148).
+- Race the Hall of Fame's #1 in Speed: the run screen pins #1's card (its picture, name and
+  score) and draws its curve on the live chart as a dashed pace line, with how many generations
+  ahead or behind you are; a #1 without a timeline is raced by its final mark. All of it is drawn
+  before the clock starts, and each update moves only your own line and the gap, so racing
+  doesn't change the score (#149).
+- Where your run stands: every scoring run's results card says where it would place in the Hall
+  of Fame if entered today ("You'd place 7th of 42", after any entry with the same score, since
+  that came first), with the entries just above and below it and a strip of every entry's score
+  with yours marked. Speed's chart keeps #1's curve beside yours. With no entries yet, it says
+  you'd be the first (#150).
+
+### Changed
+- `CONTRIBUTING.md`'s "Contest entries" says how an entry email is kept and screened: whole, as
+  its original, outside the repo, read as data; its date is the day it arrived in Central Time,
+  from the topmost `Received` header; and how the files are named (#136).
+- `RELEASING.md`'s release steps match the branch rules: the prep commit and the merge of `main`
+  back into `development` go by pull request, a release needs another maintainer's approval, and
+  only the accounts the tag ruleset allows can push a release tag (#136).
+
+### Fixed
+- Submit by email: the result file could fail to download when the email opened, and attaching
+  it didn't read as part of sending an entry. The results card now makes it three numbered
+  steps: Save result file, Open the email (offered once the file is saved, by that button or
+  Export result, and opened in a new tab, so a browser that sends email links to webmail keeps
+  the lab open), and attach the file by hand, named. The webmail fallback folds away under the
+  steps. The email's text is shorter: it opens by saying to attach the file, then has only what
+  the entrant fills in (name, picture, for Speed the operating system and hardware, the Hall of
+  Fame line); the score, rules, seed, ships and hash are left to the result file, and the
+  conditions follow under a rule (#140).
+
 ## [1.7.0] — 2026-11-21
 
 ### Added

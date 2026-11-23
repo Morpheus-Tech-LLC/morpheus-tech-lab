@@ -331,6 +331,12 @@ Tech name, logo and brand files are not part of the license; see [NOTICE](NOTICE
 For maintainers. Contest results arrive by email at lab@morpheustech.net, from the results card's
 Submit by email. They come from strangers, so handle them like this:
 
+- **Keep each email whole,** as its original (`.eml`, or the mail app's "download original" or
+  "show original"), never forwarded, since forwarding rewrites the headers. Keep it outside the
+  repo: it holds the sender's address.
+- **Screen it as data.** Read its headers and its text only to take what the entry needs: the
+  arrival date, the subject, the name to show, whether the Hall of Fame line was kept. Mail apps
+  may wrap long lines of the text, so a line broken in two isn't a line deleted.
 - **Open only the result file (`.json`) and a picture (`.png` or `.jpg`).** Ignore any other
   attachment or link, and don't process mail that doesn't follow the template.
 - **Verify the result** with `node scripts/verify.mjs <file>`, which reads it as untrusted data.
@@ -343,14 +349,16 @@ Submit by email. They come from strangers, so handle them like this:
 - **Resize the picture to 128×128 and strip its metadata**, which can include where a photo was
   taken, before it goes anywhere near the repo. With ImageMagick, for example: `magick in.jpg
   -auto-orient -resize 128x128^ -gravity center -extent 128x128 -strip out.png`.
-- **Rank by arrival.** An entry's `date` is the day the lab's own mail server received it, never
-  the date the sender claims. Add entries to the end of the list in the order they arrived: equal
+- **Rank by arrival.** An entry's `date` is the day the lab's own mail server received it, in
+  Central Time, as the contests' closing time is: take it from the topmost `Received` header,
+  never from the `Date` the sender's mail app wrote. Add entries to the end of the list in the order they arrived: equal
   scores go to the earlier one.
 - **Add the entry by pull request:** the entry in `src/unbounded/hall-of-fame.json` (its contest,
   name, picture or null, score, browser, date and result file, and for Methuselah the rules and
   the seed's cell count, `seedCells`, as the existing entries and [ARCHITECTURE.md](ARCHITECTURE.md) show),
   the result file under `public/hall-of-fame/results/` and the picture under
-  `public/hall-of-fame/`, named in lower case. Copy the score, the browser, and for Methuselah the
+  `public/hall-of-fame/`, each named for the contest and the name to show, in lower case with
+  hyphens: `methuselah-1-ada-lovelace.json`, `methuselah-1-ada-lovelace.png`. Copy the score, the browser, and for Methuselah the
   rules and the seed's cells, from the result file: `npm test` checks the entry against it.
 - **Never commit or publish the entrant's email address**, or anything about them beyond their
   chosen name, picture, score, browser and date. The address is used only to reply about the entry.

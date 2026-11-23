@@ -3675,6 +3675,141 @@
     stroke: rgb(35, 45, 60);
     stroke-width: 2;
   }
+  /* #149: the Hall of Fame #1's pace, under the run's own line */
+  .contests-chart-pace {
+    fill: none;
+    stroke: rgba(200, 220, 255, 0.7);
+    stroke-width: 2;
+    stroke-dasharray: 6 4;
+    stroke-linejoin: round;
+  }
+  .contests-chart-pace-dot {
+    fill: rgba(200, 220, 255, 0.85);
+  }
+  .contests-chart-pace-dot--mark {
+    fill: none;
+    stroke: rgba(200, 220, 255, 0.85);
+    stroke-width: 2;
+  }
+  .contests-chart-pace-label {
+    fill: rgba(200, 220, 255, 0.85);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  /* #150: where a run would stand in the Hall of Fame, on its results card */
+  .contests-standing-place {
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0 0 6px;
+  }
+  .contests-standing-near {
+    display: grid;
+    gap: 2px;
+    margin: 0 0 8px;
+    padding: 0;
+    list-style: none;
+  }
+  .contests-standing-row {
+    display: grid;
+    grid-template-columns: 22px minmax(0, 1fr) auto;
+    gap: 10px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-variant-numeric: tabular-nums;
+  }
+  .contests-standing-row--you {
+    background: rgba(192, 134, 42, 0.16);
+    box-shadow: inset 3px 0 0 #c0862a;
+  }
+  .contests-standing-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .contests-standing-row--you .contests-standing-name {
+    color: #fff;
+    font-weight: 600;
+  }
+  .contests-strip {
+    display: block;
+    width: 100%;
+    max-width: 520px;
+    height: auto;
+    margin: 0 0 6px;
+  }
+  .contests-strip-line {
+    stroke: rgba(200, 220, 255, 0.3);
+    stroke-width: 2;
+  }
+  .contests-strip-dot {
+    fill: rgba(200, 220, 255, 0.55);
+  }
+  .contests-strip-mine {
+    fill: #c0862a;
+    stroke: rgb(35, 45, 60);
+    stroke-width: 2;
+  }
+  .contests-strip-you {
+    fill: #e8edf3;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .contests-strip-end {
+    fill: rgba(200, 220, 255, 0.7);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+  }
+  .contests-race {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    box-shadow: inset 3px 0 0 rgba(242, 193, 78, 0.85);
+  }
+  .contests-race-who {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .contests-race-kicker {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: rgba(200, 220, 255, 0.7);
+    font-size: 12px;
+  }
+  .contests-race-swatch {
+    width: 18px;
+    border-top: 2px dashed rgba(200, 220, 255, 0.7);
+  }
+  .contests-race-name {
+    color: #fff;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .contests-race-score {
+    color: rgba(200, 220, 255, 0.7);
+    font-size: 12px;
+  }
+  .contests-race-gap {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    color: #e8edf3;
+  }
+  .contests-race-gap[data-gap="1"] {
+    color: rgb(155, 227, 176);
+  }
+  .contests-race-gap[data-gap="-1"] {
+    color: #e0a458;
+  }
   .contests-chart-end {
     fill: var(--color-text-contrast);
     font-size: 13px;
@@ -3977,25 +4112,72 @@
   .contests-self-verified[data-verdict="verified"] { color: #9be3b0; }
   .contests-self-verified[data-verdict="mismatch"] { color: #ffb4ad; }
   .contests-self-verified[data-verdict="not-checked"] { color: #f0d890; }
-  /* Submit by email (#79), at the foot of the results card: the link, what to attach by hand,
-     and the address, subject and text with Copy, for webmail */
+  /* Submit by email (#79, #140), at the foot of the results card: three numbered steps (save the
+     result file, open the email, attach the file), then, folded away, the address, subject and
+     text with Copy, for webmail */
   .contests-submit {
     margin: 18px 0 0;
   }
-  .contests-submit > p {
-    margin: 0 0 10px;
-  }
-  .contests-submit-go {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px 14px;
-    margin: 0 0 12px;
-  }
-  .contests-submit .contests-submit-go p {
-    flex: 1 1 220px;
+  .contests-submit p {
     margin: 0;
+  }
+  .contests-submit .contests-submit-lead {
+    margin: 0 0 12px;
     color: #f0d890;
+    font-weight: 600;
+  }
+  .contests-submit-steps {
+    display: grid;
+    gap: 10px;
+    margin: 0 0 12px;
+    padding: 0;
+    list-style: none;
+    counter-reset: submit-step;
+  }
+  .contests-submit-step {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr);
+    align-items: start;
+    gap: 6px 12px;
+    padding: 10px 12px;
+    border: 1px solid rgba(255, 205, 90, 0.35);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.25);
+    counter-increment: submit-step;
+  }
+  .contests-submit-step::before {
+    content: counter(submit-step);
+    grid-row: 1 / span 3;
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: rgba(255, 205, 90, 0.9);
+    color: #1a1406;
+    font-weight: 700;
+  }
+  .contests-submit-step[data-done="true"] {
+    border-color: rgba(155, 227, 176, 0.45);
+  }
+  .contests-submit-step[data-done="true"]::before {
+    content: "\2713";
+    background: #9be3b0;
+  }
+  .contests-submit-step > * {
+    grid-column: 2;
+    justify-self: start;
+  }
+  .contests-submit-file {
+    color: #fff;
+    overflow-wrap: anywhere;
+  }
+  .contests-submit-done {
+    color: #9be3b0;
+    font-size: 13px;
+  }
+  .contests-submit-wait {
+    color: rgba(200, 220, 255, 0.7);
     font-size: 13px;
   }
   a.contests-submit-button {
@@ -4006,9 +4188,19 @@
     font-weight: 600;
     text-decoration: none;
   }
+  a.contests-submit-button[aria-disabled="true"] {
+    border-color: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.45);
+    cursor: not-allowed;
+  }
   a.contests-submit-button:focus-visible {
     outline: 2px solid rgba(120, 180, 255, 0.8);
     outline-offset: 2px;
+  }
+  .contests-submit-webmail > summary {
+    cursor: pointer;
+    color: var(--color-info-display-text);
+    font-size: 13px;
   }
   .contests-submit-copy {
     display: grid;
@@ -4119,6 +4311,10 @@
     color: rgba(200, 220, 255, 0.7);
     font-size: 12px;
   }
+  .contests-hof-actions {
+    display: flex;
+    gap: 6px;
+  }
   .contests-hof-empty {
     color: rgba(200, 220, 255, 0.75);
     font-size: 13px;
@@ -4132,9 +4328,10 @@
       align-items: flex-start;
       font-size: 13px;
     }
-    .contests-hof-entry .contests-button {
+    .contests-hof-actions {
       grid-column: 4;
       grid-row: 1 / span 2;
+      flex-direction: column;
     }
     .contests-submit-row {
       grid-template-columns: minmax(0, 1fr) auto;
@@ -4220,6 +4417,13 @@
     }
     .contests-run-top .contests-stats {
       width: 100%;
+    }
+    .contests-race {
+      grid-template-columns: 40px minmax(0, 1fr);
+    }
+    .contests-race-gap {
+      grid-column: 1 / -1;
+      text-align: left;
     }
     .contests-clock {
       width: 132px;

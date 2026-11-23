@@ -19,7 +19,7 @@ import { MAX_RESULT_BYTES, readResult, ResultError } from '../unbounded/canonica
 import hallOfFameData from '../unbounded/hall-of-fame.json';
 import labLogo from '../assets/images/morpheus-tech.png';
 import { detectBrowser } from '../browser.js';
-import { writeJsonFile, download } from '../explore/explore.js';
+import { writeJsonFile } from '../explore/explore.js';
 import { parseSeedFile } from '../explore/seed.js';
 import { SpeedRun, verifyInWorker } from './speed.js';
 import { DiscoveryRun } from './discovery.js';
@@ -27,10 +27,11 @@ import { openWatch, closeWatch } from './watch.js';
 import {
   n, rulesText, countdownText, chartLayout, speedHero, speedScoreText, speedEndingText, resultFileName,
   statsRows, verdictTitle, closingText, scoreText, boardScore, methuselahHero, methuselahEndingText,
-  arenaText, budgetText, seedPicture, sentence, departuresText,
+  arenaText, budgetText, seedPicture, sentence, departuresText, paceOf, paceTop, paceLayout, raceText,
+  placeText, stripLayout,
 } from './format.js';
 import { SUBMIT_ADDRESS, emailSubject, emailBody, mailtoLink } from './submit.js';
-import { HALL_OF_FAME_TOP, readHallOfFame, rankEntries, dayText } from './hallOfFame.js';
+import { HALL_OF_FAME_TOP, readHallOfFame, rankEntries, placeFor, dayText } from './hallOfFame.js';
 import { LOOKS, logo, lookOf, verifyGlyph } from './looks.js';
 
 /** The kinds of contest this page can run: Speed, and Methuselah's, Classic Methuselah included. */
@@ -42,6 +43,7 @@ const SAME_EVERYWHERE = 'Your score depends only on the seed and the rules, neve
   + 'replaying the result file, in the lab or with scripts/verify.mjs, gets the same ending and the same score.';
 const STRICT = "This is a stricter methuselah than classic Life's: the whole pattern must settle inside the arena, "
   + 'and anything that flies off ends the run unscored. Classic Methuselah lets ships leave.';
+const OPEN_TITLE = "Opens this entry's seed and rules in Game of Life 3D (unbounded), in the seed editor";
 /** How Classic Methuselah differs from Methuselah, in one sentence, with P from the contest. */
 const differs = (contest) => `Unlike Methuselah, a ship may leave the arena here: an island that reaches a wall and is a ship heading out, of period up to ${contest.departures.period}, the longest recognised, is deleted and listed as a departure, and the rest of the pattern must still settle.`;
 
@@ -51,13 +53,15 @@ const panel = {
   run: null, // the SpeedRun or DiscoveryRun on screen, until the panel moves on
   startedAt: 0, // when the Worker started a Speed run, on the page's clock, for the countdown
   verify: null, // the check in progress: {cancel}
-  view: null, // 'list', 'contest', 'running', 'results', 'verifying', 'verdict'
+  view: null, // 'list', 'contest', 'board', 'running', 'results', 'verifying', 'verdict'
   // Each Discovery contest's entry, by contest id: {rules, seed, source}, checked by runFor().
   // It stays while the page is open, so Run again runs it again
   entries: new Map(),
   refused: null, // why the last simulation file loaded was refused: {contest, message}
   designInExplore: null, // leaves for Explore's seed editor (controls.js), from the mode's start
-  resume: null, // the contest the visitor left to design an entry in, to come back to
+  // Where the visitor left for Explore, to come back to: {contest, board, place}, the contest, whether
+  // they were on its full Hall of Fame (#147), and the place of the entry they opened, if any
+  resume: null,
 };
 
 const el = (id) => document.getElementById(id);
@@ -138,8 +142,9 @@ function hud(name, state, generation) {
  * Shows the panel, on the list of contests, or back on the contest the visitor left for Explore
  * to design an entry.
  * @param {object} [options]
- * @param {(contest: {note: string, arena: number, title: string, ships: boolean}) => void} [options.designInExplore]
- *   - leaves for Explore with the contest's arena and the seed editor open
+ * @param {(contest: {note: string, arena: number, title: string, ships: boolean, entry?: object}) => string | null} [options.designInExplore]
+ *   - leaves for Explore with the contest's arena and the seed editor open, on a Hall of Fame
+ *   entry's seed and rules if it is given one (#146); says why not if that entry can't open
  */
 export function openPanel({ designInExplore = null } = {}) {
   panel.open = true;
@@ -159,8 +164,14 @@ export function openPanel({ designInExplore = null } = {}) {
   };
   const resume = panel.resume;
   panel.resume = null;
-  if (resume) showContest(resume);
-  else showList();
+  if (!resume) {
+    showList();
+    return;
+  }
+  if (resume.board) showBoard(resume.contest);
+  else showContest(resume.contest);
+  // Back on the entry that was opened, scrolled into view
+  if (resume.place) el(`contests-hof-open-${resume.place}`)?.focus();
 }
 
 /** Hides the panel, ending any run or check: for leaving the mode. */
@@ -413,7 +424,7 @@ function entrySection(contest, entry) {
 function designSeed(contest) {
   const design = panel.designInExplore;
   if (!design) return;
-  panel.resume = contest;
+  panel.resume = { contest };
   const { arena } = contest.fixes;
   design({
     note: `For ${contest.title}: keep the seed in this 10³ box, Use it, and save the simulation with the Simulation box's save icon. The Contests banner brings you back.`,
@@ -528,25 +539,51 @@ function hallOfFame(contest) {
   const top = entries.slice(0, HALL_OF_FAME_TOP);
   return section('Hall of Fame',
     h('ol', { className: 'contests-hof', attrs: { id: 'contests-hof' } }, ...top.map((entry, i) => hallOfFameRow(entry, i + 1, contest))),
-    entries.length > top.length ? h('p', { className: 'contests-note', text: `The top ${top.length} of ${n(entries.length)} entries.` }) : null);
+    entries.length > top.length
+      ? h('div', { className: 'contests-actions' }, button(`Show all ${n(entries.length)} entries`, () => showBoard(contest), { id: 'contests-hof-all' }))
+      : null);
 }
 
-/** One entry: its place, picture (or the lab's logo), name, browser and date, score, and Watch. */
+/**
+ * A contest's whole Hall of Fame (#147): every entry, best first, with no cap. The rows are built
+ * once, as it opens, and their pictures load lazily, as the page's do; Watch and Open seed come
+ * back here.
+ */
+function showBoard(contest) {
+  endRun();
+  panel.contest = contest;
+  hud(contest.title, 'Ready', '–');
+  let entries = [];
+  try {
+    entries = rankEntries(readHallOfFame(hallOfFameData), contest);
+  } catch {
+    showContest(contest); // its page says why the Hall of Fame couldn't be read
+    return;
+  }
+  show('board', `${contest.title}: Hall of Fame`, [
+    h('p', { className: 'contests-note', text: `All ${n(entries.length)} entries, best first.`, attrs: { id: 'contests-board-about' } }),
+    h('ol', { className: 'contests-hof', attrs: { id: 'contests-hof' } }, ...entries.map((entry, i) => hallOfFameRow(entry, i + 1, contest))),
+    h('div', { className: 'contests-actions' }, button(`Back to ${contest.title}`, () => showContest(contest), { id: 'contests-back', main: true })),
+  ]);
+}
+
+/**
+ * One entry: its place, picture (or the lab's logo), name, browser and date, score, Watch, and
+ * for Methuselah's contests, Open seed when the page can leave for Explore. Speed's seed and rules
+ * are the same for every entry, so its entries have none.
+ */
 function hallOfFameRow(entry, place, contest) {
-  const picture = h('img', {
-    className: 'contests-hof-picture',
-    attrs: { src: entry.picture ? served(entry.picture) : labLogo, alt: '', width: '40', height: '40', loading: 'lazy', decoding: 'async' },
-  });
-  // A picture that doesn't load gives way to the logo
-  picture.onerror = () => {
-    picture.onerror = null;
-    picture.src = labLogo;
-  };
-  if (!entry.picture) picture.classList.add('contests-hof-picture--logo');
+  const picture = entryPicture(entry);
   const score = scoreText(contest, entry.score);
   const watch = button('Watch', null, { id: `contests-hof-watch-${place}` });
   watch.onclick = () => watchEntry(entry, `Hall of Fame: ${entry.name}, ${score}`, watch);
   watch.setAttribute('aria-label', `Watch ${entry.name}'s run`);
+  let open = null;
+  if (contest.kind === 'methuselah' && panel.designInExplore) {
+    open = button('Open seed', null, { id: `contests-hof-open-${place}`, title: OPEN_TITLE });
+    open.onclick = () => openEntry(entry, contest, place);
+    open.setAttribute('aria-label', `Open ${entry.name}'s seed and rules in Game of Life 3D (unbounded)`);
+  }
   const browser = entry.browser ? `${entry.browser.name} ${entry.browser.version}` : 'Browser not given';
   return h('li', { className: 'contests-hof-entry' },
     h('span', { className: 'contests-hof-place', text: String(place) }),
@@ -555,7 +592,21 @@ function hallOfFameRow(entry, place, contest) {
       h('span', { className: 'contests-hof-name', text: entry.name }),
       h('span', { className: 'contests-hof-meta', text: `${browser} · ${dayText(entry.date)}` })),
     hallOfFameScore(contest, entry),
-    watch);
+    h('span', { className: 'contests-hof-actions' }, watch, open));
+}
+
+/** An entry's picture, or the lab's logo for none, or for one that doesn't load. */
+function entryPicture(entry, { lazy = true } = {}) {
+  const picture = h('img', {
+    className: 'contests-hof-picture',
+    attrs: { src: entry.picture ? served(entry.picture) : labLogo, alt: '', width: '40', height: '40', loading: lazy ? 'lazy' : 'eager', decoding: 'async' },
+  });
+  picture.onerror = () => {
+    picture.onerror = null;
+    picture.src = labLogo;
+  };
+  if (!entry.picture) picture.classList.add('contests-hof-picture--logo');
+  return picture;
 }
 
 /**
@@ -570,10 +621,11 @@ function hallOfFameScore(contest, entry) {
 }
 
 /**
- * Loads an entry's result file from the site, reads it as untrusted data like any other, and
- * plays it in Watch.
+ * Loads an entry's result file from the site and reads it as untrusted data like any other.
+ * @param {string} cant - what the status line says it can't be, should it fail: 'watched'
+ * @returns {Promise<object | null>} the result, or null if it failed or the panel has moved on
  */
-async function watchEntry(entry, title, from) {
+async function loadEntry(entry, cant) {
   const view = panel.view;
   status("Loading the entry's result file…");
   let result;
@@ -584,12 +636,44 @@ async function watchEntry(entry, title, from) {
     if (text.length > MAX_RESULT_BYTES) throw new Error(`it is larger than ${MAX_RESULT_BYTES / 1024 / 1024} MB.`);
     result = readResult(text);
   } catch (err) {
-    if (panel.view === view) status(`It can't be watched: ${err?.message ?? err}`);
-    return;
+    if (panel.view === view) status(`It can't be ${cant}: ${err?.message ?? err}`);
+    return null;
   }
-  if (panel.view !== view || !panel.open) return; // the panel has moved on
+  if (panel.view !== view || !panel.open) return null; // the panel has moved on
   status('');
-  watchResult(result, title, from);
+  return result;
+}
+
+/** Plays an entry's result file in Watch. */
+async function watchEntry(entry, title, from) {
+  const result = await loadEntry(entry, 'watched');
+  if (result) watchResult(result, title, from);
+}
+
+/**
+ * Open seed (#146): leaves Contests for Explore, as Design a seed… does, on a Methuselah entry's
+ * seed and rules from its result file, in its contest's arena, with the seed editor open, to
+ * change into the visitor's own entry; the banner comes back to this contest's page.
+ */
+async function openEntry(entry, contest, place) {
+  const design = panel.designInExplore;
+  if (!design) return;
+  const board = panel.view === 'board';
+  const result = await loadEntry(entry, 'opened');
+  if (!result) return;
+  const { arena } = contest.fixes;
+  panel.resume = { contest, board, place };
+  const refused = design({
+    note: `${entry.name}'s ${contest.title} entry: its seed and rules. Change it if you like, Use it, and save the simulation with the Simulation box's save icon; Load simulation… on ${contest.title}'s page then enters it as your own. The Contests banner brings you back.`,
+    arena: arena.max[0] - arena.min[0] + 1,
+    title: contest.title,
+    ships: Boolean(contest.departures),
+    entry: { name: `${contest.title}: ${entry.name}`, cells: Int32Array.from(result.run.seed.flat()), rules: result.run.rules },
+  });
+  if (refused) {
+    panel.resume = null;
+    status(`It can't be opened: ${refused}`);
+  }
 }
 
 // ---- The chart: generations completed over the run's time ----
@@ -636,12 +720,30 @@ function chartSpec(contest) {
 /**
  * A line chart of a run (chartSpec()), drawn at the width it is given on the page, with axes,
  * their titles, a value at the line's end, and a crosshair that reads out the nearest point on
- * hover. With `table`, a table of the same points follows it, built when it is opened.
+ * hover. With `table`, a table of the same points follows it, built when it is opened. With a
+ * `pace` (#149), the Hall of Fame #1's line, or its final mark, is drawn under the run's: the
+ * scale fits it from the start, and its nodes are laid out again only if the scale or the size
+ * changes, so an update moves only the run's own line.
  * @returns {{node: HTMLElement, update: (points: [number, number][]) => void}}
  */
-function createChart(spec, { table = false } = {}) {
+function createChart(spec, { table = false, pace = null } = {}) {
   const { seconds } = spec;
-  const svg = svgNode('svg', { class: 'contests-chart-svg', role: 'img', 'aria-label': spec.label });
+  const svg = svgNode('svg', { class: 'contests-chart-svg', role: 'img', 'aria-label': pace ? `${spec.label}, against the Hall of Fame's #1` : spec.label });
+  let paceKey = null;
+  let paceNodes = [];
+  /** #1's line or mark, and its label, as nodes kept between draws. */
+  function paceParts(layout, width, height) {
+    const key = `${width}x${height}:${layout.yTicks[layout.yTicks.length - 1].value}`;
+    if (key === paceKey) return paceNodes;
+    paceKey = key;
+    const placed = paceLayout(pace, layout);
+    paceNodes = [
+      placed.line ? svgNode('polyline', { class: 'contests-chart-pace', points: placed.line, id: 'contests-chart-pace' }) : null,
+      svgNode('circle', { class: `contests-chart-pace-dot${placed.line ? '' : ' contests-chart-pace-dot--mark'}`, cx: placed.end.x, cy: placed.end.y, r: placed.line ? 3 : 5, id: 'contests-chart-pace-end' }),
+      svgNode('text', { class: 'contests-chart-pace-label', x: placed.end.x - 6, y: placed.end.y - 10, 'text-anchor': 'end' }, `#1 · ${placed.end.label}`),
+    ].filter(Boolean);
+    return paceNodes;
+  }
   const readout = h('div', { className: 'contests-chart-readout', attrs: { 'aria-hidden': 'true' } });
   readout.hidden = true;
   const tableBox = table ? h('details', { className: 'contests-chart-table' }, h('summary', { text: 'Show the data as a table' })) : null;
@@ -661,7 +763,7 @@ function createChart(spec, { table = false } = {}) {
     svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
     svg.setAttribute('width', width);
     svg.setAttribute('height', height);
-    layout = chartLayout(latest, { seconds, width, height });
+    layout = chartLayout(latest, { seconds, width, height, floor: pace ? paceTop(pace) : 0 });
     const { plot } = layout;
     const parts = [];
     for (const tick of layout.yTicks) {
@@ -677,6 +779,7 @@ function createChart(spec, { table = false } = {}) {
       class: 'contests-chart-axis-title', x: 0, y: 0, 'text-anchor': 'middle',
       transform: `translate(14 ${(plot.top + plot.bottom) / 2}) rotate(-90)`,
     }, spec.yTitle));
+    if (pace) parts.push(...paceParts(layout, width, height));
     if (layout.end) {
       parts.push(svgNode('path', { class: 'contests-chart-area', d: layout.area }));
       parts.push(svgNode('polyline', { class: 'contests-chart-line', points: layout.line }));
@@ -756,21 +859,76 @@ function statsGrid(rows, idPrefix) {
 
 // ---- The run ----
 
-function startRun(contest) {
+/** The Hall of Fame's #1 in a contest, or null with no entries. */
+function topEntry(contest) {
+  try {
+    return rankEntries(readHallOfFame(hallOfFameData), contest)[0] ?? null;
+  } catch {
+    return null; // the page already says the Hall of Fame couldn't be read
+  }
+}
+
+/**
+ * The Hall of Fame's #1 to race in a Speed run (#149), with its pace, loaded from its result file
+ * before the clock starts. If it can't be loaded, `failed` says why, and the run races no one.
+ * @returns {Promise<{entry: object, pace: object} | {failed: string}>}
+ */
+async function raceFor(top, contest) {
+  try {
+    const response = await fetch(served(top.result));
+    if (!response.ok) throw new Error(`the site answered ${response.status}`);
+    const text = await response.text();
+    if (text.length > MAX_RESULT_BYTES) throw new Error('its result file is too large');
+    return { entry: top, pace: paceOf(readResult(text), contest) };
+  } catch (err) {
+    return { failed: err?.message ?? String(err) };
+  }
+}
+
+/**
+ * The card for #1 on the run screen: its picture, name and score, and where the run stands
+ * against it, the only part that changes while the run goes.
+ */
+function raceCard(contest, { entry, pace }) {
+  const { main } = boardScore(contest, entry.score, entry);
+  return h('div', { className: 'contests-race', attrs: { id: 'contests-race' } },
+    entryPicture(entry, { lazy: false }),
+    h('span', { className: 'contests-race-who' },
+      h('span', { className: 'contests-race-kicker' },
+        h('span', { className: 'contests-race-swatch', attrs: { 'aria-hidden': 'true' } }),
+        document.createTextNode(pace.points ? "Racing the Hall of Fame's #1" : "Racing the Hall of Fame's #1, by its final mark")),
+      h('span', { className: 'contests-race-name', text: entry.name, attrs: { id: 'contests-race-name' } }),
+      h('span', { className: 'contests-race-score', text: main })),
+    h('span', { className: 'contests-race-gap', text: raceText(pace, [0, 0]).text, attrs: { id: 'contests-race-gap', 'data-gap': '0' } }));
+}
+
+async function startRun(contest) {
   if (contest.kind === 'methuselah') {
     startDiscovery(contest);
     return;
   }
   endRun();
-  const chart = createChart(chartSpec(contest));
+  // #1 is loaded, and its card and line drawn, before the clock starts: nothing of it is fetched
+  // or laid out while the run has the machine. With no #1, the run starts at once, as before
+  const top = topEntry(contest);
+  let race = null;
+  if (top) {
+    const runButtonNode = el('contests-run');
+    if (runButtonNode) runButtonNode.disabled = true;
+    status("Loading the Hall of Fame's #1…");
+    race = await raceFor(top, contest);
+    if (panel.view !== 'contest' || panel.contest !== contest || !panel.open) return; // the panel has moved on
+  }
+  const racing = race && !race.failed ? race : null;
+  const chart = createChart(chartSpec(contest), { pace: racing?.pace ?? null });
   const run = new SpeedRun(contest, {
     onStart: () => {
       if (panel.run !== run) return;
       panel.startedAt = performance.now();
       hud(undefined, 'Running');
     },
-    onStats: (stats) => panel.run === run && showStats(stats, chart),
-    onEnd: (end) => panel.run === run && showResults(run, end),
+    onStats: (stats) => panel.run === run && showStats(stats, chart, racing),
+    onEnd: (end) => panel.run === run && showResults(run, end, racing),
     onError: (message) => panel.run === run && status(`The engine says: ${message}`),
   });
   panel.run = run;
@@ -787,9 +945,11 @@ function startRun(contest) {
           h('span', { className: 'contests-countdown-value', text: countdownText(contest.seconds, 0), attrs: { id: 'contests-countdown' } }),
           h('span', { className: 'contests-clock-unit', text: 'seconds left' }))),
       statsGrid(statsRows(emptyStats(contest)), 'contests-stat')),
+    racing ? raceCard(contest, racing) : null,
     chart.node,
     h('div', { className: 'contests-actions' }, button('Stop', () => run.stop(), { id: 'contests-stop' })),
   ]);
+  if (race?.failed) status(`The Hall of Fame's #1 couldn't be loaded (${race.failed}), so this run races no one.`);
   chart.update(run.points);
   hud(contest.title, 'Starting', '0');
   run.start();
@@ -859,18 +1019,32 @@ function emptyStats(contest) {
   return stats;
 }
 
-function showStats(stats, chart) {
+function showStats(stats, chart, racing) {
   statsRows(stats).forEach(([, value], i) => {
     const cell = el(`contests-stat-${i}`);
     if (cell) cell.textContent = value;
   });
   chart.update(panel.run.points);
+  if (racing) {
+    const gap = el('contests-race-gap');
+    const now = raceText(racing.pace, panel.run.points[panel.run.points.length - 1]);
+    if (gap) {
+      gap.textContent = now.text;
+      gap.dataset.gap = String(Math.sign(now.gap));
+    }
+  }
   hud(undefined, undefined, n(stats.generation));
 }
 
 // ---- The results card ----
 
-async function showResults(run, end) {
+/**
+ * A results card: the score, the chart, how the run ended, where it would stand in the Hall of
+ * Fame (#150), the statistics and hash, Watch, Export and Submit by email. A Speed run that raced
+ * #1 (#149) keeps #1's line on its chart, now the run is over.
+ * @param {{entry: object, pace: object} | null} [racing] - the #1 a Speed run raced
+ */
+async function showResults(run, end, racing = null) {
   const { stats, reason, score } = end;
   const { contest } = run;
   const speed = contest.kind === 'speed';
@@ -878,7 +1052,7 @@ async function showResults(run, end) {
   hud(contest.title, score ? 'Finished' : reason === 'stopped' || speed ? 'Stopped' : 'No score', n(stats.generation));
   const again = button('Run again', () => showContest(contest), { main: !score, id: 'contests-again' });
   const back = button(`Back to ${SEASON}`, showList, { id: 'contests-back' });
-  const chart = createChart(chartSpec(contest), { table: true });
+  const chart = createChart(chartSpec(contest), { table: true, pace: speed && score ? racing?.pace ?? null : null });
   const endingText = speed ? speedEndingText(reason, contest) : methuselahEndingText(reason, contest, end);
   const entryFacts = speed ? null : facts([
     ['Seed', `${n(run.run.seed.length)} cell${run.run.seed.length === 1 ? '' : 's'}`],
@@ -924,8 +1098,8 @@ async function showResults(run, end) {
   const copy = button('Copy', null, { id: 'contests-copy-hash' });
   copy.disabled = true;
   const submitBox = h('section', { className: 'contests-section contests-submit', attrs: { id: 'contests-submit', 'aria-labelledby': 'contests-submit-title' } },
-    h('h3', { className: 'contests-section-title', text: 'Enter it', attrs: { id: 'contests-submit-title' } }),
-    h('p', { className: 'contests-note', text: 'Submit by email is ready once the result file is made.' }));
+    h('h3', { className: 'contests-section-title', text: 'Submit by email', attrs: { id: 'contests-submit-title' } }),
+    h('p', { className: 'contests-note', text: 'Ready once the result file is made.' }));
   show('results', `${contest.title}: your result`, [
     h('div', { className: 'contests-hero', attrs: { role: 'group', 'aria-label': `Your score: ${scoreWords}` } },
       h('span', { className: 'contests-hero-kicker' }, logo(lookOf(contest), 22, 'contests-hero-logo'), document.createTextNode(`${contest.title} · your score`)),
@@ -935,6 +1109,7 @@ async function showResults(run, end) {
     chart.node,
     h('p', { className: 'contests-ending', text: endingText, attrs: { id: 'contests-ending' } }),
     departed,
+    standing(contest, score, speed ? undefined : run.run.seed.length),
     entryFacts,
     statsGrid(statsRows(stats)),
     h('div', { className: 'contests-hash-box' },
@@ -966,12 +1141,14 @@ async function showResults(run, end) {
   hash.textContent = made.result.hash;
   copy.disabled = false;
   copy.onclick = () => copyText(made.result.hash, 'hash');
-  submitBox.replaceChildren(submitBox.firstChild, ...submitParts({
-    contest, score, browser: made.result.details.browser, hash: made.result.hash, text: made.text,
-    ending: reason, run: made.result.run, departures: made.result.departures,
-  }));
+  const submit = submitParts({ contest, score, browser: made.result.details.browser, text: made.text, ending: reason });
+  submitBox.replaceChildren(submitBox.firstChild, ...submit.parts);
   exportButton.disabled = false;
-  exportButton.onclick = () => exportResult(contest, score, made.text);
+  // Export result saves the same file, so it readies the email too
+  exportButton.onclick = async () => {
+    const saved = await saveResult(contest, score, made.text);
+    if (saved) submit.saved(saved);
+  };
   watchButton.disabled = false;
   watchButton.onclick = () => watchResult(made.result, `${contest.title}: ${scoreWords}`, watchButton, verified);
   // Export is what comes next, unless the visitor has moved on to another button meanwhile
@@ -980,12 +1157,71 @@ async function showResults(run, end) {
   }
 }
 
-async function exportResult(contest, score, text) {
+// ---- Where the run would stand (#150) ----
+
+/**
+ * Where a scoring run would place in its contest's Hall of Fame, entered today: its place, the
+ * entries just above and below it, and a strip of every entry's score with its own marked. It is
+ * drawn once the run has ended, so none of it can touch the score.
+ * @param {number} [seedCells] - a Methuselah run's, which break a tie in its score
+ */
+function standing(contest, score, seedCells) {
+  let entries;
   try {
-    status(await writeJsonFile(resultFileName(contest, score), text, `Contest result, ${contest.title}`));
+    entries = readHallOfFame(hallOfFameData);
+  } catch {
+    return null; // the contest's page says why
+  }
+  const at = placeFor(entries, contest, { score, seedCells });
+  const place = h('p', { className: 'contests-standing-place', text: `${placeText(at.place, at.of)}.`, attrs: { id: 'contests-standing-place' } });
+  const how = h('p', {
+    className: 'contests-note',
+    text: contest.kind === 'speed'
+      ? "As if entered today, after any entry with the same score, since it came first. Speed's times are self-reported, so the placing is too."
+      : 'As if entered today, after any entry with the same score, since it came first. The score is the same on any machine, so the placing is exact.',
+  });
+  if (at.of === 1) return section("Where you'd stand", place, how);
+  const row = (entry, number, you = false) => h('li', { className: `contests-standing-row${you ? ' contests-standing-row--you' : ''}` },
+    h('span', { className: 'contests-hof-place', text: String(number) }),
+    h('span', { className: 'contests-standing-name', text: you ? 'You' : entry.name }),
+    h('span', { className: 'contests-standing-score', text: boardScore(contest, you ? score : entry.score, you ? { seedCells } : entry).main }));
+  const near = h('ol', { className: 'contests-standing-near', attrs: { id: 'contests-standing-near' } },
+    at.above ? row(at.above, at.place - 1) : null,
+    row(null, at.place, true),
+    at.below ? row(at.below, at.place + 1) : null);
+  return section("Where you'd stand", place, near, scoreStrip(at.ranked.map((entry) => entry.score.generations), score.generations), how);
+}
+
+/** The strip: every entry's generations as a dot on one line, the visitor's marked and named. */
+function scoreStrip(values, mine) {
+  const [width, height] = [520, 64];
+  const strip = stripLayout(values, mine, { width, height });
+  const svg = svgNode('svg', {
+    class: 'contests-strip', viewBox: `0 0 ${width} ${height}`, role: 'img', id: 'contests-strip',
+    'aria-label': `Every entry's score, from ${strip.low.label} to ${strip.high.label} generations, with yours, ${n(mine)}, marked`,
+  });
+  svg.append(
+    svgNode('line', { class: 'contests-strip-line', x1: strip.left, x2: strip.right, y1: strip.y, y2: strip.y }),
+    ...strip.dots.map((x) => svgNode('circle', { class: 'contests-strip-dot', cx: x, cy: strip.y, r: 4 })),
+    svgNode('circle', { class: 'contests-strip-mine', cx: strip.mine, cy: strip.y, r: 6, id: 'contests-strip-mine' }),
+    svgNode('text', { class: 'contests-strip-you', x: strip.mine, y: strip.y - 12, 'text-anchor': 'middle' }, 'You'),
+    svgNode('text', { class: 'contests-strip-end', x: strip.low.x, y: height - 4, 'text-anchor': 'start' }, strip.low.label),
+    svgNode('text', { class: 'contests-strip-end', x: strip.high.x, y: height - 4, 'text-anchor': 'end' }, strip.high.label));
+  return svg;
+}
+
+/**
+ * Saves the result file, with the browser's save dialog where it has one, and says where it went.
+ * @returns {Promise<string | null>} what was said, or null if it wasn't saved
+ */
+async function saveResult(contest, score, text) {
+  try {
+    const said = await writeJsonFile(resultFileName(contest, score), text, `Contest result, ${contest.title}`);
+    status(said);
+    return said;
   } catch (err) {
-    if (err?.name === 'AbortError') return; // the visitor cancelled the save dialog
-    status(`Not saved: ${err.message}`);
+    if (err?.name !== 'AbortError') status(`Not saved: ${err.message}`); // AbortError: the visitor cancelled the save dialog
+    return null;
   }
 }
 
@@ -1002,24 +1238,66 @@ async function copyText(text, what) {
 // ---- Submit by email ----
 
 /**
- * The results card's Submit by email: the link that downloads the result file and opens the
- * email, what must be attached by hand, and the address, subject and text with Copy, for webmail.
- * The link is a plain mailto: link, so the browser opens the mail app as it would for any other;
- * clicking it downloads the file first, in the same click.
+ * The results card's Submit by email, as three numbered steps (#140): save the result file, open
+ * the email, attach the file. The entry is the file, so the email opens only once it is saved,
+ * by step 1 or by Export result. Saving and opening are separate clicks: done in one, a mailto:
+ * link's hand-off to the mail app can lose the download (#140). The email opens in a new tab, so
+ * a browser that sends mailto: to webmail doesn't navigate away from the results card. Under them, folded away, the
+ * address, subject and text with Copy, for webmail.
+ * @returns {{parts: Node[], saved: (said: string) => void}} the section's contents, and what
+ *   Export result calls once it has saved the file
  */
-function submitParts({ contest, score, browser, hash, text, ending, run, departures }) {
+function submitParts({ contest, score, browser, text, ending }) {
   const fileName = resultFileName(contest, score);
   const subject = emailSubject(contest, score, ending);
-  const body = emailBody({ contest, score, browser, hash, fileName, ending, run, departures });
+  const body = emailBody({ contest, browser, fileName });
+  const fileWords = () => h('strong', { className: 'contests-submit-file', text: fileName });
+
+  const savedLine = h('p', { className: 'contests-submit-done', attrs: { id: 'contests-submit-saved' } });
+  savedLine.hidden = true;
+  const saveButton = button('Save result file', null, { id: 'contests-submit-save' });
   const link = h('a', {
     className: 'glass-button contests-button contests-submit-button',
-    text: 'Submit by email',
-    attrs: { href: mailtoLink(subject, body), id: 'contests-submit-email' },
+    text: 'Open the email',
+    // A new tab: where mailto: goes to webmail, the email opens beside the lab, not in place of it
+    attrs: { id: 'contests-submit-email', target: '_blank', rel: 'noopener', 'aria-disabled': 'true', 'aria-describedby': 'contests-submit-wait' },
   });
-  link.onclick = () => {
-    download(fileName, text);
-    status(`Downloaded ${fileName}. Attach it to the email, and a picture if you like.`);
+  const wait = h('p', { className: 'contests-submit-wait', text: 'Save the result file first.', attrs: { id: 'contests-submit-wait' } });
+  const step = (...content) => h('li', { className: 'contests-submit-step' }, ...content);
+  const saveStep = step(
+    h('p', {}, document.createTextNode('Save your result file, '), fileWords(), document.createTextNode('.')),
+    saveButton, savedLine);
+  const emailStep = step(
+    h('p', { text: `Open the email to ${SUBMIT_ADDRESS}, with its text filled in.` }),
+    link, wait);
+
+  const saved = (said) => {
+    savedLine.textContent = said;
+    savedLine.hidden = false;
+    saveStep.dataset.done = 'true';
+    link.href = mailtoLink(subject, body);
+    link.removeAttribute('aria-disabled');
+    link.removeAttribute('aria-describedby');
+    wait.hidden = true;
+    status(`${said} Now open the email, and attach ${fileName} to it.`);
   };
+  saveButton.onclick = async () => {
+    const said = await saveResult(contest, score, text);
+    if (said) {
+      saved(said);
+      link.focus({ preventScroll: true });
+    }
+  };
+  link.onclick = (event) => {
+    if (link.hasAttribute('href')) {
+      emailStep.dataset.done = 'true';
+      return;
+    }
+    event.preventDefault();
+    status('Save the result file first: the email needs it attached.');
+    saveButton.focus({ preventScroll: true });
+  };
+
   const copyRow = (label, value, id, what) => h('div', { className: 'contests-submit-row' },
     h('span', { className: 'contests-submit-label', text: label }),
     h('span', { className: 'contests-submit-value', text: value, attrs: { id } }),
@@ -1029,20 +1307,28 @@ function submitParts({ contest, score, browser, hash, text, ending, run, departu
     attrs: { id: 'contests-submit-body', readonly: '', rows: '8', spellcheck: 'false', 'aria-label': 'The email\'s text' },
   });
   textBox.value = body;
-  return [
-    h('p', { text: `Submit by email downloads your result file, ${fileName}, and opens an email to ${SUBMIT_ADDRESS} with its text filled in: add the name to show, and keep or delete the Hall of Fame line.` }),
-    h('div', { className: 'contests-submit-go' },
-      link,
-      h('p', { className: 'contests-submit-attach', text: `An email link can't attach files: attach ${fileName}, and a picture if you like, by hand.`, attrs: { id: 'contests-submit-attach' } })),
-    h('p', { className: 'contests-note', text: 'No mail app? Send it from webmail, with these:' }),
-    h('div', { className: 'contests-submit-copy' },
-      copyRow('To', SUBMIT_ADDRESS, 'contests-submit-to', 'address'),
-      copyRow('Subject', subject, 'contests-submit-subject', 'subject'),
-      h('div', { className: 'contests-submit-row contests-submit-row--text' },
-        h('span', { className: 'contests-submit-label', text: 'Text' }),
-        textBox,
-        button('Copy', () => copyText(body, 'text'), { id: 'contests-submit-body-copy' }))),
-  ];
+  return {
+    saved,
+    parts: [
+      h('p', { className: 'contests-submit-lead', text: "Your entry is an email with your result file attached. Without the file, it can't be verified or listed." }),
+      h('ol', { className: 'contests-submit-steps' },
+        saveStep,
+        emailStep,
+        step(
+          h('p', { attrs: { id: 'contests-submit-attach' } },
+            h('strong', { text: 'Attach ' }), fileWords(), h('strong', { text: ' to the email' }),
+            document.createTextNode(" by hand: an email link can't attach it for you. Add a picture if you like, fill in the name to show, keep or delete the Hall of Fame line, and send it.")))),
+      h('details', { className: 'contests-submit-webmail', attrs: { id: 'contests-submit-webmail' } },
+        h('summary', { text: 'No mail app? Copy the address, subject and text into webmail' }),
+        h('div', { className: 'contests-submit-copy' },
+          copyRow('To', SUBMIT_ADDRESS, 'contests-submit-to', 'address'),
+          copyRow('Subject', subject, 'contests-submit-subject', 'subject'),
+          h('div', { className: 'contests-submit-row contests-submit-row--text' },
+            h('span', { className: 'contests-submit-label', text: 'Text' }),
+            textBox,
+            button('Copy', () => copyText(body, 'text'), { id: 'contests-submit-body-copy' })))),
+    ],
+  };
 }
 
 // ---- Watch ----
@@ -1063,7 +1349,7 @@ function watchResult(result, title, from, line = null) {
     },
     onClose: () => {
       if (panel.view !== view) return;
-      hud(undefined, { results: 'Finished', contest: 'Ready' }[view] ?? 'Checked');
+      hud(undefined, { results: 'Finished', contest: 'Ready', board: 'Ready' }[view] ?? 'Checked');
       from.focus({ preventScroll: true });
     },
   });

@@ -5,9 +5,9 @@
   through the Contests mode (#77) in a frame holding the lab, and marks each check ✔ or ✖: choosing
   the mode, the list, Speed's page, two real 6-second runs (one to the end, one stopped), Export,
   Submit by email (#79), Verify a result on the exported file, an edited copy and a file that
-  isn't a result, a staged Hall of Fame (#79), Methuselah (#94: its page, Design a seed in Explore and back, Load simulation… and its
+  isn't a result, a staged Hall of Fame (#79) and its whole board of 250 (#147), racing #1 by its curve and by its final mark (#149) and where a run would stand (#150), Methuselah (#94: its page, Design a seed in Explore and back, Load simulation… and its
   refusals, runs that die, reach the edge and are stopped, Export, Verify, Watch, Submit and its
-  Hall of Fame), Classic Methuselah (#102: its page, a run whose ship leaves before it settles, its
+  Hall of Fame, with Open seed), Classic Methuselah (#102: its page, a run whose ship leaves before it settles, its
   departures on the results card, in Export, Submit, Watch and Verify), and leaving the mode. It changes only the lab in its frame; reload to run it again. The list under
   the results is what to check by eye.
 -->
@@ -57,9 +57,9 @@
     <li>The GPU toggle's popover says contests run on the CPU.</li>
     <li>Watch: the run plays back in 3D as in Explore, the camera follows the pattern as it grows, and past the render budget the chunks show as boxes. Dragging the scrub bar back and forth feels responsive, and the view settles on the generation let go at.</li>
     <li>Watch's bar sits above the control bar, clear of it and of the HUD, at full width and at phone width.</li>
-    <li>Submit by email, in Chrome, Firefox and Safari with a mail app set up: the file downloads and a new email opens to lab@morpheustech.net, with the subject and the text filled in, line breaks kept.</li>
+    <li>Submit by email, in Chrome, Firefox and Safari with a mail app set up: Open the email is greyed out until Save result file has saved the file (Chrome asks where); then a new email opens to lab@morpheustech.net, with the subject and the text filled in, line breaks kept, and the saved file is still there; where mailto: goes to webmail, it opens in a new tab and the lab stays on its results card (#140).</li>
     <li>The Copy buttons beside the address, the subject and the text each put it on the clipboard; pasted into a webmail compose window, the text keeps its lines.</li>
-    <li>The Submit section and the Hall of Fame (staged by the check above, or with real entries) read well at full width and at phone width: long names end in an ellipsis, and Watch stays on the row.</li>
+    <li>The Submit section and the Hall of Fame (staged by the check above, and the real one in the lab itself) read well at full width and at phone width: long names end in an ellipsis, and Watch stays on the row.</li>
     <li>Methuselah's page: the seed's picture reads as cubes in a box, in Methuselah's violet, for one cell, a small design and a full 10³ box; the entry, the four endings and the facts read well at full width and at phone width.</li>
     <li>A long Methuselah run (Explore's Spreading noise preset, saved with Save seed and loaded here): the ring fills towards 10,000, the live-cells chart grows and rescales, and Stop answers at once. A run that settles late shows the whole history on its results card.</li>
     <li>Export a Methuselah result, then <code>node scripts/verify.mjs methuselah-1-N.json</code>: verified, "settled at generation N (period P)" or "died at generation N".</li>
@@ -167,6 +167,11 @@
 
     async function run() {
       await load(1280, 800);
+      // The frame's copy of hall-of-fame.json, emptied: the check stages its own boards, whatever
+      // entries the real one holds (#144). Vite serves the panel's import of a JSON file with
+      // ?import: the same URL is the same module
+      const board = (await win.eval("import('/src/unbounded/hall-of-fame.json?import')")).default;
+      board.entries.length = 0;
 
       section('Choosing the mode');
       ok(doc.body.classList.contains('mode-explore'), 'The lab opens in Explore');
@@ -272,6 +277,8 @@
       const drawing = await framesDrawn();
       ok(drawing >= 5, `The lab's frame is drawing, as the countdown and Watch need (${drawing} frames in 0.5 s; keep it in view and this tab in front)`);
       press('contests-run');
+      // With a #1 to race, the run screen waits for its result file (#149); with none, it is at once
+      await until(() => visible('contests-countdown'), 5000);
       ok(visible('contests-countdown') && text('contests-countdown') === '6.0', 'The countdown starts at 6.0');
       const arcOffset = () => Number(win.getComputedStyle(el('contests-clock-arc')).strokeDashoffset.replace('px', '')) || 0;
       ok(visible('contests-stop'), 'Stop is offered');
@@ -305,6 +312,8 @@
         || (/^\d\.\d{3}$/.test(text('contests-score')) && text('contests-score-unit') === 'seconds to reach the ceiling of 1,000 generations'),
       `It leads with what ranks the score ("${text('contests-score')}", "${text('contests-score-unit')}")`);
       ok(parseFloat(win.getComputedStyle(el('contests-score')).fontSize) >= 56, `in large type (${win.getComputedStyle(el('contests-score')).fontSize})`);
+      ok(text('contests-standing-place') === "You'd be the first in the Hall of Fame." && !el('contests-strip') && !el('contests-chart-pace'), `With no entries, it says you'd be the first, with no strip and no #1 on the chart (#150: "${text('contests-standing-place')}")`);
+      ok(panelText().includes("Speed's times are self-reported, so the placing is too"), 'and that the placing is self-reported, as the time is');
       // The table is built when it is opened: a Methuselah run's has a row a generation
       const tableBox = chart()?.querySelector('details');
       if (tableBox) tableBox.open = true;
@@ -424,6 +433,11 @@
       const createObjectURL = win.URL.createObjectURL;
       win.URL.createObjectURL = (blob) => { exported = blob; return createObjectURL.call(win.URL, blob); };
       win.HTMLAnchorElement.prototype.click = function () {}; // no real download from the check
+      // Before any save, Submit by email's step 2 waits for the file (#140)
+      const link = el('contests-submit-email');
+      ok(link.tagName === 'A' && !link.hasAttribute('href') && link.getAttribute('aria-disabled') === 'true', 'Step 2 of Submit by email, Open the email, waits for the file to be saved');
+      link.dispatchEvent(new win.MouseEvent('click', { bubbles: true, cancelable: true }));
+      ok(text('contests-panel-status').includes('Save the result file first'), `Clicking it before then says to save the file first ("${text('contests-panel-status')}")`);
       press('contests-export');
       await until(() => exported, 3000);
       ok(Boolean(exported), 'Export result writes a file');
@@ -433,33 +447,37 @@
       ok(data.run?.contest === 'speed-1' && data.score?.generations === score && data.generation === score, 'The file is a speed-1 result, with its score');
       ok(data.cells === undefined, "It doesn't carry the cells");
       ok(data.details?.browser?.name, `It names the browser (${data.details?.browser?.name} ${data.details?.browser?.version})`);
+      const browserWords = `${data.details?.browser?.name} ${data.details?.browser?.version}`;
+      ok(link.hasAttribute('href') && !link.hasAttribute('aria-disabled'), 'Export result saves the same file, so it readies Open the email too');
 
       section('Submit by email');
-      const link = el('contests-submit-email');
-      ok(visible('contests-submit-email') && link.tagName === 'A', 'The results card offers Submit by email, as a link');
+      ok(text('contests-submit').includes("Without the file, it can't be verified or listed"), 'It says the entry is an email with the result file attached');
+      ok(el('contests-submit').querySelectorAll('.contests-submit-step').length === 3, 'as three numbered steps: save, open the email, attach');
+      ok(visible('contests-submit-save'), 'Step 1 is Save result file');
+      ok(text('contests-submit-attach').includes(`Attach ${fileName} to the email`) && text('contests-submit-attach').includes("can't attach it for you"), `Step 3 names the file to attach, by hand ("${text('contests-submit-attach')}")`);
+      ok(!el('contests-submit-webmail').open, 'The webmail fallback is folded away');
+      el('contests-submit-webmail').open = true;
+      ok(text('contests-submit-to') === 'lab@morpheustech.net' && visible('contests-submit-to-copy'), 'Unfolded, it shows the address, with Copy');
+      exported = null;
+      press('contests-submit-save');
+      await until(() => exported, 3000);
+      ok(exported && (await exported.text()) === file, 'Save result file saves the result file, the same as Export\'s');
+      ok(visible('contests-submit-saved') && text('contests-panel-status').includes(`attach ${fileName}`), `and says to attach it ("${text('contests-panel-status')}")`);
+      ok(link.hasAttribute('href') && !link.hasAttribute('aria-disabled'), 'and Open the email stays ready');
+      ok(link.target === '_blank' && link.rel.includes('noopener'), 'in a new tab, so webmail opens beside the lab, not in place of it');
       const mail = new URL(link.href);
       const subject = mail.searchParams.get('subject');
       const body = mail.searchParams.get('body') ?? '';
       ok(mail.protocol === 'mailto:' && mail.pathname === 'lab@morpheustech.net', `It writes to lab@morpheustech.net (${mail.protocol}${mail.pathname})`);
       ok(subject === `[Speed] ${scoreWords}`, `The subject names the contest and the score ("${subject}")`);
-      const browserWords = `${data.details?.browser?.name} ${data.details?.browser?.version}`;
-      ok(body.includes('Name to show: ') && body.includes(`Browser and version: ${browserWords}`) && body.includes('Hardware (optional): ') && body.includes(`Result file: ${fileName}`), 'The text is the template, with the browser and the file filled in');
-      ok(body.split('\n').includes('Hall of Fame: yes, show my name, picture, score, browser and date.'), 'It has the Hall of Fame line, on its own line, to keep or delete');
-      ok(/PNG or JPEG, square, at most 1 MB/.test(body) && /repo is public/.test(body) && /email address is used only to reply/.test(body) && /Speed's timing is self-reported/.test(body), 'It states the picture conditions, that the repo is public, how the address is used, and that Speed is self-reported');
-      ok(text('contests-submit-attach').includes("can't attach files") && text('contests-submit-attach').includes(`${fileName}`), `Beside it, the card says what to attach by hand ("${text('contests-submit-attach')}")`);
-      const attachBox = el('contests-submit-attach').getBoundingClientRect();
-      const linkBox = link.getBoundingClientRect();
-      ok(attachBox.left >= linkBox.right - 1 || attachBox.top >= linkBox.bottom - 1, 'next to the link, or just under it');
-      ok(text('contests-submit-to') === 'lab@morpheustech.net' && visible('contests-submit-to-copy'), 'It shows the address, with Copy');
-      ok(text('contests-submit-subject') === subject && visible('contests-submit-subject-copy'), 'and the subject, with Copy');
+      ok(body.startsWith(`BEFORE SENDING: attach your result file, ${fileName}.`), 'The text opens by saying to attach the file');
+      const [above, bottom = ''] = body.split(`\n${'-'.repeat(40)}\n`);
+      ok(above.includes('Name to show: ') && above.includes('Picture (optional): ') && above.includes('Operating system (optional): ') && above.includes('Hardware (optional): ') && !above.includes('Browser and version'), 'Above the rule, only what to fill in: the browser is in the file');
+      ok(above.split('\n').includes('Hall of Fame: yes, show my name, picture, score, browser and date.'), 'It has the Hall of Fame line, on its own line, to keep or delete');
+      ok(!/Score:|Hash:|Result file:/.test(body), "It doesn't repeat what the file holds");
+      ok(/must be yours to use/.test(bottom) && /repo is public/.test(bottom) && /email address is used only to reply/.test(bottom) && /Speed's timing is self-reported/.test(bottom), 'Below the rule, the picture conditions, that the repo is public, how the address is used, and that Speed is self-reported');
+      ok(text('contests-submit-subject') === subject && visible('contests-submit-subject-copy'), 'The webmail fallback has the subject, with Copy');
       ok(visible('contests-submit-body') && el('contests-submit-body').value === body && el('contests-submit-body').readOnly && visible('contests-submit-body-copy'), 'and the text, the same as the link\'s, with Copy');
-      exported = null;
-      link.addEventListener('click', (event) => event.preventDefault(), { once: true }); // no mail app from the check
-      // A click event, not click(), which the Export check above turned off for anchors
-      link.dispatchEvent(new win.MouseEvent('click', { bubbles: true, cancelable: true }));
-      await until(() => exported, 3000);
-      ok(exported && (await exported.text()) === file, 'Clicking it downloads the result file, the same as Export\'s');
-      ok(text('contests-panel-status').includes(`Downloaded ${fileName}`) && text('contests-panel-status').includes('Attach it'), `and says to attach it ("${text('contests-panel-status')}")`);
 
       chooseFile(`${fileName}`, file);
       ok(await until(() => visible('contests-verdict'), 60000), 'Verify a result answers');
@@ -485,8 +503,6 @@
       section('The Hall of Fame');
       // A staged board: two entries in the frame's copy of hall-of-fame.json, one whose result file
       // is this run's export (served by a stand-in fetch), one whose file and picture don't exist
-      // Vite serves the panel's import of a JSON file with ?import: the same URL is the same module
-      const board = (await win.eval("import('/src/unbounded/hall-of-fame.json?import')")).default;
       // Made in the frame's realm, as the panel's own JSON is: readHallOfFame() wants plain objects
       // Two runs at the ceiling, 3 ms apart: the faster ranks first, though it arrived later, and
       // each shows its own time
@@ -526,6 +542,7 @@
       ok(cell(row('Check, slower'), 'picture')?.src.includes('morpheus-tech') && cell(row('Check, slower'), 'picture').classList.contains('contests-hof-picture--logo'), "An entry without a picture shows the lab's logo");
       ok(await until(() => cell(row('<b>Check</b>, this run'), 'picture')?.src.includes('morpheus-tech'), 5000), "A picture that doesn't load gives way to the logo");
       ok(rows.every((r) => r.querySelector('button')?.textContent === 'Watch'), 'Each entry has Watch');
+      ok(rows.every((r) => r.querySelectorAll('button').length === 1), "and only Watch: Speed's seed is the same for every entry, so it has no Open seed (#146)");
       const hofBox = el('contests-hof').getBoundingClientRect();
       ok(rows.every((r) => r.getBoundingClientRect().right <= hofBox.right + 1 && r.scrollWidth <= r.clientWidth + 1), 'Every row fits the panel');
       row('Check, slower').querySelector('button').click();
@@ -539,6 +556,94 @@
       await sleep(300);
       ok(visible('contests-panel') && text('contests-panel-title') === 'Speed' && doc.activeElement === ownWatch, "Esc goes back to Speed's page, to the entry's Watch");
       ok(text('contest-hud-status') === 'Ready', 'The HUD says ready again');
+      ok(!visible('contests-hof-all'), 'With 10 entries or fewer, there is no Show all (#147)');
+
+      section('The whole Hall of Fame: 250 entries (#147)');
+      // 246 more, slower than the staged four, whose files don't exist
+      const fillers = Array.from({ length: 246 }, (_, i) => ({ contest: 'speed-1', name: `Filler ${i + 1}`, picture: null, score: { generations: 246 - i, ms: null }, browser: null, date: '2026-11-22', result: `hall-of-fame/results/filler-${i + 1}.json` }));
+      board.entries.push(...win.JSON.parse(JSON.stringify(fillers)));
+      const everyEntry = staged.concat(fillers);
+      const allExpected = everyEntry.map((e, order) => ({ e, order })).sort((a, b) => (b.e.score.generations - a.e.score.generations)
+        || ((a.e.score.ms ?? Infinity) - (b.e.score.ms ?? Infinity)) || (a.e.date < b.e.date ? -1 : a.e.date > b.e.date ? 1 : 0) || (a.order - b.order)).map(({ e }) => e.name);
+      press('contests-back');
+      press('contests-open-speed-1');
+      ok(el('contests-hof').children.length === 10, `Speed's page still shows its top 10 (${el('contests-hof').children.length})`);
+      ok(visible('contests-hof-all') && text('contests-hof-all') === 'Show all 250 entries', `with Show all under them ("${text('contests-hof-all')}")`);
+      const t0 = performance.now();
+      press('contests-hof-all');
+      const opened = Math.round(performance.now() - t0);
+      const bRows = [...(el('contests-hof')?.children ?? [])];
+      ok(text('contests-panel-title') === 'Speed: Hall of Fame' && text('contests-board-about') === 'All 250 entries, best first.', `It opens the whole board (${text('contests-panel-title')}), in ${opened} ms`);
+      ok(bRows.length === 250 && bRows.every((r, i) => cell(r, 'place')?.textContent === String(i + 1)), `every entry, numbered 1 to 250 (${bRows.length} rows)`);
+      const bShown = bRows.map((r) => cell(r, 'name')?.textContent);
+      ok(bShown.join('|') === allExpected.join('|'), `ranked as the page ranks them (first ${bShown.slice(0, 5).join(', ')}; last ${bShown.at(-1)})`);
+      ok(bRows.every((r) => [...r.querySelectorAll('button')].map((b) => b.textContent).join(' ') === 'Watch'), "Each has Watch, and Speed's have no Open seed");
+      ok(bRows.every((r) => r.querySelector('img')?.getAttribute('loading') === 'lazy'), 'Pictures load lazily');
+      const boardWatch = bRows.find((r) => cell(r, 'name')?.textContent === '<b>Check</b>, this run').querySelector('button');
+      boardWatch.click();
+      ok(await until(() => visible('contests-watch'), 5000), 'Watch plays an entry from the whole board');
+      doc.body.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+      await sleep(300);
+      ok(text('contests-panel-title') === 'Speed: Hall of Fame' && doc.activeElement === boardWatch && text('contest-hud-status') === 'Ready', "Esc comes back to the whole board, to the entry's Watch");
+      press('contests-back');
+      ok(text('contests-panel-title') === 'Speed' && el('contests-hof').children.length === 10, "Back to Speed goes to its page and its top 10");
+
+      section("Racing the Hall of Fame's #1 (#149)");
+      const stopRun = async () => {
+        press('contests-stop');
+        await until(() => text('contests-panel-title') === 'Speed: no score', 5000);
+        press('contests-again');
+        await sleep(300);
+      };
+      // #1 is now the staged ceiling entry, whose result file doesn't exist
+      press('contests-run');
+      ok(await until(() => visible('contests-stop'), 10000) && !el('contests-race') && !el('contests-chart-pace'), "With #1's file missing, the run goes ahead, racing no one");
+      ok(text('contests-panel-status').startsWith("The Hall of Fame's #1 couldn't be loaded"), `and says so ("${text('contests-panel-status')}")`);
+      await stopRun();
+      // #1 with a timeline: this run's own export; and one without, the same file with it taken out
+      const marked = JSON.stringify((({ details: { timeline, ...rest }, ...file }) => ({ ...file, details: rest }))(data));
+      win.fetch = (url, ...rest) => (String(url).endsWith('/hall-of-fame/results/check-run.json') ? Promise.resolve(new win.Response(file))
+        : String(url).endsWith('/hall-of-fame/results/check-mark.json') ? Promise.resolve(new win.Response(marked))
+          : realFetch.call(win, url, ...rest));
+      board.entries.length = 0;
+      board.entries.push(...win.JSON.parse(JSON.stringify([staged[1]])));
+      press('contests-run');
+      ok(await until(() => visible('contests-stop'), 10000) && visible('contests-race'), "The run screen pins #1's card");
+      ok(text('contests-race-name') === '<b>Check</b>, this run' && el('contests-race').querySelector('img'), `with its name, as text, and its picture (${text('contests-race-name')})`);
+      const pace = el('contests-chart-pace');
+      ok(pace && pace.getAttribute('points').split(' ').length === data.details.timeline.length, `#1's curve is on the chart, a point for each of its ${data.details.timeline.length} timeline points`);
+      ok(el('contests-chart-pace-end') && el('contests-race-gap').dataset.gap !== undefined, 'with its end marked');
+      await sleep(2000);
+      ok(el('contests-chart-pace') === pace, 'Two seconds on, it is the same line: laid out once, not redrawn');
+      ok(/^(Ahead of #1 by [\d,]+ generations?|Behind #1 by [\d,]+ generations?|Level with #1)$/.test(text('contests-race-gap')), `The gap follows the run ("${text('contests-race-gap')}")`);
+      // This one runs its 6 seconds, for its results card (#150)
+      ok(await until(() => text('contests-panel-title') === 'Speed: your result', 10000), 'The raced run ends with a score');
+      ok(el('contests-chart-pace') && !el('contests-race'), "Its results card keeps #1's line on the chart, under the run's");
+      const atCeiling = text('contests-score-unit').includes('ceiling');
+      const racedScore = atCeiling
+        ? { generations: 1000, ms: Math.round(parseFloat(text('contests-score')) * 1000) }
+        : { generations: Number(text('contests-score').replace(/[^0-9]/g, '')), ms: null };
+      const rivalScore = staged[1].score;
+      // As rankEntries() would rank the run, entered after the entry: a tie goes to the entry
+      const entryFirst = rivalScore.generations !== racedScore.generations
+        ? rivalScore.generations > racedScore.generations
+        : (rivalScore.ms ?? Infinity) <= (racedScore.ms ?? Infinity);
+      ok(text('contests-standing-place') === `You'd place ${entryFirst ? '2nd' : '1st'} of 2.`, `It says where the run would place (${racedScore.generations} against the entry's ${rivalScore.generations}: "${text('contests-standing-place')}")`);
+      const nearNames = [...(el('contests-standing-near')?.children ?? [])].map((r) => r.querySelector('.contests-standing-name')?.textContent);
+      ok(nearNames.join(' | ') === (entryFirst ? '<b>Check</b>, this run | You' : 'You | <b>Check</b>, this run'), `with the entry beside it, as text (${nearNames.join(' | ')})`);
+      ok(el('contests-strip')?.querySelectorAll('.contests-strip-dot').length === 1 && el('contests-strip-mine'), "The strip has the entry's score, and the run's marked");
+      await until(() => el('contests-export') && !el('contests-export').disabled, 30000);
+      press('contests-again');
+      await sleep(300);
+      board.entries.length = 0;
+      board.entries.push(...win.JSON.parse(JSON.stringify([{ ...staged[1], name: 'Check, by its mark', result: 'hall-of-fame/results/check-mark.json' }])));
+      press('contests-run');
+      ok(await until(() => visible('contests-stop'), 10000) && visible('contests-race'), 'A #1 without a timeline is raced too');
+      ok(text('contests-race').includes('by its final mark') && !el('contests-chart-pace') && el('contests-chart-pace-end')?.classList.contains('contests-chart-pace-dot--mark'), 'by its final mark: a target, not a curve');
+      await sleep(1500);
+      ok(/^(On pace to finish [\d,]+ generations? (ahead of|behind) #1|On pace to match #1's mark)$/.test(text('contests-race-gap')), `The gap is where the run is on pace to finish ("${text('contests-race-gap')}")`);
+      await stopRun();
+
       board.entries.length = 0;
       win.fetch = realFetch;
 
@@ -620,6 +725,7 @@
       ok(text('contests-score') === '10' && text('contests-score-unit') === 'generations, until every cell had died', `It leads with the score ("${text('contests-score')}", "${text('contests-score-unit')}")`);
       ok(text('contests-ending').startsWith('Died at generation 10: no live cells remain.'), `It says how it ended ("${text('contests-ending').slice(0, 50)}…")`);
       ok(text('contests-result-entry-0') === '11 cells' && text('contests-result-entry-1') === 'B5,7-8/S1,4', 'It gives the seed\'s cells and the rules');
+      ok(text('contests-standing-place') === "You'd be the first in the Hall of Fame." && !el('contests-strip') && panelText().includes('the placing is exact'), `With no entries, it says you'd be the first, and that a placing here is exact (#150: "${text('contests-standing-place')}")`);
       const mChart = () => el('contests-panel').querySelector('.contests-chart');
       ok(await until(() => (mChart().querySelector('.contests-chart-line')?.getAttribute('points') ?? '').split(' ').length === 11, 3000), 'Its chart has every generation, 0 to 10');
       const mTitles = [...mChart().querySelectorAll('.contests-chart-axis-title')].map((t) => t.textContent);
@@ -636,10 +742,11 @@
       ok(mData.run?.contest === 'methuselah-1' && mData.ending === 'died' && mData.generation === 10 && JSON.stringify(mData.score) === '{"generations":10,"period":1}', 'The file is a methuselah-1 result, died at 10, with its score');
       const sorted = DIES.cells.slice().sort((a, b) => a[2] - b[2] || a[1] - b[1] || a[0] - b[0]);
       ok(JSON.stringify(mData.run?.seed) === JSON.stringify(sorted) && JSON.stringify(mData.run?.rules) === JSON.stringify(DIES.rules), 'Its seed and rules are exactly the entry\'s');
+      ok(el('contests-submit-email').hasAttribute('href'), 'Export result saved the file, so Open the email is ready (#140)');
       const mLink = new URL(el('contests-submit-email').href);
       const mBody = mLink.searchParams.get('body') ?? '';
       ok(mLink.searchParams.get('subject') === '[Methuselah] died at generation 10', `Submit by email's subject gives the score ("${mLink.searchParams.get('subject')}")`);
-      ok(mBody.includes('Rules: B5,7-8/S1,4') && mBody.includes('Seed: 11 cells') && !mBody.includes('Hardware') && !mBody.includes('self-reported'), 'and its text the rules and the seed, with nothing on timing');
+      ok(mBody.startsWith('BEFORE SENDING: attach your result file, methuselah-1-10.json.') && !mBody.includes('Hardware') && !mBody.includes('Operating system') && !mBody.includes('self-reported'), 'and its text names the file, with nothing on the machine or timing');
       setSpeed(10);
       press('contests-watch-run');
       await sleep(300);
@@ -702,6 +809,54 @@
       ok(await until(() => visible('contests-watch'), 5000) && text('contests-watch-title') === 'Hall of Fame: Check, this run, settled at generation 10' && Number(el('contests-watch-scrub').max) === 10, `Watch plays an entry from the seed to its h (${text('contests-watch-title')})`);
       press('contests-watch-close');
       await sleep(300);
+      ok(mRows.every((r) => [...r.querySelectorAll('button')].map((b) => b.textContent).join(' ') === 'Watch Open seed'), 'Each entry has Watch and Open seed (#146)');
+      ok(mRows[2].querySelectorAll('button')[1].getAttribute('aria-label') === "Open Check, this run's seed and rules in Game of Life 3D (unbounded)", 'Open seed names the entry for a screen reader');
+      mRows[0].querySelectorAll('button')[1].click();
+      ok(await until(() => text('contests-panel-status').startsWith("It can't be opened"), 5000), `An entry whose file can't be read says so ("${text('contests-panel-status')}")`);
+      ok(doc.body.classList.contains('mode-contests') && text('contests-panel-title') === 'Methuselah', 'and the panel stays on Methuselah');
+      mRows[2].querySelectorAll('button')[1].click();
+      ok(await until(() => doc.body.classList.contains('mode-explore') && visible('seed-editor'), 5000), 'Open seed opens the entry in Explore, with the seed editor open');
+      ok(state.explore.arena === 64 && state.explore.edge === 'end' && state.explore.seed.cells.length === 33
+        && JSON.stringify(state.explore.rules) === JSON.stringify(DIES.rules), `with its 11 cells and rules, in Methuselah's 64³ arena (arena ${state.explore.arena}, ${state.explore.seed.cells.length / 3} cells)`);
+      ok(text('seed-editor-note').startsWith("Check, this run's Methuselah entry") && text('seed-editor-note').includes('enters it as your own'), `Its note says how to change it into an entry ("${text('seed-editor-note').slice(0, 90)}…")`);
+      el('seed-editor').querySelector('[data-action="cancel"]').click();
+      await sleep(300);
+      await openContests();
+      ok(text('contests-panel-title') === 'Methuselah', "The banner brings it back to Methuselah's page");
+      ok(doc.activeElement?.id === 'contests-hof-open-3', 'to the Open seed it left from');
+
+      section("Methuselah's whole Hall of Fame (#147)");
+      const mFillers = Array.from({ length: 9 }, (_, i) => ({ contest: 'methuselah-1', name: `Filler ${i + 1}`, picture: null, score: { generations: 9 - i, period: 1 }, rules: { birth: [4], survival: [9] }, seedCells: 3, browser: null, date: '2026-11-22', result: `hall-of-fame/results/m-filler-${i + 1}.json` }));
+      board.entries.push(...win.JSON.parse(JSON.stringify(mFillers)));
+      press('contests-back');
+      press('contests-open-methuselah-1');
+      ok(el('contests-hof').children.length === 10 && text('contests-hof-all') === 'Show all 12 entries', `12 entries: the top 10, and Show all ("${text('contests-hof-all')}")`);
+      press('contests-hof-all');
+      const mBoard = [...el('contests-hof').children];
+      ok(mBoard.length === 12 && mBoard.every((r) => r.querySelectorAll('button').length === 2), 'The whole board has all 12, each with Watch and Open seed');
+      const mOwn = mBoard.findIndex((r) => cell(r, 'name')?.textContent === 'Check, this run');
+      mBoard[mOwn].querySelectorAll('button')[1].click();
+      ok(await until(() => doc.body.classList.contains('mode-explore') && visible('seed-editor'), 5000), 'Open seed from the whole board opens Explore');
+      el('seed-editor').querySelector('[data-action="cancel"]').click();
+      await sleep(300);
+      await openContests();
+      ok(text('contests-panel-title') === 'Methuselah: Hall of Fame' && el('contests-hof').children.length === 12, 'The banner comes back to the whole board');
+      ok(doc.activeElement?.id === `contests-hof-open-${mOwn + 1}`, `to the Open seed it left from (place ${mOwn + 1})`);
+      press('contests-back');
+      ok(text('contests-panel-title') === 'Methuselah', "Back goes to Methuselah's page");
+
+      section("Where a Methuselah run would stand (#150)");
+      // The dying seed again: 10 generations from 11 cells, level with the staged entry "Check, this run"
+      await loadSeed('dies.json', seedFile(DIES.rules, DIES.cells));
+      press('contests-run');
+      ok(await until(() => visible('contests-score'), 15000) && text('contests-score') === '10', 'It scores 10 generations, from 11 cells');
+      ok(text('contests-standing-place') === "You'd place 4th of 13.", `Level with an entry, it places after it, since the entry came first ("${text('contests-standing-place')}")`);
+      const mNear = [...(el('contests-standing-near')?.children ?? [])].map((r) => [r.querySelector('.contests-hof-place')?.textContent, r.querySelector('.contests-standing-name')?.textContent].join(' '));
+      ok(mNear.join(' | ') === '3 Check, this run | 4 You | 5 Filler 1', `with the entries just above and below it (${mNear.join(' | ')})`);
+      ok(el('contests-strip')?.querySelectorAll('.contests-strip-dot').length === 12 && el('contests-strip-mine'), "The strip has all 12 entries' scores, and the run's marked");
+      ok(!el('contests-chart-pace'), 'and no pace line: Methuselah has no #1 to race');
+      press('contests-again');
+      await sleep(300);
       board.entries.length = 0;
       win.fetch = realFetch;
 
@@ -752,8 +907,8 @@
       ok(cData.run?.contest === 'classic-methuselah-1' && cData.departures?.length === 1 && cData.departures[0].generation === 35 && JSON.stringify(cData.departures[0].shift) === '[1,0,0]',
         'The file is a classic-methuselah-1 result, with its departure');
       const cLink = new URL(el('contests-submit-email').href);
-      ok(cLink.searchParams.get('subject') === '[Classic Methuselah] settled at generation 36: period 2' && (cLink.searchParams.get('body') ?? '').includes('Ships: 1 ship left, at generation 35'),
-        `Submit by email gives the score and the ships ("${cLink.searchParams.get('subject')}")`);
+      ok(cLink.searchParams.get('subject') === '[Classic Methuselah] settled at generation 36: period 2' && (cLink.searchParams.get('body') ?? '').startsWith('BEFORE SENDING: attach your result file, classic-methuselah-1-36.json.'),
+        `Submit by email gives the score, and names the file that holds the ships ("${cLink.searchParams.get('subject')}")`);
       setSpeed(10);
       press('contests-watch-run');
       await sleep(300);

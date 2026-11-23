@@ -12,7 +12,8 @@ import {
   secondsText, boardScore, methuselahScoreText, scoreText, methuselahHero, methuselahEndingText, arenaText, budgetText,
   seedPicture, sentence,
   rulesText, bytesText, extentText, verdictTitle, closingText, watchGenerationText, selfVerifiedText,
-  departuresText, headingText, watchDeparturesText,
+  departuresText, headingText, watchDeparturesText, paceOf, paceTop, paceAt, raceText, paceLayout,
+  ordinal, placeText, stripLayout, STRIP_MARGIN,
 } from '../../src/contests/format.js';
 
 const SPEED = contestById('speed-1');
@@ -290,4 +291,87 @@ test("a run where ships leave counts them among its statistics; others don't", (
   const stats = { generation: 40, rate: 100, live: 4, livePeak: 30, chunks: 1, memoryBytes: 1 << 20, extent: null };
   assert.equal(statsRows(stats).find(([label]) => label === 'Ships left'), undefined);
   assert.deepEqual(statsRows({ ...stats, departed: 2 }).at(-1), ['Ships left', '2']);
+});
+
+// ---- Racing the Hall of Fame's #1 (#149) ----
+
+const TIMELINE = [[0, 0], [250, 160], [1000, 210], [3000, 330], [5970, 449]];
+const timed = { score: { generations: 449, ms: null }, details: { timeline: TIMELINE } };
+
+test("#1's pace is its timeline in seconds, or without one its final mark", () => {
+  const pace = paceOf(timed, SPEED);
+  assert.deepEqual(pace.points, [[0, 0], [0.25, 160], [1, 210], [3, 330], [5.97, 449]]);
+  assert.equal(paceTop(pace), 449);
+  const mark = paceOf({ score: { generations: 452, ms: null }, details: {} }, SPEED);
+  assert.deepEqual(mark, { mark: [6, 452] });
+  assert.equal(paceTop(mark), 452);
+  assert.deepEqual(paceOf({ score: { generations: 1000, ms: 4210 }, details: {} }, SPEED), { mark: [4.21, 1000] }, 'at the ceiling, its time');
+});
+
+test('the pace at a moment is straight between its points, and its last after them', () => {
+  const pace = paceOf(timed, SPEED);
+  assert.equal(paceAt(pace, 0), 0);
+  assert.equal(paceAt(pace, 0.25), 160);
+  assert.equal(paceAt(pace, 2), 270);
+  assert.equal(paceAt(pace, 5.97), 449);
+  assert.equal(paceAt(pace, 6.02), 449);
+  assert.equal(paceAt({ points: [[0, 0], [1, 5], [1, 9], [2, 10]] }, 1), 5, 'two points at one moment: the first');
+});
+
+test('the gap to #1: generations at the same moment, or the finish the rate so far points to', () => {
+  const pace = paceOf(timed, SPEED);
+  assert.deepEqual(raceText(pace, [0, 0]), { gap: 0, text: 'Level with #1' });
+  assert.deepEqual(raceText(pace, [2, 281]), { gap: 11, text: 'Ahead of #1 by 11 generations' });
+  assert.deepEqual(raceText(pace, [2, 269]), { gap: -1, text: 'Behind #1 by 1 generation' });
+  assert.deepEqual(raceText(pace, [2, 270.4]), { gap: 0, text: 'Level with #1' });
+  const mark = { mark: [6, 452] };
+  assert.deepEqual(raceText(mark, [0, 0]), { gap: 0, text: '#1 reached 452 generations' });
+  assert.deepEqual(raceText(mark, [3, 230]), { gap: 8, text: 'On pace to finish 8 generations ahead of #1' });
+  assert.deepEqual(raceText(mark, [3, 225]), { gap: -2, text: 'On pace to finish 2 generations behind #1' });
+  assert.deepEqual(raceText(mark, [3, 226]), { gap: 0, text: "On pace to match #1's mark" });
+  assert.deepEqual(raceText(mark, [6, 440]), { gap: -12, text: 'On pace to finish 12 generations behind #1' }, 'at the mark, what was done');
+});
+
+test("the chart's scale fits #1 from the start, and its line or mark sits on it", () => {
+  const pace = paceOf(timed, SPEED);
+  const early = chartLayout([[0, 0], [0.25, 40]], { seconds: 6, width: 560, height: 260, floor: paceTop(pace) });
+  assert.ok(early.yTicks.at(-1).value >= 449, `the scale reaches #1's 449 (${early.yTicks.at(-1).value})`);
+  const placed = paceLayout(pace, early);
+  const coords = placed.line.split(' ').map((p) => p.split(',').map(Number));
+  assert.equal(coords.length, 5);
+  assert.deepEqual(coords[0], [early.plot.left, early.plot.bottom]);
+  assert.deepEqual([placed.end.x, placed.end.y], coords.at(-1));
+  assert.equal(placed.end.label, '449');
+  assert.ok(coords.every(([x, y]) => x >= early.plot.left && x <= early.plot.right && y >= early.plot.top && y <= early.plot.bottom), 'inside the plot');
+  // Without a floor, the scale fits only the run: #1 would leave the plot
+  assert.ok(chartLayout([[0, 0], [0.25, 40]], { seconds: 6, width: 560, height: 260 }).yTicks.at(-1).value < 449);
+  const mark = paceLayout({ mark: [6, 452] }, chartLayout([], { seconds: 6, width: 560, height: 260, floor: 452 }));
+  assert.equal(mark.line, null);
+  assert.equal(mark.end.x, 560 - CHART_MARGIN.right);
+  assert.equal(mark.end.label, '452');
+});
+
+// ---- Where a run would stand (#150) ----
+
+test('places read as ordinals, and an empty Hall of Fame makes you the first', () => {
+  assert.deepEqual([1, 2, 3, 4, 10, 11, 12, 13, 21, 22, 23, 101, 111, 1001].map(ordinal),
+    ['1st', '2nd', '3rd', '4th', '10th', '11th', '12th', '13th', '21st', '22nd', '23rd', '101st', '111th', '1,001st']);
+  assert.equal(placeText(7, 42), "You'd place 7th of 42");
+  assert.equal(placeText(1, 2), "You'd place 1st of 2");
+  assert.equal(placeText(1, 1), "You'd be the first in the Hall of Fame");
+});
+
+test('the strip runs from the lowest score to the highest, the better to the right, with yours among them', () => {
+  const strip = stripLayout([449, 412, 430], 440, { width: 520, height: 64 });
+  assert.equal(strip.left, STRIP_MARGIN.left);
+  assert.equal(strip.right, 520 - STRIP_MARGIN.right);
+  assert.deepEqual([strip.low.label, strip.high.label], ['412', '449']);
+  assert.deepEqual(strip.dots, [strip.right, strip.left, +(strip.left + (18 / 37) * (strip.right - strip.left)).toFixed(1)]);
+  assert.ok(strip.mine > strip.dots[2] && strip.mine < strip.right);
+  const beyond = stripLayout([449], 1000, { width: 520, height: 64 });
+  assert.equal(beyond.mine, beyond.right, 'a score past every entry is at the right end');
+  const same = stripLayout([449], 449, { width: 520, height: 64 });
+  assert.equal(same.mine, same.dots[0], 'the same score: the same place');
+  assert.ok(same.mine > same.left && same.mine < same.right, 'in the middle, not on an end');
+  assert.deepEqual([same.low.label, same.high.label], ['449', '449']);
 });

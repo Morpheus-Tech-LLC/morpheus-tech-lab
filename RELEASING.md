@@ -63,15 +63,17 @@ Maintainers release from a clone of the lab itself, not a fork: in these steps a
 below, `origin` is the lab.
 
 1. **Decide the version** from what is under `[Unreleased]`, using the rules above.
-2. **Prepare on `development`.** One prep commit moves `[Unreleased]` to `## [X.Y.Z] — YYYY-MM-DD`
-   and updates the mirrors (`package.json`, the lockfile root, the README's Release line).
-   An agent may draft this commit's changes.
+2. **Prepare on a branch off `development`.** One prep commit moves `[Unreleased]` to
+   `## [X.Y.Z] — YYYY-MM-DD` and updates the mirrors (`package.json`, the lockfile root, the
+   README's Release line). `development` takes changes only by pull request, so open one titled
+   `Release prep X.Y.Z` and merge it once its checks pass. An agent may draft this commit's changes.
 3. **Open a pull request from `development` to `main`** titled `Release X.Y.Z`. Its description
    lists the issues it ships, one per line (`Shipped: #N`): each closed as completed when its
-   pull request merged into `development`. Wait for the DCO and build checks to pass, then
-   merge it **with a merge commit**, never a squash or rebase: `Release X.Y.Z (#N)`, with its
+   pull request merged into `development`. It needs an approving review from a maintainer other
+   than its author, and the DCO and build checks to pass; then merge it **with a merge commit**, never a squash or rebase: `Release X.Y.Z (#N)`, with its
    `Shipped:` lines ([Merge commits](#merge-commits)).
-4. **Tag the merge commit:**
+4. **Tag the merge commit.** Only the accounts the `v*` tag ruleset allows can create a release
+   tag:
    ```sh
    git fetch origin && git tag -a vX.Y.Z origin/main -m "Release X.Y.Z" && git push origin vX.Y.Z
    ```
@@ -81,12 +83,9 @@ below, `origin` is the lab.
    git switch main && git pull && npm ci && npm run deploy; git switch development
    ```
    The `;` switches back even if the deploy fails; to retry, run the whole line again.
-6. **Bring `development` up to `main`:**
-   ```sh
-   git switch development && git merge --ff-only main && git push
-   ```
-   If the fast-forward is refused, something landed on `development` during the release; merge
-   `main` into `development` instead, as `Merge main into development after X.Y.Z`.
+6. **Bring `development` up to `main`** by pull request, since `development` takes no direct
+   pushes: open one from `main` into `development` titled `Merge main into development after
+   X.Y.Z`, and merge it with a merge commit once its checks pass.
 7. Optionally, **publish a GitHub Release** from the tag, with that version's changelog section.
 
 ## Hotfix
@@ -98,8 +97,8 @@ For a fix that cannot wait for the next release from `development`:
 3. Open a pull request from `hotfix/X.Y.Z` to `main` titled `Hotfix X.Y.Z`, and merge it with a
    merge commit: `Hotfix X.Y.Z (#N)` ([Merge commits](#merge-commits)).
 4. Tag and deploy as in steps 4 and 5 above.
-5. Merge `main` back into `development`, as `Merge main into development after X.Y.Z`, so the
-   fix and its changelog entry are not lost.
+5. Merge `main` back into `development` by pull request, as in step 6 above (`Merge main into
+   development after X.Y.Z`), so the fix and its changelog entry are not lost.
 
 ## A pull request against `main` (maintainers)
 

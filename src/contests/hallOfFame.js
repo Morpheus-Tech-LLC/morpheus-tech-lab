@@ -141,6 +141,26 @@ export function rankEntries(entries, contest) {
 }
 
 /**
+ * Where a run would place in a contest's Hall of Fame if it were entered today (#150): after
+ * every entry that ranks above it, and after every entry level with it too, since those arrived
+ * first.
+ * @param {object[]} entries - from readHallOfFame()
+ * @param {import('../unbounded/contests.js').Contest} contest
+ * @param {{score: object, seedCells?: number}} run - its score, and for Methuselah its seed's cells
+ * @returns {{place: number, of: number, above: object | null, below: object | null, ranked: object[]}}
+ *   its place out of the entries and itself, the entries just above and below it, and the
+ *   contest's entries, best first
+ */
+export function placeFor(entries, contest, run) {
+  const ranked = rankEntries(entries, contest);
+  const byScore = RANKS[contest.kind] ?? (() => 0);
+  // Ranked best first, so the entries level with the run or above it come first
+  let ahead = 0;
+  while (ahead < ranked.length && byScore(ranked[ahead], run) <= 0) ahead++;
+  return { place: ahead + 1, of: ranked.length + 1, above: ranked[ahead - 1] ?? null, below: ranked[ahead] ?? null, ranked };
+}
+
+/**
  * Checks an entry against its result file, without a replay: the file reads as a result, passes
  * checkContest(), and agrees with the entry's contest, score, browser and, for Methuselah, rules
  * and seed cells. scripts/verify.mjs replays the files.

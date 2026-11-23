@@ -228,7 +228,13 @@ list, departure for departure. It ranks as Methuselah does, on a board of its ow
 `runFor(contest, entry)` makes a run's definition from the contest's fixed parts and the
 entry's rules and seed, so a contest's result states its whole run like any other. A contest's
 result adds a `score`, outside the hash: Speed's is `{generations, ms}`, where `ms` is the time to
-reach the 1,000-generation ceiling, and null for a run the 6 seconds ended. `verifyResult()`
+reach the 1,000-generation ceiling, and null for a run the 6 seconds ended. A Speed result also
+carries its `details.timeline` (#148): the generations completed over the run, as `[ms,
+generation]` points in whole milliseconds on the Worker's clock, from `[0, 0]`, neither falling,
+at most `MAX_TIMELINE_POINTS`: the points the run's chart draws (`SpeedRun.timeline()`). Like the
+time it is self-reported and outside the hash; `readResult()` checks its shape, and
+`checkContest()` that it ends at the file's generation, within the 6 seconds, and that no other
+kind of result has one. A file without one still reads and verifies. `verifyResult()`
 first runs `checkContest()`: the run must be `runFor()` of its contest, with its own rules and
 seed, and the score must follow from the generation and ending; then the replay, or the table,
 confirms the generation. A contest the lab doesn't know isn't checked. The table for Speed is
@@ -273,7 +279,12 @@ an empty seed or a cell outside the seed box with the reason, shown before Run; 
 with ships leaving at its edge for Classic Methuselah and not for Methuselah, and never wrapping (`setup.js`'s
 `contestArena()`; a saved generation keeps its own), starts Game of Life 3D (unbounded) and opens the
 seed editor (`hud.js`'s `openSeedEditor()`) with a note on the contest; the panel remembers the contest, so the
-banner comes back to its page. The seed is drawn as cubes in the seed box, seen from above a
+banner comes back to its page. A Methuselah Hall of Fame entry's **Open seed** (#146) does the
+same on the entry's seed and rules, read from its result file as Watch reads it: `designInExplore()`
+is given the entry, and `setup.js`'s `entrySetup()` makes it the unbounded mode's simulation, named
+for the entry, in the contest's arena. It returns why an entry can't open instead of leaving
+Contests, and the panel says so. Speed's entries have no Open seed: its seed and rules are
+everyone's. The seed is drawn as cubes in the seed box, seen from above a
 corner, with hidden cubes left out (`format.js`'s `seedPicture()`, tested in Node). A run is
 `discovery.js`'s `DiscoveryRun`: an open-ended settling run in a Worker, in the contest's arena,
 with its chunk size and its budget as the generation limit, and `history`, so the Worker keeps
@@ -316,9 +327,18 @@ before it leaves the mode.
 
 **Submitting, and the Hall of Fame** (#79). A static site can't send email, so **Submit by
 email** on the results card is a `mailto:` link to lab@morpheustech.net (`submit.js`: the
-subject, the template's text and the link, tested in Node); its click downloads the result file
-(`explore.js`'s `download()`) in the same gesture, since a `mailto:` link can't attach it. The
-card shows the address, subject and text with Copy too. The text is the lab's promise to an
+subject, the template's text and the link, tested in Node). A `mailto:` link can't attach the
+result file, and the entry is the file, so the card makes it three numbered steps (#140): **Save
+result file** (`explore.js`'s `writeJsonFile()`, Chrome's save dialog or a download), **Open the
+email**, which has no `href` until the file is saved, by that button or by Export result, and
+**attach the file** by hand, named. Saving and opening are separate clicks because, done in one,
+the hand-off to the mail app could lose the download. The email opens in a new tab
+(`target="_blank"`): where the browser sends `mailto:` to webmail, a plain link replaced the lab,
+and its results card, with the webmail page. The email's text opens by saying to attach
+the file, then has only what the entrant fills in; what the result file holds (score, rules, seed,
+ships, hash) isn't repeated, and the conditions follow under a rule of dashes, in plain text, since
+a `mailto:` body can't carry formatting. Under the steps, folded away, the card shows the address, subject and text with Copy,
+for webmail. The text is the lab's promise to an
 entrant (the picture's conditions, the public repo, the email address used only to reply, Speed's
 self-reported timing); CONTRIBUTING.md's "Contest entries" is the maintainers' side of it. The
 **Hall of Fame** is data: `src/unbounded/hall-of-fame.json`, `{"entries": [...]}`, each entry
@@ -331,7 +351,9 @@ shape only), ranks a contest's entries (`rankEntries()`: the contest's order, `c
 for Speed, `compareMethuselah()` for Methuselah, then the earlier date, then the file's order,
 which is arrival order), and checks an entry against its file (`checkEntry()`: it reads as a
 result, passes `checkContest()`, and has the entry's contest, score, browser, rules and seed cells), which `npm test` runs on every entry without replaying;
-`scripts/verify.mjs` replays them. Each contest's page shows its top 10, the lab's logo standing
+`scripts/verify.mjs` replays them. Each contest's page shows its top 10, and past 10, **Show all N
+entries** opens the panel's `board` view, every entry with no cap, its rows built once as it opens
+(#147); Watch and Open seed come back to it, Open seed through `panel.resume`. The lab's logo stands
 in for a missing picture, each score led by what ranks it (`format.js`'s `boardScore()`): at
 Speed's ceiling every entry has 1,000 generations, so the time leads, to the millisecond the score
 holds (`secondsText()`), as on the results card (`speedHero()`), since two places would show
@@ -405,7 +427,18 @@ never clipped, so a run can always be replayed to the same place.
 machine completes in 6 seconds, so the page gives it the whole machine: no 3D view while it runs,
 only a countdown and statistics four times a second. Its result file is made in the Worker, from
 the world it already holds, rather than by sending a generation of hundreds of thousands of cells
-to the page.
+to the page. Racing the Hall of Fame's #1 (#149) keeps to that: Run fetches #1's result file and
+draws its card and its pace line (`format.js`'s `paceOf()` and `paceLayout()`; its timeline, or
+its final mark for a file without one) before the clock starts. The chart's scale fits #1 from the
+start (`chartLayout()`'s `floor`), so the pace line's nodes are kept and laid out again only if the
+scale or the chart's size changes. Each statistics message then moves only the run's own line
+and the "ahead/behind" text (`raceText()`), with no animation. Once the run has ended, the results
+card (#150) keeps #1's line on its chart and says where the run would stand:
+`hallOfFame.js`'s `placeFor()` places it as `rankEntries()` would, entered today, so it goes after
+any entry level with it, with the entries either side; and a strip (`format.js`'s `stripLayout()`)
+puts every entry's generations on one line, the run's marked. Methuselah's results cards show the
+placing and the strip too, ranked with the run's seed cells. `race-bench.html` measures it: runs
+with and without the race, in turn, must score the same within the noise.
 
 **The unbounded engine runs in a Worker (#36).** A run can work flat out for as long as it
 lasts, so it runs off the page's thread, and the page only sends commands and draws what it

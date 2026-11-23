@@ -15,6 +15,7 @@ import { World } from '../../src/unbounded/world.js';
 import { step } from '../../src/unbounded/step.js';
 import {
   resultOf, resultText, readResult, hashWorld, stateHash, worldOptions, tableText, readTable, ResultError,
+  MAX_TIMELINE_POINTS,
 } from '../../src/unbounded/canonical.js';
 import {
   CONTESTS, SEED_BOX, DISCOVERY_ARENA, contestById, runFor, checkContest, speedScore, compareSpeed,
@@ -105,6 +106,9 @@ test("Speed's score: generations, and the time only at the ceiling; ranked by bo
     { generations: 1000, ms: 4210 },
   ].sort(compareSpeed);
   assert.deepEqual(ranked.map((s) => [s.generations, s.ms]), [[1000, 4210], [1000, 5000], [999, null], [412, null]]);
+  // Level scores compare as 0, below the ceiling (no time) and at it (#150)
+  assert.equal(compareSpeed({ generations: 412, ms: null }, { generations: 412, ms: null }), 0);
+  assert.equal(compareSpeed({ generations: 1000, ms: 4210 }, { generations: 1000, ms: 4210 }), 0);
 });
 
 test('a Speed result verifies by replay, and by table lookup', async () => {
@@ -182,6 +186,73 @@ test("a contest this lab doesn't know isn't checked; a score without a contest f
   const noContest = await verifyResult(edit(text, (d) => { d.run.contest = null; }));
   assert.equal(noContest.verdict, 'mismatch');
   assert.match(noContest.message, /score but no contest/);
+});
+
+// ---- Speed's timeline (#148) ----
+
+/** A Speed result like goodFile()'s, with a timeline climbing to generation GENS by 5,900 ms. */
+async function timedFile(timeline = [[0, 0], [1200, 1], [2500, 3], [4100, 4], [5900, GENS]]) {
+  const { run, world } = await speedRun();
+  return resultText(await resultOf(world, {
+    run, ending: 'deadline', score: speedScore(SPEED, world.generation, 6000.4),
+    details: { elapsedMs: 6000.4, browser: null, timeline },
+  }));
+}
+
+test('a Speed result with its timeline reads, keeps it, and verifies; one without still does', async () => {
+  const text = await timedFile();
+  assert.deepEqual(readResult(text).details.timeline, [[0, 0], [1200, 1], [2500, 3], [4100, 4], [5900, GENS]]);
+  assert.equal((await verifyResult(text)).verdict, 'verified');
+  // Outside the hash: a different timeline doesn't change the hash, like the time
+  assert.equal(readResult(await timedFile([[0, 0], [5000, GENS]])).hash, readResult(text).hash);
+  const without = await goodFile();
+  assert.equal(readResult(without).details.timeline, undefined);
+  assert.equal(JSON.parse(without).details.timeline, undefined, 'a file without one has no field for it');
+  assert.equal((await verifyResult(without)).verdict, 'verified');
+  // A single point is a run that completed no generation by its end
+  assert.doesNotThrow(() => readResult(edit(text, (d) => { d.details.timeline = [[0, 0]]; })));
+});
+
+test("a timeline's shape is checked when a file is read", async () => {
+  const text = await timedFile();
+  const many = Array.from({ length: MAX_TIMELINE_POINTS + 1 }, (_, i) => [i, Math.min(i, GENS)]);
+  const bad = [
+    [(d) => { d.details.timeline = null; }, /details\.timeline must be a list of 1 to 1000 points/],
+    [(d) => { d.details.timeline = {}; }, /details\.timeline must be a list/],
+    [(d) => { d.details.timeline = []; }, /details\.timeline must be a list of 1 to/],
+    [(d) => { d.details.timeline = many; }, /details\.timeline must be a list of 1 to 1000 points/],
+    [(d) => { d.details.timeline[2] = [2500]; }, /details\.timeline\[2\] must be \[ms, generation\], two whole numbers/],
+    [(d) => { d.details.timeline[2] = [2500.5, 3]; }, /details\.timeline\[2\] must be \[ms, generation\]/],
+    [(d) => { d.details.timeline[2] = [2500, -3]; }, /details\.timeline\[2\] must be \[ms, generation\]/],
+    [(d) => { d.details.timeline[2] = ['2500', 3]; }, /details\.timeline\[2\] must be \[ms, generation\]/],
+    [(d) => { d.details.timeline[0] = [5, 0]; }, /must start at \[0, 0\]/],
+    [(d) => { d.details.timeline[2] = [1100, 3]; }, /details\.timeline\[2\] goes back/],
+    [(d) => { d.details.timeline[3] = [4100, 2]; }, /details\.timeline\[3\] goes back/],
+    [(d) => { d.details.timelines = []; }, /details has an unknown field, "timelines"/],
+  ];
+  for (const [fn, message] of bad) {
+    assert.throws(() => readResult(edit(text, fn)), (err) => err instanceof ResultError && message.test(err.message), String(message));
+  }
+});
+
+test("a Speed timeline must end at the file's generation, within the seconds; no other result has one", async () => {
+  const text = await timedFile();
+  const cases = [
+    [(d) => { d.details.timeline[4] = [5900, GENS - 1]; }, /The timeline ends at generation 5, but the file is generation 6/],
+    [(d) => { d.details.timeline.pop(); }, /The timeline ends at generation 4, but the file is generation 6/],
+    [(d) => { d.details.timeline[4] = [6001, GENS]; }, /The timeline runs to 6001 ms, past the 6 seconds/],
+  ];
+  for (const [fn, message] of cases) {
+    const verdict = await verifyResult(edit(text, fn));
+    assert.equal(verdict.verdict, 'mismatch', String(message));
+    assert.match(verdict.message, message);
+  }
+  assert.equal((await verifyResult(edit(text, (d) => { d.details.timeline[4] = [6000, GENS]; }))).verdict, 'verified', 'the last moment of the 6 seconds is inside them');
+  const methuselah = await methuselahFile(STILL);
+  const timed = edit(methuselah, (d) => { d.details.timeline = [[0, 0], [10, d.generation]]; });
+  assert.equal(checkContest(readResult(timed))?.message, 'The file has a timeline, but only a Speed result has one, not methuselah-1.');
+  const noContest = edit(text, (d) => { d.run.contest = null; delete d.score; });
+  assert.match(checkContest(readResult(noContest))?.message ?? '', /only a Speed result has one/);
 });
 
 test("changing the browser in a file doesn't change its verdict", async () => {
