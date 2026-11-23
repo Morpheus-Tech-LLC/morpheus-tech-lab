@@ -622,6 +622,25 @@ export function contestArena(setup, side, title, ships = false) {
   }
 }
 
+/**
+ * Explore set up on a Methuselah Hall of Fame entry (#146), to change into a new entry: its seed
+ * and rules, as a simulation named for it, in its contest's arena as contestArena() sets it.
+ * @param {{name: string, cells: Int32Array, rules: {birth: number[], survival: number[]}}} entry -
+ *   the simulation's name, and the seed and rules from the entry's result file
+ * @param {number} side - the contest's arena, a cube of this many cells a side
+ * @param {string} title - the contest's, for the note
+ * @param {boolean} [ships] - whether ships leave at the contest's edge
+ * @returns {{setup: object, note: string}} the setup to use, and what the arena is, for the editor
+ * @throws {SeedError} for a seed or rules Explore can't run
+ */
+export function entrySetup(setup, entry, side, title, ships = false) {
+  const seed = { kind: 'file', name: entry.name, cells: entry.cells, rules: entry.rules };
+  // Seed and arena change together: the seed in use may not fit the contest's arena, nor the
+  // entry's seed the arena in use
+  const fitted = contestArena({ ...setup, seed, rules: entry.rules }, side, title, ships);
+  return { setup: checked(fitted.setup), note: fitted.note };
+}
+
 /** The Limits popover's memory limit. @param {string | number} text - the limit in MB */
 export function changeMemory(setup, text) {
   const memoryMB = Number(text);

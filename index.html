@@ -4176,6 +4176,10 @@
     color: rgba(200, 220, 255, 0.7);
     font-size: 12px;
   }
+  .contests-hof-actions {
+    display: flex;
+    gap: 6px;
+  }
   .contests-hof-empty {
     color: rgba(200, 220, 255, 0.75);
     font-size: 13px;
@@ -4189,9 +4193,10 @@
       align-items: flex-start;
       font-size: 13px;
     }
-    .contests-hof-entry .contests-button {
+    .contests-hof-actions {
       grid-column: 4;
       grid-row: 1 / span 2;
+      flex-direction: column;
     }
     .contests-submit-row {
       grid-template-columns: minmax(0, 1fr) auto;

@@ -42,6 +42,7 @@ const SAME_EVERYWHERE = 'Your score depends only on the seed and the rules, neve
   + 'replaying the result file, in the lab or with scripts/verify.mjs, gets the same ending and the same score.';
 const STRICT = "This is a stricter methuselah than classic Life's: the whole pattern must settle inside the arena, "
   + 'and anything that flies off ends the run unscored. Classic Methuselah lets ships leave.';
+const OPEN_TITLE = "Opens this entry's seed and rules in Game of Life 3D (unbounded), in the seed editor";
 /** How Classic Methuselah differs from Methuselah, in one sentence, with P from the contest. */
 const differs = (contest) => `Unlike Methuselah, a ship may leave the arena here: an island that reaches a wall and is a ship heading out, of period up to ${contest.departures.period}, the longest recognised, is deleted and listed as a departure, and the rest of the pattern must still settle.`;
 
@@ -138,8 +139,9 @@ function hud(name, state, generation) {
  * Shows the panel, on the list of contests, or back on the contest the visitor left for Explore
  * to design an entry.
  * @param {object} [options]
- * @param {(contest: {note: string, arena: number, title: string, ships: boolean}) => void} [options.designInExplore]
- *   - leaves for Explore with the contest's arena and the seed editor open
+ * @param {(contest: {note: string, arena: number, title: string, ships: boolean, entry?: object}) => string | null} [options.designInExplore]
+ *   - leaves for Explore with the contest's arena and the seed editor open, on a Hall of Fame
+ *   entry's seed and rules if it is given one (#146); says why not if that entry can't open
  */
 export function openPanel({ designInExplore = null } = {}) {
   panel.open = true;
@@ -531,7 +533,11 @@ function hallOfFame(contest) {
     entries.length > top.length ? h('p', { className: 'contests-note', text: `The top ${top.length} of ${n(entries.length)} entries.` }) : null);
 }
 
-/** One entry: its place, picture (or the lab's logo), name, browser and date, score, and Watch. */
+/**
+ * One entry: its place, picture (or the lab's logo), name, browser and date, score, Watch, and
+ * for Methuselah's contests, Open seed when the page can leave for Explore. Speed's seed and rules
+ * are the same for every entry, so its entries have none.
+ */
 function hallOfFameRow(entry, place, contest) {
   const picture = h('img', {
     className: 'contests-hof-picture',
@@ -547,6 +553,12 @@ function hallOfFameRow(entry, place, contest) {
   const watch = button('Watch', null, { id: `contests-hof-watch-${place}` });
   watch.onclick = () => watchEntry(entry, `Hall of Fame: ${entry.name}, ${score}`, watch);
   watch.setAttribute('aria-label', `Watch ${entry.name}'s run`);
+  let open = null;
+  if (contest.kind === 'methuselah' && panel.designInExplore) {
+    open = button('Open seed', null, { id: `contests-hof-open-${place}`, title: OPEN_TITLE });
+    open.onclick = () => openEntry(entry, contest);
+    open.setAttribute('aria-label', `Open ${entry.name}'s seed and rules in Game of Life 3D (unbounded)`);
+  }
   const browser = entry.browser ? `${entry.browser.name} ${entry.browser.version}` : 'Browser not given';
   return h('li', { className: 'contests-hof-entry' },
     h('span', { className: 'contests-hof-place', text: String(place) }),
@@ -555,7 +567,7 @@ function hallOfFameRow(entry, place, contest) {
       h('span', { className: 'contests-hof-name', text: entry.name }),
       h('span', { className: 'contests-hof-meta', text: `${browser} · ${dayText(entry.date)}` })),
     hallOfFameScore(contest, entry),
-    watch);
+    h('span', { className: 'contests-hof-actions' }, watch, open));
 }
 
 /**
@@ -570,10 +582,11 @@ function hallOfFameScore(contest, entry) {
 }
 
 /**
- * Loads an entry's result file from the site, reads it as untrusted data like any other, and
- * plays it in Watch.
+ * Loads an entry's result file from the site and reads it as untrusted data like any other.
+ * @param {string} cant - what the status line says it can't be, should it fail: 'watched'
+ * @returns {Promise<object | null>} the result, or null if it failed or the panel has moved on
  */
-async function watchEntry(entry, title, from) {
+async function loadEntry(entry, cant) {
   const view = panel.view;
   status("Loading the entry's result file…");
   let result;
@@ -584,12 +597,43 @@ async function watchEntry(entry, title, from) {
     if (text.length > MAX_RESULT_BYTES) throw new Error(`it is larger than ${MAX_RESULT_BYTES / 1024 / 1024} MB.`);
     result = readResult(text);
   } catch (err) {
-    if (panel.view === view) status(`It can't be watched: ${err?.message ?? err}`);
-    return;
+    if (panel.view === view) status(`It can't be ${cant}: ${err?.message ?? err}`);
+    return null;
   }
-  if (panel.view !== view || !panel.open) return; // the panel has moved on
+  if (panel.view !== view || !panel.open) return null; // the panel has moved on
   status('');
-  watchResult(result, title, from);
+  return result;
+}
+
+/** Plays an entry's result file in Watch. */
+async function watchEntry(entry, title, from) {
+  const result = await loadEntry(entry, 'watched');
+  if (result) watchResult(result, title, from);
+}
+
+/**
+ * Open seed (#146): leaves Contests for Explore, as Design a seed… does, on a Methuselah entry's
+ * seed and rules from its result file, in its contest's arena, with the seed editor open, to
+ * change into the visitor's own entry; the banner comes back to this contest's page.
+ */
+async function openEntry(entry, contest) {
+  const design = panel.designInExplore;
+  if (!design) return;
+  const result = await loadEntry(entry, 'opened');
+  if (!result) return;
+  const { arena } = contest.fixes;
+  panel.resume = contest;
+  const refused = design({
+    note: `${entry.name}'s ${contest.title} entry: its seed and rules. Change it if you like, Use it, and save the simulation with the Simulation box's save icon; Load simulation… on ${contest.title}'s page then enters it as your own. The Contests banner brings you back.`,
+    arena: arena.max[0] - arena.min[0] + 1,
+    title: contest.title,
+    ships: Boolean(contest.departures),
+    entry: { name: `${contest.title}: ${entry.name}`, cells: Int32Array.from(result.run.seed.flat()), rules: result.run.rules },
+  });
+  if (refused) {
+    panel.resume = null;
+    status(`It can't be opened: ${refused}`);
+  }
 }
 
 // ---- The chart: generations completed over the run's time ----

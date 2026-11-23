@@ -7,7 +7,7 @@
   Submit by email (#79), Verify a result on the exported file, an edited copy and a file that
   isn't a result, a staged Hall of Fame (#79), Methuselah (#94: its page, Design a seed in Explore and back, Load simulation… and its
   refusals, runs that die, reach the edge and are stopped, Export, Verify, Watch, Submit and its
-  Hall of Fame), Classic Methuselah (#102: its page, a run whose ship leaves before it settles, its
+  Hall of Fame, with Open seed), Classic Methuselah (#102: its page, a run whose ship leaves before it settles, its
   departures on the results card, in Export, Submit, Watch and Verify), and leaving the mode. It changes only the lab in its frame; reload to run it again. The list under
   the results is what to check by eye.
 -->
@@ -59,7 +59,7 @@
     <li>Watch's bar sits above the control bar, clear of it and of the HUD, at full width and at phone width.</li>
     <li>Submit by email, in Chrome, Firefox and Safari with a mail app set up: Open the email is greyed out until Save result file has saved the file (Chrome asks where); then a new email opens to lab@morpheustech.net, with the subject and the text filled in, line breaks kept, and the saved file is still there; where mailto: goes to webmail, it opens in a new tab and the lab stays on its results card (#140).</li>
     <li>The Copy buttons beside the address, the subject and the text each put it on the clipboard; pasted into a webmail compose window, the text keeps its lines.</li>
-    <li>The Submit section and the Hall of Fame (staged by the check above, or with real entries) read well at full width and at phone width: long names end in an ellipsis, and Watch stays on the row.</li>
+    <li>The Submit section and the Hall of Fame (staged by the check above, and the real one in the lab itself) read well at full width and at phone width: long names end in an ellipsis, and Watch stays on the row.</li>
     <li>Methuselah's page: the seed's picture reads as cubes in a box, in Methuselah's violet, for one cell, a small design and a full 10³ box; the entry, the four endings and the facts read well at full width and at phone width.</li>
     <li>A long Methuselah run (Explore's Spreading noise preset, saved with Save seed and loaded here): the ring fills towards 10,000, the live-cells chart grows and rescales, and Stop answers at once. A run that settles late shows the whole history on its results card.</li>
     <li>Export a Methuselah result, then <code>node scripts/verify.mjs methuselah-1-N.json</code>: verified, "settled at generation N (period P)" or "died at generation N".</li>
@@ -167,6 +167,11 @@
 
     async function run() {
       await load(1280, 800);
+      // The frame's copy of hall-of-fame.json, emptied: the check stages its own boards, whatever
+      // entries the real one holds (#144). Vite serves the panel's import of a JSON file with
+      // ?import: the same URL is the same module
+      const board = (await win.eval("import('/src/unbounded/hall-of-fame.json?import')")).default;
+      board.entries.length = 0;
 
       section('Choosing the mode');
       ok(doc.body.classList.contains('mode-explore'), 'The lab opens in Explore');
@@ -424,6 +429,11 @@
       const createObjectURL = win.URL.createObjectURL;
       win.URL.createObjectURL = (blob) => { exported = blob; return createObjectURL.call(win.URL, blob); };
       win.HTMLAnchorElement.prototype.click = function () {}; // no real download from the check
+      // Before any save, Submit by email's step 2 waits for the file (#140)
+      const link = el('contests-submit-email');
+      ok(link.tagName === 'A' && !link.hasAttribute('href') && link.getAttribute('aria-disabled') === 'true', 'Step 2 of Submit by email, Open the email, waits for the file to be saved');
+      link.dispatchEvent(new win.MouseEvent('click', { bubbles: true, cancelable: true }));
+      ok(text('contests-panel-status').includes('Save the result file first'), `Clicking it before then says to save the file first ("${text('contests-panel-status')}")`);
       press('contests-export');
       await until(() => exported, 3000);
       ok(Boolean(exported), 'Export result writes a file');
@@ -433,15 +443,13 @@
       ok(data.run?.contest === 'speed-1' && data.score?.generations === score && data.generation === score, 'The file is a speed-1 result, with its score');
       ok(data.cells === undefined, "It doesn't carry the cells");
       ok(data.details?.browser?.name, `It names the browser (${data.details?.browser?.name} ${data.details?.browser?.version})`);
+      const browserWords = `${data.details?.browser?.name} ${data.details?.browser?.version}`;
+      ok(link.hasAttribute('href') && !link.hasAttribute('aria-disabled'), 'Export result saves the same file, so it readies Open the email too');
 
       section('Submit by email');
       ok(text('contests-submit').includes("Without the file, it can't be verified or listed"), 'It says the entry is an email with the result file attached');
       ok(el('contests-submit').querySelectorAll('.contests-submit-step').length === 3, 'as three numbered steps: save, open the email, attach');
-      const link = el('contests-submit-email');
       ok(visible('contests-submit-save'), 'Step 1 is Save result file');
-      ok(link.tagName === 'A' && !link.hasAttribute('href') && link.getAttribute('aria-disabled') === 'true', 'Step 2, Open the email, waits for the file to be saved');
-      link.dispatchEvent(new win.MouseEvent('click', { bubbles: true, cancelable: true }));
-      ok(text('contests-panel-status').includes('Save the result file first'), `Clicking it before then says to save the file first ("${text('contests-panel-status')}")`);
       ok(text('contests-submit-attach').includes(`Attach ${fileName} to the email`) && text('contests-submit-attach').includes("can't attach it for you"), `Step 3 names the file to attach, by hand ("${text('contests-submit-attach')}")`);
       ok(!el('contests-submit-webmail').open, 'The webmail fallback is folded away');
       el('contests-submit-webmail').open = true;
@@ -451,7 +459,7 @@
       await until(() => exported, 3000);
       ok(exported && (await exported.text()) === file, 'Save result file saves the result file, the same as Export\'s');
       ok(visible('contests-submit-saved') && text('contests-panel-status').includes(`attach ${fileName}`), `and says to attach it ("${text('contests-panel-status')}")`);
-      ok(link.hasAttribute('href') && !link.hasAttribute('aria-disabled'), 'Then Open the email is ready');
+      ok(link.hasAttribute('href') && !link.hasAttribute('aria-disabled'), 'and Open the email stays ready');
       ok(link.target === '_blank' && link.rel.includes('noopener'), 'in a new tab, so webmail opens beside the lab, not in place of it');
       const mail = new URL(link.href);
       const subject = mail.searchParams.get('subject');
@@ -459,9 +467,9 @@
       ok(mail.protocol === 'mailto:' && mail.pathname === 'lab@morpheustech.net', `It writes to lab@morpheustech.net (${mail.protocol}${mail.pathname})`);
       ok(subject === `[Speed] ${scoreWords}`, `The subject names the contest and the score ("${subject}")`);
       ok(body.startsWith(`BEFORE SENDING: attach your result file, ${fileName}.`), 'The text opens by saying to attach the file');
-      const [top, bottom = ''] = body.split(`\n${'-'.repeat(40)}\n`);
-      ok(top.includes('Name to show: ') && top.includes('Picture (optional): ') && top.includes('Operating system (optional): ') && top.includes('Hardware (optional): ') && !top.includes('Browser and version'), 'Above the rule, only what to fill in: the browser is in the file');
-      ok(top.split('\n').includes('Hall of Fame: yes, show my name, picture, score, browser and date.'), 'It has the Hall of Fame line, on its own line, to keep or delete');
+      const [above, bottom = ''] = body.split(`\n${'-'.repeat(40)}\n`);
+      ok(above.includes('Name to show: ') && above.includes('Picture (optional): ') && above.includes('Operating system (optional): ') && above.includes('Hardware (optional): ') && !above.includes('Browser and version'), 'Above the rule, only what to fill in: the browser is in the file');
+      ok(above.split('\n').includes('Hall of Fame: yes, show my name, picture, score, browser and date.'), 'It has the Hall of Fame line, on its own line, to keep or delete');
       ok(!/Score:|Hash:|Result file:/.test(body), "It doesn't repeat what the file holds");
       ok(/must be yours to use/.test(bottom) && /repo is public/.test(bottom) && /email address is used only to reply/.test(bottom) && /Speed's timing is self-reported/.test(bottom), 'Below the rule, the picture conditions, that the repo is public, how the address is used, and that Speed is self-reported');
       ok(text('contests-submit-subject') === subject && visible('contests-submit-subject-copy'), 'The webmail fallback has the subject, with Copy');
@@ -491,8 +499,6 @@
       section('The Hall of Fame');
       // A staged board: two entries in the frame's copy of hall-of-fame.json, one whose result file
       // is this run's export (served by a stand-in fetch), one whose file and picture don't exist
-      // Vite serves the panel's import of a JSON file with ?import: the same URL is the same module
-      const board = (await win.eval("import('/src/unbounded/hall-of-fame.json?import')")).default;
       // Made in the frame's realm, as the panel's own JSON is: readHallOfFame() wants plain objects
       // Two runs at the ceiling, 3 ms apart: the faster ranks first, though it arrived later, and
       // each shows its own time
@@ -532,6 +538,7 @@
       ok(cell(row('Check, slower'), 'picture')?.src.includes('morpheus-tech') && cell(row('Check, slower'), 'picture').classList.contains('contests-hof-picture--logo'), "An entry without a picture shows the lab's logo");
       ok(await until(() => cell(row('<b>Check</b>, this run'), 'picture')?.src.includes('morpheus-tech'), 5000), "A picture that doesn't load gives way to the logo");
       ok(rows.every((r) => r.querySelector('button')?.textContent === 'Watch'), 'Each entry has Watch');
+      ok(rows.every((r) => r.querySelectorAll('button').length === 1), "and only Watch: Speed's seed is the same for every entry, so it has no Open seed (#146)");
       const hofBox = el('contests-hof').getBoundingClientRect();
       ok(rows.every((r) => r.getBoundingClientRect().right <= hofBox.right + 1 && r.scrollWidth <= r.clientWidth + 1), 'Every row fits the panel');
       row('Check, slower').querySelector('button').click();
@@ -545,6 +552,7 @@
       await sleep(300);
       ok(visible('contests-panel') && text('contests-panel-title') === 'Speed' && doc.activeElement === ownWatch, "Esc goes back to Speed's page, to the entry's Watch");
       ok(text('contest-hud-status') === 'Ready', 'The HUD says ready again');
+
       board.entries.length = 0;
       win.fetch = realFetch;
 
@@ -709,6 +717,20 @@
       ok(await until(() => visible('contests-watch'), 5000) && text('contests-watch-title') === 'Hall of Fame: Check, this run, settled at generation 10' && Number(el('contests-watch-scrub').max) === 10, `Watch plays an entry from the seed to its h (${text('contests-watch-title')})`);
       press('contests-watch-close');
       await sleep(300);
+      ok(mRows.every((r) => [...r.querySelectorAll('button')].map((b) => b.textContent).join(' ') === 'Watch Open seed'), 'Each entry has Watch and Open seed (#146)');
+      ok(mRows[2].querySelectorAll('button')[1].getAttribute('aria-label') === "Open Check, this run's seed and rules in Game of Life 3D (unbounded)", 'Open seed names the entry for a screen reader');
+      mRows[0].querySelectorAll('button')[1].click();
+      ok(await until(() => text('contests-panel-status').startsWith("It can't be opened"), 5000), `An entry whose file can't be read says so ("${text('contests-panel-status')}")`);
+      ok(doc.body.classList.contains('mode-contests') && text('contests-panel-title') === 'Methuselah', 'and the panel stays on Methuselah');
+      mRows[2].querySelectorAll('button')[1].click();
+      ok(await until(() => doc.body.classList.contains('mode-explore') && visible('seed-editor'), 5000), 'Open seed opens the entry in Explore, with the seed editor open');
+      ok(state.explore.arena === 64 && state.explore.edge === 'end' && state.explore.seed.cells.length === 33
+        && JSON.stringify(state.explore.rules) === JSON.stringify(DIES.rules), `with its 11 cells and rules, in Methuselah's 64³ arena (arena ${state.explore.arena}, ${state.explore.seed.cells.length / 3} cells)`);
+      ok(text('seed-editor-note').startsWith("Check, this run's Methuselah entry") && text('seed-editor-note').includes('enters it as your own'), `Its note says how to change it into an entry ("${text('seed-editor-note').slice(0, 90)}…")`);
+      el('seed-editor').querySelector('[data-action="cancel"]').click();
+      await sleep(300);
+      await openContests();
+      ok(text('contests-panel-title') === 'Methuselah', "The banner brings it back to Methuselah's page");
       board.entries.length = 0;
       win.fetch = realFetch;
 
