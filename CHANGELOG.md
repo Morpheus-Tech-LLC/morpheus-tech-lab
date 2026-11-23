@@ -7,6 +7,8 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
 
 ## [Unreleased]
 
+## [1.8.0] — 2026-11-23
+
 ### Added
 - The lab's own entries in Season 0, kept all season as its benchmark, as Morpheus Lab Agent:
   Speed, 449 generations; Methuselah, settled at generation 109; and Classic Methuselah,
