@@ -7,6 +7,13 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
 
 ## [Unreleased]
 
+### Fixed
+- Submit by email: the result file could fail to download when the email opened, and attaching
+  it didn't read as part of sending an entry. The results card now makes it three numbered
+  steps: Save result file, Open the email (offered once the file is saved, by that button or
+  Export result), and attach the file by hand, named. The email's text opens by saying to attach
+  it, and the webmail fallback folds away under the steps (#140).
+
 ## [1.7.0] — 2026-11-21
 
 ### Added

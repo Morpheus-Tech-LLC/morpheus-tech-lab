@@ -57,7 +57,7 @@
     <li>The GPU toggle's popover says contests run on the CPU.</li>
     <li>Watch: the run plays back in 3D as in Explore, the camera follows the pattern as it grows, and past the render budget the chunks show as boxes. Dragging the scrub bar back and forth feels responsive, and the view settles on the generation let go at.</li>
     <li>Watch's bar sits above the control bar, clear of it and of the HUD, at full width and at phone width.</li>
-    <li>Submit by email, in Chrome, Firefox and Safari with a mail app set up: the file downloads and a new email opens to lab@morpheustech.net, with the subject and the text filled in, line breaks kept.</li>
+    <li>Submit by email, in Chrome, Firefox and Safari with a mail app set up: Open the email is greyed out until Save result file has saved the file (Chrome asks where); then a new email opens to lab@morpheustech.net, with the subject and the text filled in, line breaks kept, and the saved file is still there (#140).</li>
     <li>The Copy buttons beside the address, the subject and the text each put it on the clipboard; pasted into a webmail compose window, the text keeps its lines.</li>
     <li>The Submit section and the Hall of Fame (staged by the check above, or with real entries) read well at full width and at phone width: long names end in an ellipsis, and Watch stays on the row.</li>
     <li>Methuselah's page: the seed's picture reads as cubes in a box, in Methuselah's violet, for one cell, a small design and a full 10³ box; the entry, the four endings and the facts read well at full width and at phone width.</li>
@@ -435,31 +435,35 @@
       ok(data.details?.browser?.name, `It names the browser (${data.details?.browser?.name} ${data.details?.browser?.version})`);
 
       section('Submit by email');
+      ok(text('contests-submit').includes("Without the file, it can't be verified or listed"), 'It says the entry is an email with the result file attached');
+      ok(el('contests-submit').querySelectorAll('.contests-submit-step').length === 3, 'as three numbered steps: save, open the email, attach');
       const link = el('contests-submit-email');
-      ok(visible('contests-submit-email') && link.tagName === 'A', 'The results card offers Submit by email, as a link');
+      ok(visible('contests-submit-save'), 'Step 1 is Save result file');
+      ok(link.tagName === 'A' && !link.hasAttribute('href') && link.getAttribute('aria-disabled') === 'true', 'Step 2, Open the email, waits for the file to be saved');
+      link.dispatchEvent(new win.MouseEvent('click', { bubbles: true, cancelable: true }));
+      ok(text('contests-panel-status').includes('Save the result file first'), `Clicking it before then says to save the file first ("${text('contests-panel-status')}")`);
+      ok(text('contests-submit-attach').includes(`Attach ${fileName} to the email`) && text('contests-submit-attach').includes("can't attach it for you"), `Step 3 names the file to attach, by hand ("${text('contests-submit-attach')}")`);
+      ok(!el('contests-submit-webmail').open, 'The webmail fallback is folded away');
+      el('contests-submit-webmail').open = true;
+      ok(text('contests-submit-to') === 'lab@morpheustech.net' && visible('contests-submit-to-copy'), 'Unfolded, it shows the address, with Copy');
+      exported = null;
+      press('contests-submit-save');
+      await until(() => exported, 3000);
+      ok(exported && (await exported.text()) === file, 'Save result file saves the result file, the same as Export\'s');
+      ok(visible('contests-submit-saved') && text('contests-panel-status').includes(`attach ${fileName}`), `and says to attach it ("${text('contests-panel-status')}")`);
+      ok(link.hasAttribute('href') && !link.hasAttribute('aria-disabled'), 'Then Open the email is ready');
       const mail = new URL(link.href);
       const subject = mail.searchParams.get('subject');
       const body = mail.searchParams.get('body') ?? '';
       ok(mail.protocol === 'mailto:' && mail.pathname === 'lab@morpheustech.net', `It writes to lab@morpheustech.net (${mail.protocol}${mail.pathname})`);
       ok(subject === `[Speed] ${scoreWords}`, `The subject names the contest and the score ("${subject}")`);
+      ok(body.startsWith(`BEFORE SENDING: attach your result file, ${fileName}.`), 'The text opens by saying to attach the file');
       const browserWords = `${data.details?.browser?.name} ${data.details?.browser?.version}`;
       ok(body.includes('Name to show: ') && body.includes(`Browser and version: ${browserWords}`) && body.includes('Hardware (optional): ') && body.includes(`Result file: ${fileName}`), 'The text is the template, with the browser and the file filled in');
       ok(body.split('\n').includes('Hall of Fame: yes, show my name, picture, score, browser and date.'), 'It has the Hall of Fame line, on its own line, to keep or delete');
       ok(/PNG or JPEG, square, at most 1 MB/.test(body) && /repo is public/.test(body) && /email address is used only to reply/.test(body) && /Speed's timing is self-reported/.test(body), 'It states the picture conditions, that the repo is public, how the address is used, and that Speed is self-reported');
-      ok(text('contests-submit-attach').includes("can't attach files") && text('contests-submit-attach').includes(`${fileName}`), `Beside it, the card says what to attach by hand ("${text('contests-submit-attach')}")`);
-      const attachBox = el('contests-submit-attach').getBoundingClientRect();
-      const linkBox = link.getBoundingClientRect();
-      ok(attachBox.left >= linkBox.right - 1 || attachBox.top >= linkBox.bottom - 1, 'next to the link, or just under it');
-      ok(text('contests-submit-to') === 'lab@morpheustech.net' && visible('contests-submit-to-copy'), 'It shows the address, with Copy');
-      ok(text('contests-submit-subject') === subject && visible('contests-submit-subject-copy'), 'and the subject, with Copy');
+      ok(text('contests-submit-subject') === subject && visible('contests-submit-subject-copy'), 'The webmail fallback has the subject, with Copy');
       ok(visible('contests-submit-body') && el('contests-submit-body').value === body && el('contests-submit-body').readOnly && visible('contests-submit-body-copy'), 'and the text, the same as the link\'s, with Copy');
-      exported = null;
-      link.addEventListener('click', (event) => event.preventDefault(), { once: true }); // no mail app from the check
-      // A click event, not click(), which the Export check above turned off for anchors
-      link.dispatchEvent(new win.MouseEvent('click', { bubbles: true, cancelable: true }));
-      await until(() => exported, 3000);
-      ok(exported && (await exported.text()) === file, 'Clicking it downloads the result file, the same as Export\'s');
-      ok(text('contests-panel-status').includes(`Downloaded ${fileName}`) && text('contests-panel-status').includes('Attach it'), `and says to attach it ("${text('contests-panel-status')}")`);
 
       chooseFile(`${fileName}`, file);
       ok(await until(() => visible('contests-verdict'), 60000), 'Verify a result answers');
@@ -636,6 +640,7 @@
       ok(mData.run?.contest === 'methuselah-1' && mData.ending === 'died' && mData.generation === 10 && JSON.stringify(mData.score) === '{"generations":10,"period":1}', 'The file is a methuselah-1 result, died at 10, with its score');
       const sorted = DIES.cells.slice().sort((a, b) => a[2] - b[2] || a[1] - b[1] || a[0] - b[0]);
       ok(JSON.stringify(mData.run?.seed) === JSON.stringify(sorted) && JSON.stringify(mData.run?.rules) === JSON.stringify(DIES.rules), 'Its seed and rules are exactly the entry\'s');
+      ok(el('contests-submit-email').hasAttribute('href'), 'Export result saved the file, so Open the email is ready (#140)');
       const mLink = new URL(el('contests-submit-email').href);
       const mBody = mLink.searchParams.get('body') ?? '';
       ok(mLink.searchParams.get('subject') === '[Methuselah] died at generation 10', `Submit by email's subject gives the score ("${mLink.searchParams.get('subject')}")`);

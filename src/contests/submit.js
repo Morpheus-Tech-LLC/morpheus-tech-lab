@@ -3,8 +3,8 @@
 // Submitting a result by email (#79): the address, the subject and the filled-in text, and the
 // mailto: link that opens them in the visitor's mail app. A static site can't send email, and a
 // form service would be a backend in all but name, so the visitor's own email does the sending.
-// A mailto: link can't attach files: the results card says so, and downloads the result file
-// for the visitor to attach by hand.
+// A mailto: link can't attach files: the results card has the visitor save the result file
+// first, and says to attach it by hand; the email's text opens by saying so too (#140).
 //
 // What the text says is the lab's promise to an entrant: the picture's conditions, that the repo
 // is public, how their email address is used, and, for Speed, that the timing is self-reported.
@@ -19,6 +19,14 @@ export const SUBMIT_ADDRESS = 'lab@morpheustech.net';
 
 /** The line an entrant keeps to appear in the Hall of Fame. Without it, an entry isn't listed. */
 export const HALL_OF_FAME_LINE = 'Hall of Fame: yes, show my name, picture, score, browser and date.';
+
+/**
+ * The email's first line: the entry is the file, so it can't be left off (#140).
+ * @param {string} fileName - the result file
+ */
+export function attachLine(fileName) {
+  return `BEFORE SENDING: attach your result file, ${fileName}. Without it, this entry can't be verified.`;
+}
 
 /**
  * The subject: the contest and the score, `[Speed] 412 generations`, `[Methuselah] settled at
@@ -45,6 +53,8 @@ export function emailSubject(contest, score, ending) {
  */
 export function emailBody({ contest, score, browser, hash, fileName, ending, run, departures }) {
   const lines = [
+    attachLine(fileName),
+    '',
     `My entry for ${contest.title} (${contest.id}).`,
     '',
     `Score: ${scoreText(contest, score, ending)}${contest.kind === 'speed' && score.ms !== null ? ' (the ceiling, so the time ranks it)' : ''}`,

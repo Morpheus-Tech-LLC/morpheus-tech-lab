@@ -316,9 +316,14 @@ before it leaves the mode.
 
 **Submitting, and the Hall of Fame** (#79). A static site can't send email, so **Submit by
 email** on the results card is a `mailto:` link to lab@morpheustech.net (`submit.js`: the
-subject, the template's text and the link, tested in Node); its click downloads the result file
-(`explore.js`'s `download()`) in the same gesture, since a `mailto:` link can't attach it. The
-card shows the address, subject and text with Copy too. The text is the lab's promise to an
+subject, the template's text and the link, tested in Node). A `mailto:` link can't attach the
+result file, and the entry is the file, so the card makes it three numbered steps (#140): **Save
+result file** (`explore.js`'s `writeJsonFile()`, Chrome's save dialog or a download), **Open the
+email**, which has no `href` until the file is saved, by that button or by Export result, and
+**attach the file** by hand, named. Saving and opening are separate clicks because, done in one,
+the hand-off to the mail app could lose the download. The email's text opens by saying to attach
+the file. Under the steps, folded away, the card shows the address, subject and text with Copy,
+for webmail. The text is the lab's promise to an
 entrant (the picture's conditions, the public repo, the email address used only to reply, Speed's
 self-reported timing); CONTRIBUTING.md's "Contest entries" is the maintainers' side of it. The
 **Hall of Fame** is data: `src/unbounded/hall-of-fame.json`, `{"entries": [...]}`, each entry

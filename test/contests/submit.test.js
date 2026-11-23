@@ -7,7 +7,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { contestById } from '../../src/unbounded/contests.js';
 import {
-  SUBMIT_ADDRESS, HALL_OF_FAME_LINE, emailSubject, emailBody, mailtoLink,
+  SUBMIT_ADDRESS, HALL_OF_FAME_LINE, attachLine, emailSubject, emailBody, mailtoLink,
 } from '../../src/contests/submit.js';
 
 const SPEED = contestById('speed-1');
@@ -25,6 +25,13 @@ test('the subject names the contest and the score', () => {
   assert.equal(emailSubject(SPEED, { generations: 412, ms: null }), '[Speed] 412 generations');
   assert.equal(emailSubject(SPEED, { generations: 1000, ms: 4210 }), '[Speed] 1,000 generations in 4.210 s');
   assert.equal(emailSubject(SPEED, { generations: 1000, ms: 3871 }), '[Speed] 1,000 generations in 3.871 s');
+});
+
+test('the text opens by saying to attach the result file, by name (#140)', () => {
+  const lines = emailBody(entry()).split('\n');
+  assert.equal(lines[0], attachLine('speed-1-412.json'));
+  assert.equal(lines[0], "BEFORE SENDING: attach your result file, speed-1-412.json. Without it, this entry can't be verified.");
+  assert.equal(lines[1], '');
 });
 
 test('the text is the template, filled in: the result, the browser, and fields to finish', () => {
