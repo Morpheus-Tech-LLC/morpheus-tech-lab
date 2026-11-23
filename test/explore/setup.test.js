@@ -406,22 +406,11 @@ test("Open seed sets up an entry's seed and rules, named for it, in its contest'
   assert.match(classic.note, /with ships leaving at its edge/);
 });
 
-test("Open seed on a Speed entry turns the arena off, as Speed has none, and it is Cube10 under Speed's rules", async () => {
-  const speed = contestById('speed-1');
-  const cells = Int32Array.from(speed.fixes.seed.flat());
-  const entry = { name: 'Speed: Somebody', cells, rules: speed.fixes.rules };
-  const off = entrySetup(start(), entry, null, 'Speed');
-  assert.equal(arenaOf(off.setup), null);
-  assert.equal(off.note, 'There is no arena, as in Speed.');
-  assert.deepEqual(simulationOf(off.setup), { name: 'Speed: Somebody', from: 'file' });
-  assert.deepEqual(rulesOf(off.setup), CUBE10.rules, "Speed's rules are Cube10's");
-  const on = entrySetup(changeArena(start(), true, 32), entry, null, 'Speed');
-  assert.equal(arenaOf(on.setup), null);
-  assert.match(on.note, /^The arena in Game of Life 3D \(unbounded\) is now off, as in Speed/);
-  // A saved generation in use is replaced by the entry, and its arena with it
+test('Open seed replaces a saved generation in use, and its arena, with the entry in the contest\'s', async () => {
   const saved = changeSeed(start(), await savedGeneration(32));
-  assert.equal(arenaOf(entrySetup(saved, entry, null, 'Speed').setup), null);
-  assert.equal(arenaOf(entrySetup(saved, { ...entry, cells: Int32Array.from([0, 0, 0]) }, 64, 'Methuselah').setup), 64);
+  const opened = entrySetup(saved, { name: 'x', cells: Int32Array.from([0, 0, 0]), rules: B5 }, 64, 'Methuselah');
+  assert.equal(arenaOf(opened.setup), 64);
+  assert.equal(opened.setup.seed.kind, 'file');
 });
 
 test('Open seed refuses an entry Explore cannot run, and the setup in use stays', () => {

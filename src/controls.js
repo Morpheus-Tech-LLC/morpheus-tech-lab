@@ -672,13 +672,11 @@ function enterContests() {
 /**
  * From a Discovery contest's page (#94): Explore, with the contest's arena (and, for Classic
  * Methuselah, ships leaving at its edge, #103) and the seed editor open on its seed, to design an
- * entry. From a Hall of Fame entry's Open seed (#146), the same, on the entry's seed and rules, and
- * for Speed, which has no arena, with none. The banner then brings the visitor back to Contests,
- * and the panel to the contest's page.
- * @param {{note: string, arena: number | null, title: string, ships?: boolean,
+ * entry. From a Hall of Fame entry's Open seed (#146), the same, on the entry's seed and rules.
+ * The banner then brings the visitor back to Contests, and the panel to the contest's page.
+ * @param {{note: string, arena: number, title: string, ships?: boolean,
  *   entry?: {name: string, cells: Int32Array, rules: object}}} contest - the editor's note, the
- *   contest's arena side (null for none), title and whether ships leave at its edge, and the
- *   entry to open, if any
+ *   contest's arena side, title and whether ships leave at its edge, and the entry to open, if any
  * @returns {string | null} why the entry can't open, or null once Explore has started
  */
 function designInExplore({ note, arena, title, ships = false, entry = null }) {

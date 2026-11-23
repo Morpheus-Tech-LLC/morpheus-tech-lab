@@ -273,11 +273,12 @@ an empty seed or a cell outside the seed box with the reason, shown before Run; 
 with ships leaving at its edge for Classic Methuselah and not for Methuselah, and never wrapping (`setup.js`'s
 `contestArena()`; a saved generation keeps its own), starts Game of Life 3D (unbounded) and opens the
 seed editor (`hud.js`'s `openSeedEditor()`) with a note on the contest; the panel remembers the contest, so the
-banner comes back to its page. A Hall of Fame entry's **Open seed** (#146) does the same on the
-entry's seed and rules, read from its result file as Watch reads it: `designInExplore()` is given
-the entry, and `setup.js`'s `entrySetup()` makes it the unbounded mode's simulation, named for the
-entry, in the contest's arena, or with none for Speed, which has none. It returns why an entry
-can't open instead of leaving Contests, and the panel says so. The seed is drawn as cubes in the seed box, seen from above a
+banner comes back to its page. A Methuselah Hall of Fame entry's **Open seed** (#146) does the
+same on the entry's seed and rules, read from its result file as Watch reads it: `designInExplore()`
+is given the entry, and `setup.js`'s `entrySetup()` makes it the unbounded mode's simulation, named
+for the entry, in the contest's arena. It returns why an entry can't open instead of leaving
+Contests, and the panel says so. Speed's entries have no Open seed: its seed and rules are
+everyone's. The seed is drawn as cubes in the seed box, seen from above a
 corner, with hidden cubes left out (`format.js`'s `seedPicture()`, tested in Node). A run is
 `discovery.js`'s `DiscoveryRun`: an open-ended settling run in a Worker, in the contest's arena,
 with its chunk size and its budget as the generation limit, and `history`, so the Worker keeps

@@ -188,7 +188,7 @@ src/
                          what is locked, each popover's change or the reason it is refused, the config
                          startExplore() takes and the Worker's world (worldOf()), the simulation in use
                          (simulationOf(), #130), a contest's arena and ships for its Design a seed…
-                         (contestArena(), #94), and a Hall of Fame entry's for its Open seed (entrySetup(), #146)
+                         (contestArena(), #94), and a Methuselah Hall of Fame entry's for its Open seed (entrySetup(), #146)
                          (tested in Node)
   explore/hud.js         The gears in the Simulation, Seed, Rules and Limits boxes' titles and their popovers,
                          whose Apply changes `state.explore` and restarts the run, and the save icons;

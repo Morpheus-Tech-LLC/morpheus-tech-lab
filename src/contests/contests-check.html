@@ -5,7 +5,7 @@
   through the Contests mode (#77) in a frame holding the lab, and marks each check ✔ or ✖: choosing
   the mode, the list, Speed's page, two real 6-second runs (one to the end, one stopped), Export,
   Submit by email (#79), Verify a result on the exported file, an edited copy and a file that
-  isn't a result, a staged Hall of Fame (#79) with Open seed in Explore and back (#146), Methuselah (#94: its page, Design a seed in Explore and back, Load simulation… and its
+  isn't a result, a staged Hall of Fame (#79), Methuselah (#94: its page, Design a seed in Explore and back, Load simulation… and its
   refusals, runs that die, reach the edge and are stopped, Export, Verify, Watch, Submit and its
   Hall of Fame, with Open seed), Classic Methuselah (#102: its page, a run whose ship leaves before it settles, its
   departures on the results card, in Export, Submit, Watch and Verify), and leaving the mode. It changes only the lab in its frame; reload to run it again. The list under
@@ -532,9 +532,7 @@
       ok(cell(row('Check, slower'), 'picture')?.src.includes('morpheus-tech') && cell(row('Check, slower'), 'picture').classList.contains('contests-hof-picture--logo'), "An entry without a picture shows the lab's logo");
       ok(await until(() => cell(row('<b>Check</b>, this run'), 'picture')?.src.includes('morpheus-tech'), 5000), "A picture that doesn't load gives way to the logo");
       ok(rows.every((r) => r.querySelector('button')?.textContent === 'Watch'), 'Each entry has Watch');
-      ok(rows.every((r) => [...r.querySelectorAll('button')].map((b) => b.textContent).join(' ') === 'Watch Open seed'), 'and Open seed beside it (#146)');
-      ok(row('<b>Check</b>, this run').querySelectorAll('button')[1].getAttribute('aria-label') === "Open <b>Check</b>, this run's seed and rules in Game of Life 3D (unbounded)", 'Open seed names the entry for a screen reader');
-      ok(!el('contests-hof-fair'), "Speed's board doesn't offer its seed as one to change");
+      ok(rows.every((r) => r.querySelectorAll('button').length === 1), "and only Watch: Speed's seed is the same for every entry, so it has no Open seed (#146)");
       const hofBox = el('contests-hof').getBoundingClientRect();
       ok(rows.every((r) => r.getBoundingClientRect().right <= hofBox.right + 1 && r.scrollWidth <= r.clientWidth + 1), 'Every row fits the panel');
       row('Check, slower').querySelector('button').click();
@@ -549,20 +547,6 @@
       ok(visible('contests-panel') && text('contests-panel-title') === 'Speed' && doc.activeElement === ownWatch, "Esc goes back to Speed's page, to the entry's Watch");
       ok(text('contest-hud-status') === 'Ready', 'The HUD says ready again');
 
-      section('Open seed on a Speed entry (#146)');
-      row('Check, slower').querySelectorAll('button')[1].click();
-      ok(await until(() => text('contests-panel-status').startsWith("It can't be opened"), 5000), `An entry whose file can't be read says so ("${text('contests-panel-status')}")`);
-      ok(doc.body.classList.contains('mode-contests') && text('contests-panel-title') === 'Speed', 'and the panel stays on Speed');
-      row('<b>Check</b>, this run').querySelectorAll('button')[1].click();
-      ok(await until(() => doc.body.classList.contains('mode-explore') && visible('seed-editor'), 5000), "It leaves Contests for Explore, with the seed editor open on the entry's seed");
-      ok(state.explore.arena === null && state.explore.seed.cells.length === 3000, `Speed's seed, Cube10's 1,000 cells, with no arena, as Speed has none (arena ${state.explore.arena}, ${state.explore.seed.cells.length / 3} cells)`);
-      ok(text('hud-simulation-name') === 'Speed: <b>Check</b>, this run', `The Simulation box names it for the entry, as text ("${text('hud-simulation-name')}")`);
-      ok(text('seed-editor-note').startsWith("<b>Check</b>, this run's Speed entry") && text('seed-editor-note').includes('not to change into an entry') && text('seed-editor-note').includes('Contests banner'),
-        `Its note says it is to play with, and how to come back ("${text('seed-editor-note').slice(0, 90)}…")`);
-      el('seed-editor').querySelector('[data-action="cancel"]').click();
-      await sleep(300);
-      await openContests();
-      ok(doc.body.classList.contains('mode-contests') && text('contests-panel-title') === 'Speed', "The banner brings it back to Speed's page");
       board.entries.length = 0;
       win.fetch = realFetch;
 
@@ -727,7 +711,11 @@
       ok(await until(() => visible('contests-watch'), 5000) && text('contests-watch-title') === 'Hall of Fame: Check, this run, settled at generation 10' && Number(el('contests-watch-scrub').max) === 10, `Watch plays an entry from the seed to its h (${text('contests-watch-title')})`);
       press('contests-watch-close');
       await sleep(300);
-      ok(visible('contests-hof-fair') && text('contests-hof-fair').includes("anyone's to change and enter as their own"), `Its board says a seed there is fair game (#145: "${text('contests-hof-fair')}")`);
+      ok(mRows.every((r) => [...r.querySelectorAll('button')].map((b) => b.textContent).join(' ') === 'Watch Open seed'), 'Each entry has Watch and Open seed (#146)');
+      ok(mRows[2].querySelectorAll('button')[1].getAttribute('aria-label') === "Open Check, this run's seed and rules in Game of Life 3D (unbounded)", 'Open seed names the entry for a screen reader');
+      mRows[0].querySelectorAll('button')[1].click();
+      ok(await until(() => text('contests-panel-status').startsWith("It can't be opened"), 5000), `An entry whose file can't be read says so ("${text('contests-panel-status')}")`);
+      ok(doc.body.classList.contains('mode-contests') && text('contests-panel-title') === 'Methuselah', 'and the panel stays on Methuselah');
       mRows[2].querySelectorAll('button')[1].click();
       ok(await until(() => doc.body.classList.contains('mode-explore') && visible('seed-editor'), 5000), 'Open seed opens the entry in Explore, with the seed editor open');
       ok(state.explore.arena === 64 && state.explore.edge === 'end' && state.explore.seed.cells.length === 33
