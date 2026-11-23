@@ -65,6 +65,11 @@ export const TABLE_VERSION = 1;
  * (about 33 bytes a cell as text), as the lab saves them.
  */
 export const MAX_RESULT_BYTES = 128 * 1024 * 1024;
+/**
+ * The most points a result's timeline may have (#148). A Speed run's statistics come at most four
+ * times a second, so its 6 seconds give about 25.
+ */
+export const MAX_TIMELINE_POINTS = 1000;
 
 /** How a result's run can have ended: every end reason but a fault in the engine. */
 export const RESULT_ENDINGS = END_REASONS.filter((reason) => reason !== 'error');
@@ -357,7 +362,8 @@ export function worldOptions(run, { chunkSize, slabBytes, memory } = {}) {
  * @param {object} options.run - the run's definition
  * @param {string} options.ending - how the run ended, one of RESULT_ENDINGS
  * @param {object} [options.details] - the run details, outside the hash: chunkSize,
- *   elapsedMs, stats (run.js's statistics) and browser ({name, version}); each may be left out
+ *   elapsedMs, stats (run.js's statistics) and browser ({name, version}); each may be left out.
+ *   A timed run may add its timeline (#148): [ms, generation] points, whole numbers, from [0, 0]
  * @param {boolean} [options.withCells] - include the generation's live cells
  * @param {object} [options.score] - the contest's score (contests.js), outside the hash
  * @returns {Promise<object>} with the world's departures, if it has a departure rule
@@ -408,6 +414,7 @@ export async function resultFromCells({ run, generation, cells, ending, details 
       browser: details.browser ?? null,
     },
   });
+  if (details.timeline !== undefined) result.details.timeline = details.timeline.map(([ms, g]) => [ms, g]);
   checkDetails(result.details);
   if (withCells) {
     const list = new Array(sorted.length / 3);
@@ -562,7 +569,8 @@ function checkScore(score) {
 }
 
 function checkDetails(details) {
-  exactKeys(details, 'details', ['chunkSize', 'elapsedMs', 'stats', 'browser']);
+  exactKeys(details, 'details', ['chunkSize', 'elapsedMs', 'stats', 'browser'], ['timeline']);
+  if (details.timeline !== undefined) checkTimeline(details.timeline);
   if (details.chunkSize !== null && !CHUNK_SIZES.includes(details.chunkSize)) {
     throw new ResultError(`details.chunkSize must be null or one of ${CHUNK_SIZES.join(', ')}.`);
   }
@@ -593,6 +601,29 @@ function checkDetails(details) {
         throw new ResultError(`details.browser.${key} must be text of at most ${MAX_TEXT} characters.`);
       }
     }
+  }
+}
+
+/**
+ * A timeline (#148): the generations completed over a timed run, as [ms, generation] points in
+ * whole milliseconds on the run's clock, from [0, 0], neither going back. Like the time, it is
+ * self-reported, and outside the hash; checkContest() checks that it ends at the file's generation.
+ */
+function checkTimeline(timeline) {
+  if (!Array.isArray(timeline) || timeline.length < 1 || timeline.length > MAX_TIMELINE_POINTS) {
+    throw new ResultError(`details.timeline must be a list of 1 to ${MAX_TIMELINE_POINTS} points.`);
+  }
+  let before = null;
+  for (const [i, point] of timeline.entries()) {
+    const whole = (v) => Number.isSafeInteger(v) && v >= 0;
+    if (!Array.isArray(point) || point.length !== 2 || !whole(point[0]) || !whole(point[1])) {
+      throw new ResultError(`details.timeline[${i}] must be [ms, generation], two whole numbers.`);
+    }
+    if (i === 0 && (point[0] !== 0 || point[1] !== 0)) throw new ResultError('details.timeline must start at [0, 0].');
+    if (before && (point[0] < before[0] || point[1] < before[1])) {
+      throw new ResultError(`details.timeline[${i}] goes back: neither its time nor its generation may fall.`);
+    }
+    before = point;
   }
 }
 

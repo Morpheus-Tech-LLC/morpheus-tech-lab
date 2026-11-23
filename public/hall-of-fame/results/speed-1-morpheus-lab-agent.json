@@ -1016,37 +1016,63 @@
       "generations": 1000
     }
   },
-  "generation": 452,
+  "generation": 449,
   "ending": "deadline",
   "score": {
-    "generations": 452,
+    "generations": 449,
     "ms": null
   },
-  "hash": "sha256:d8351b46d90dac07887e765c5c8735362b1459b934e065d24a4d3900888f2bb2",
+  "hash": "sha256:580106577d9d386be7c077bc99573e44b9a522e2d4daa58acf25fc05f69b948a",
   "seedHash": "sha256:f513536250ae2bc5f895a31f1cd0c98106134803e7ebf95bd1949e9a72e17335",
   "details": {
     "chunkSize": 16,
-    "elapsedMs": 6017.199999999255,
+    "elapsedMs": 6018.700000001118,
     "stats": {
-      "generation": 452,
-      "elapsedMs": 6017.199999999255,
-      "generationMs": 5969.5999999996275,
+      "generation": 449,
+      "elapsedMs": 6018.700000001118,
+      "generationMs": 5970,
       "rate": 0,
-      "live": 1963184,
-      "livePeak": 1963184,
-      "chunks": 1304,
-      "chunksPeak": 1448,
-      "chunksCreated": 8768,
+      "live": 1929136,
+      "livePeak": 1929136,
+      "chunks": 1256,
+      "chunksPeak": 1400,
+      "chunksCreated": 8240,
       "extent": {
         "min": [-106, -106, -106],
         "max": [105, 105, 105]
       },
       "memoryBytes": 67108864,
-      "usedBytes": 10682368
+      "usedBytes": 10289152
     },
     "browser": {
       "name": "Chromium",
       "version": "155.0.8059.84"
-    }
+    },
+    "timeline": [
+      [0, 0],
+      [254, 161],
+      [510, 210],
+      [764, 238],
+      [1019, 263],
+      [1273, 283],
+      [1539, 299],
+      [1799, 314],
+      [2051, 328],
+      [2321, 341],
+      [2588, 352],
+      [2857, 362],
+      [3131, 372],
+      [3382, 381],
+      [3659, 390],
+      [3927, 398],
+      [4208, 406],
+      [4470, 413],
+      [4749, 420],
+      [5029, 427],
+      [5316, 434],
+      [5570, 440],
+      [5830, 446],
+      [5970, 449]
+    ]
   }
 }

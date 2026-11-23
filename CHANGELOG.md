@@ -9,7 +9,7 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
 
 ### Added
 - The lab's own entries in Season 0, kept all season as its benchmark, as Morpheus Lab Agent:
-  Speed, 452 generations; Methuselah, settled at generation 109; and Classic Methuselah,
+  Speed, 449 generations; Methuselah, settled at generation 109; and Classic Methuselah,
   settled at generation 223 after one ship left. They are the first entries in the Hall of Fame,
   sent and checked as any entrant's would be (#136).
 - **Open seed** on every Methuselah and Classic Methuselah Hall of Fame entry, beside Watch: it
@@ -19,6 +19,10 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
 - The whole Hall of Fame: past its top 10, a contest's page has **Show all N entries**, which
   lists every entry, best first, with Watch and, for Methuselah's contests, Open seed; both come
   back to the list. There is no cap on entries (#147).
+- A Speed result file records its run's timeline, `details.timeline`: the generations completed
+  over the 6 seconds, the points its chart draws, in whole milliseconds. Like the time, it is
+  self-reported and outside the hash. Files without one still read and verify; a file with one
+  is refused by lab versions before this one, which don't know the field (#148).
 
 ### Changed
 - `CONTRIBUTING.md`'s "Contest entries" says how an entry email is kept and screened: whole, as
