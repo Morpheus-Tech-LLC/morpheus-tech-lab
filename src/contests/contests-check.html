@@ -645,7 +645,7 @@
       const mLink = new URL(el('contests-submit-email').href);
       const mBody = mLink.searchParams.get('body') ?? '';
       ok(mLink.searchParams.get('subject') === '[Methuselah] died at generation 10', `Submit by email's subject gives the score ("${mLink.searchParams.get('subject')}")`);
-      ok(mBody.startsWith('BEFORE SENDING: attach your result file, methuselah-1-10.json.') && !mBody.includes('Hardware') && !mBody.includes('self-reported'), 'and its text names the file, with nothing on timing');
+      ok(mBody.startsWith('BEFORE SENDING: attach your result file, methuselah-1-10.json.') && !mBody.includes('Hardware') && !mBody.includes('Operating system') && !mBody.includes('self-reported'), 'and its text names the file, with nothing on the machine or timing');
       setSpeed(10);
       press('contests-watch-run');
       await sleep(300);

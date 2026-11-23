@@ -129,10 +129,9 @@ test("a Methuselah entry's subject states its score as it settled; the result fi
   const { top, bottom } = halves(emailBody(lasting()));
   assert.equal(top[0], attachLine('methuselah-1-1234.json'));
   assert.ok(top.includes('Name to show: ') && top.includes(HALL_OF_FAME_LINE));
-  // Nothing about hardware or timing: the score depends on the seed and rules alone. The
-  // operating system is asked for, optionally, as for every contest
+  // Nothing about the machine or timing: the score depends on the seed and rules alone
   assert.ok(!top.includes('Hardware (optional): '));
-  assert.ok(top.includes('Operating system (optional): '));
+  assert.ok(!top.includes('Operating system (optional): '));
   assert.doesNotMatch(bottom, /self-reported/);
   assert.match(bottom, /An entry for Methuselah \(methuselah-1\)\. The result file holds its score, rules and seed, the browser and the hash/);
   assert.match(bottom, /Methuselah's Hall of Fame also shows the entry's rules and its seed's cell count/);
