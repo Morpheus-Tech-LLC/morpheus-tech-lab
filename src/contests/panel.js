@@ -28,9 +28,10 @@ import {
   n, rulesText, countdownText, chartLayout, speedHero, speedScoreText, speedEndingText, resultFileName,
   statsRows, verdictTitle, closingText, scoreText, boardScore, methuselahHero, methuselahEndingText,
   arenaText, budgetText, seedPicture, sentence, departuresText, paceOf, paceTop, paceLayout, raceText,
+  placeText, stripLayout,
 } from './format.js';
 import { SUBMIT_ADDRESS, emailSubject, emailBody, mailtoLink } from './submit.js';
-import { HALL_OF_FAME_TOP, readHallOfFame, rankEntries, dayText } from './hallOfFame.js';
+import { HALL_OF_FAME_TOP, readHallOfFame, rankEntries, placeFor, dayText } from './hallOfFame.js';
 import { LOOKS, logo, lookOf, verifyGlyph } from './looks.js';
 
 /** The kinds of contest this page can run: Speed, and Methuselah's, Classic Methuselah included. */
@@ -927,7 +928,7 @@ async function startRun(contest) {
       hud(undefined, 'Running');
     },
     onStats: (stats) => panel.run === run && showStats(stats, chart, racing),
-    onEnd: (end) => panel.run === run && showResults(run, end),
+    onEnd: (end) => panel.run === run && showResults(run, end, racing),
     onError: (message) => panel.run === run && status(`The engine says: ${message}`),
   });
   panel.run = run;
@@ -1037,7 +1038,13 @@ function showStats(stats, chart, racing) {
 
 // ---- The results card ----
 
-async function showResults(run, end) {
+/**
+ * A results card: the score, the chart, how the run ended, where it would stand in the Hall of
+ * Fame (#150), the statistics and hash, Watch, Export and Submit by email. A Speed run that raced
+ * #1 (#149) keeps #1's line on its chart, now the run is over.
+ * @param {{entry: object, pace: object} | null} [racing] - the #1 a Speed run raced
+ */
+async function showResults(run, end, racing = null) {
   const { stats, reason, score } = end;
   const { contest } = run;
   const speed = contest.kind === 'speed';
@@ -1045,7 +1052,7 @@ async function showResults(run, end) {
   hud(contest.title, score ? 'Finished' : reason === 'stopped' || speed ? 'Stopped' : 'No score', n(stats.generation));
   const again = button('Run again', () => showContest(contest), { main: !score, id: 'contests-again' });
   const back = button(`Back to ${SEASON}`, showList, { id: 'contests-back' });
-  const chart = createChart(chartSpec(contest), { table: true });
+  const chart = createChart(chartSpec(contest), { table: true, pace: speed && score ? racing?.pace ?? null : null });
   const endingText = speed ? speedEndingText(reason, contest) : methuselahEndingText(reason, contest, end);
   const entryFacts = speed ? null : facts([
     ['Seed', `${n(run.run.seed.length)} cell${run.run.seed.length === 1 ? '' : 's'}`],
@@ -1102,6 +1109,7 @@ async function showResults(run, end) {
     chart.node,
     h('p', { className: 'contests-ending', text: endingText, attrs: { id: 'contests-ending' } }),
     departed,
+    standing(contest, score, speed ? undefined : run.run.seed.length),
     entryFacts,
     statsGrid(statsRows(stats)),
     h('div', { className: 'contests-hash-box' },
@@ -1147,6 +1155,59 @@ async function showResults(run, end) {
   if (!el('contests-panel').contains(document.activeElement) || document.activeElement === again) {
     exportButton.focus({ preventScroll: true });
   }
+}
+
+// ---- Where the run would stand (#150) ----
+
+/**
+ * Where a scoring run would place in its contest's Hall of Fame, entered today: its place, the
+ * entries just above and below it, and a strip of every entry's score with its own marked. It is
+ * drawn once the run has ended, so none of it can touch the score.
+ * @param {number} [seedCells] - a Methuselah run's, which break a tie in its score
+ */
+function standing(contest, score, seedCells) {
+  let entries;
+  try {
+    entries = readHallOfFame(hallOfFameData);
+  } catch {
+    return null; // the contest's page says why
+  }
+  const at = placeFor(entries, contest, { score, seedCells });
+  const place = h('p', { className: 'contests-standing-place', text: `${placeText(at.place, at.of)}.`, attrs: { id: 'contests-standing-place' } });
+  const how = h('p', {
+    className: 'contests-note',
+    text: contest.kind === 'speed'
+      ? "As if entered today, after any entry with the same score, since it came first. Speed's times are self-reported, so the placing is too."
+      : 'As if entered today, after any entry with the same score, since it came first. The score is the same on any machine, so the placing is exact.',
+  });
+  if (at.of === 1) return section("Where you'd stand", place, how);
+  const row = (entry, number, you = false) => h('li', { className: `contests-standing-row${you ? ' contests-standing-row--you' : ''}` },
+    h('span', { className: 'contests-hof-place', text: String(number) }),
+    h('span', { className: 'contests-standing-name', text: you ? 'You' : entry.name }),
+    h('span', { className: 'contests-standing-score', text: boardScore(contest, you ? score : entry.score, you ? { seedCells } : entry).main }));
+  const near = h('ol', { className: 'contests-standing-near', attrs: { id: 'contests-standing-near' } },
+    at.above ? row(at.above, at.place - 1) : null,
+    row(null, at.place, true),
+    at.below ? row(at.below, at.place + 1) : null);
+  return section("Where you'd stand", place, near, scoreStrip(at.ranked.map((entry) => entry.score.generations), score.generations), how);
+}
+
+/** The strip: every entry's generations as a dot on one line, the visitor's marked and named. */
+function scoreStrip(values, mine) {
+  const [width, height] = [520, 64];
+  const strip = stripLayout(values, mine, { width, height });
+  const svg = svgNode('svg', {
+    class: 'contests-strip', viewBox: `0 0 ${width} ${height}`, role: 'img', id: 'contests-strip',
+    'aria-label': `Every entry's score, from ${strip.low.label} to ${strip.high.label} generations, with yours, ${n(mine)}, marked`,
+  });
+  svg.append(
+    svgNode('line', { class: 'contests-strip-line', x1: strip.left, x2: strip.right, y1: strip.y, y2: strip.y }),
+    ...strip.dots.map((x) => svgNode('circle', { class: 'contests-strip-dot', cx: x, cy: strip.y, r: 4 })),
+    svgNode('circle', { class: 'contests-strip-mine', cx: strip.mine, cy: strip.y, r: 6, id: 'contests-strip-mine' }),
+    svgNode('text', { class: 'contests-strip-you', x: strip.mine, y: strip.y - 12, 'text-anchor': 'middle' }, 'You'),
+    svgNode('text', { class: 'contests-strip-end', x: strip.low.x, y: height - 4, 'text-anchor': 'start' }, strip.low.label),
+    svgNode('text', { class: 'contests-strip-end', x: strip.high.x, y: height - 4, 'text-anchor': 'end' }, strip.high.label));
+  return svg;
 }
 
 /**

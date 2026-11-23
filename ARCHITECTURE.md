@@ -432,7 +432,12 @@ draws its card and its pace line (`format.js`'s `paceOf()` and `paceLayout()`; i
 its final mark for a file without one) before the clock starts. The chart's scale fits #1 from the
 start (`chartLayout()`'s `floor`), so the pace line's nodes are kept and laid out again only if the
 scale or the chart's size changes. Each statistics message then moves only the run's own line
-and the "ahead/behind" text (`raceText()`), with no animation. `race-bench.html` measures it: runs
+and the "ahead/behind" text (`raceText()`), with no animation. Once the run has ended, the results
+card (#150) keeps #1's line on its chart and says where the run would stand:
+`hallOfFame.js`'s `placeFor()` places it as `rankEntries()` would, entered today, so it goes after
+any entry level with it, with the entries either side; and a strip (`format.js`'s `stripLayout()`)
+puts every entry's generations on one line, the run's marked. Methuselah's results cards show the
+placing and the strip too, ranked with the run's seed cells. `race-bench.html` measures it: runs
 with and without the race, in turn, must score the same within the noise.
 
 **The unbounded engine runs in a Worker (#36).** A run can work flat out for as long as it

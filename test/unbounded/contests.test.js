@@ -106,6 +106,9 @@ test("Speed's score: generations, and the time only at the ceiling; ranked by bo
     { generations: 1000, ms: 4210 },
   ].sort(compareSpeed);
   assert.deepEqual(ranked.map((s) => [s.generations, s.ms]), [[1000, 4210], [1000, 5000], [999, null], [412, null]]);
+  // Level scores compare as 0, below the ceiling (no time) and at it (#150)
+  assert.equal(compareSpeed({ generations: 412, ms: null }, { generations: 412, ms: null }), 0);
+  assert.equal(compareSpeed({ generations: 1000, ms: 4210 }, { generations: 1000, ms: 4210 }), 0);
 });
 
 test('a Speed result verifies by replay, and by table lookup', async () => {

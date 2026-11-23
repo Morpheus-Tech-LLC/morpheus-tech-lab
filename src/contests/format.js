@@ -105,6 +105,54 @@ export function chartLayout(points, { seconds, width, height, floor = 0 }) {
   };
 }
 
+// ---- Where a run would stand (#150) ----
+
+/** 1st, 2nd, 3rd, 4th, 11th, 12th, 13th, 21st, 1,001st. */
+export function ordinal(place) {
+  const tens = place % 100;
+  const suffix = tens >= 11 && tens <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[place % 10] ?? 'th');
+  return `${n(place)}${suffix}`;
+}
+
+/** Where a run would place: "You'd place 7th of 42", or first in an empty Hall of Fame. */
+export function placeText(place, of) {
+  return of === 1 ? "You'd be the first in the Hall of Fame" : `You'd place ${ordinal(place)} of ${n(of)}`;
+}
+
+/** Space round the strip, for its end labels and the visitor's. */
+export const STRIP_MARGIN = Object.freeze({ left: 16, right: 16, top: 22, bottom: 20 });
+
+/**
+ * The strip of every entry's score (#150), with the visitor's marked: their generations along one
+ * line, from the lowest to the highest, the better to the right.
+ * @param {number[]} values - the entries' generations
+ * @param {number} mine - the visitor's
+ * @param {{width: number, height: number}} size
+ * @returns {{y: number, left: number, right: number, low: object, high: object, dots: number[], mine: number}}
+ *   the line's height and ends, its end labels ({x, label}), and each value's x
+ */
+export function stripLayout(values, mine, { width, height }) {
+  const all = [...values, mine];
+  let low = Math.min(...all);
+  let high = Math.max(...all);
+  if (low === high) {
+    low -= 1;
+    high += 1;
+  }
+  const left = STRIP_MARGIN.left;
+  const right = width - STRIP_MARGIN.right;
+  const x = (v) => +(left + ((v - low) / (high - low)) * (right - left)).toFixed(1);
+  return {
+    y: STRIP_MARGIN.top + (height - STRIP_MARGIN.top - STRIP_MARGIN.bottom) / 2,
+    left,
+    right,
+    low: { x: left, label: n(Math.min(...all)) },
+    high: { x: right, label: n(Math.max(...all)) },
+    dots: values.map(x),
+    mine: x(mine),
+  };
+}
+
 // ---- Racing the Hall of Fame's #1 (#149) ----
 
 /**

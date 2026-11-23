@@ -226,6 +226,8 @@ export function speedScore(contest, generation, elapsedMs) {
  */
 export function compareSpeed(a, b) {
   if (a.generations !== b.generations) return b.generations - a.generations;
+  // Two runs below the ceiling have no time: level, not Infinity - Infinity, which is NaN
+  if (a.ms === b.ms) return 0;
   return (a.ms ?? Infinity) - (b.ms ?? Infinity);
 }
 
