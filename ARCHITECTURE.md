@@ -345,7 +345,9 @@ shape only), ranks a contest's entries (`rankEntries()`: the contest's order, `c
 for Speed, `compareMethuselah()` for Methuselah, then the earlier date, then the file's order,
 which is arrival order), and checks an entry against its file (`checkEntry()`: it reads as a
 result, passes `checkContest()`, and has the entry's contest, score, browser, rules and seed cells), which `npm test` runs on every entry without replaying;
-`scripts/verify.mjs` replays them. Each contest's page shows its top 10, the lab's logo standing
+`scripts/verify.mjs` replays them. Each contest's page shows its top 10, and past 10, **Show all N
+entries** opens the panel's `board` view, every entry with no cap, its rows built once as it opens
+(#147); Watch and Open seed come back to it, Open seed through `panel.resume`. The lab's logo stands
 in for a missing picture, each score led by what ranks it (`format.js`'s `boardScore()`): at
 Speed's ceiling every entry has 1,000 generations, so the time leads, to the millisecond the score
 holds (`secondsText()`), as on the results card (`speedHero()`), since two places would show
