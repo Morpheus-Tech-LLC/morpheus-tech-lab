@@ -9,7 +9,7 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
 
 ### Added
 - The lab's own entries in Season 0, kept all season as its benchmark, as Morpheus Lab Agent:
-  Speed, 452 generations; Methuselah, settled at generation 109; and Classic Methuselah,
+  Speed, 449 generations; Methuselah, settled at generation 109; and Classic Methuselah,
   settled at generation 223 after one ship left. They are the first entries in the Hall of Fame,
   sent and checked as any entrant's would be (#136).
 - **Open seed** on every Methuselah and Classic Methuselah Hall of Fame entry, beside Watch: it
