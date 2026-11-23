@@ -162,12 +162,16 @@ src/
   contests/format.js     What the panel says and draws: countdown, the chart's layout (chartLayout()), scores,
                          endings (Speed's and Methuselah's, `emits` included), the ships that left (departuresText(),
                          watchDeparturesText()), statistics, a Discovery seed's picture
-                         (seedPicture()), and what Watch found (selfVerifiedText()) (tested in Node)
+                         (seedPicture()), what Watch found (selfVerifiedText()), and racing #1 (paceOf(), paceAt(),
+                         raceText(), paceLayout(), #149) (tested in Node)
   contests/contests-check.html Not bundled: a dev page (/src/contests/contests-check.html under `npm run dev`) that
                          clicks through the Contests mode in a frame holding the lab, two real Speed runs,
                          Submit by email and a staged Hall of Fame included, and Methuselah's page, Load simulation…
                          and its runs, and a Classic Methuselah run whose ship leaves, marking each check ✔ or ✖, and
                          lists what to check by hand
+  contests/race-bench.html Not bundled: a dev page (/src/contests/race-bench.html under `npm run dev`) that measures
+                         what racing #1 costs a Speed run (#149): runs with and without the race in turn, then
+                         their means, spread and Welch's t
   explore/               The Game of Life 3D (unbounded) mode, called Explore until #116 (the code keeps `explore`): the unbounded engine on the page (#37)
   explore/explore.js     Starts and drives the run, the control bar's commands in Game of Life 3D (unbounded), the HUD box and notices
                          (ships leaving, #103), and the save popover

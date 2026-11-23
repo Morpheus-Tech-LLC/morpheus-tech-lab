@@ -23,6 +23,11 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
   over the 6 seconds, the points its chart draws, in whole milliseconds. Like the time, it is
   self-reported and outside the hash. Files without one still read and verify; a file with one
   is refused by lab versions before this one, which don't know the field (#148).
+- Race the Hall of Fame's #1 in Speed: the run screen pins #1's card (its picture, name and
+  score) and draws its curve on the live chart as a dashed pace line, with how many generations
+  ahead or behind you are; a #1 without a timeline is raced by its final mark. All of it is drawn
+  before the clock starts, and each update moves only your own line and the gap, so racing
+  doesn't change the score (#149).
 
 ### Changed
 - `CONTRIBUTING.md`'s "Contest entries" says how an entry email is kept and screened: whole, as

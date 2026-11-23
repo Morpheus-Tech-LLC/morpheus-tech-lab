@@ -63,15 +63,16 @@ export const CHART_MARGIN = Object.freeze({ top: 14, right: 48, bottom: 42, left
  * cells (y) by generation (x), with x over a clean scale that fits the generations so far. y runs
  * over a clean scale that fits the values so far; both rescale as the run goes on.
  * @param {[number, number][]} points - [x, y], from x = 0, in order
- * @param {{seconds?: number, width: number, height: number}} size - with `seconds`, x is time
- *   and runs over them, a tick a second; without, x fits the points
+ * @param {{seconds?: number, width: number, height: number, floor?: number}} size - with
+ *   `seconds`, x is time and runs over them, a tick a second; without, x fits the points. y's
+ *   scale reaches at least `floor`: a race's pace line (#149) fits from the start
  */
-export function chartLayout(points, { seconds, width, height }) {
+export function chartLayout(points, { seconds, width, height, floor = 0 }) {
   const m = CHART_MARGIN;
   const plot = { left: m.left, top: m.top, right: width - m.right, bottom: height - m.bottom };
   const plotWidth = plot.right - plot.left;
   const plotHeight = plot.bottom - plot.top;
-  const { top, step } = niceScale(Math.max(0, ...points.map(([, g]) => g)));
+  const { top, step } = niceScale(Math.max(0, floor, ...points.map(([, g]) => g)));
   const xScale = seconds !== undefined ? { top: seconds, step: 1 } : niceScale(Math.max(0, ...points.map(([t]) => t)));
   const x = (t) => plot.left + (Math.min(Math.max(t, 0), xScale.top) / xScale.top) * plotWidth;
   const y = (g) => plot.bottom - (g / top) * plotHeight;
@@ -86,6 +87,8 @@ export function chartLayout(points, { seconds, width, height }) {
     plot,
     xTicks,
     yTicks,
+    /** Where a point [x, y] of the data falls on the chart: a pace line is placed with it. */
+    place: ([t, g]) => [fixed(x(t)), fixed(y(g))],
     line: xy.map(([px, py]) => `${px},${py}`).join(' '),
     area: xy.length ? `M${xy[0][0]},${plot.bottom} ${xy.map(([px, py]) => `L${px},${py}`).join(' ')} L${last[0]},${plot.bottom} Z` : '',
     end: last ? { x: last[0], y: last[1], label: n(points[points.length - 1][1]) } : null,
@@ -100,6 +103,82 @@ export function chartLayout(points, { seconds, width, height }) {
       return best < 0 ? null : { index: best, x: xy[best][0], y: xy[best][1], at: points[best][0], value: points[best][1] };
     },
   };
+}
+
+// ---- Racing the Hall of Fame's #1 (#149) ----
+
+/**
+ * The pace a Speed run races: the Hall of Fame #1's timeline (#148), as [seconds, generation]
+ * points, or, for a result file without one, its final mark only: its generations at the end of
+ * the contest's seconds, or at its time if it reached the ceiling.
+ * @param {object} result - #1's result file, read by readResult()
+ * @param {import('../unbounded/contests.js').Contest} contest - Speed
+ * @returns {{points: [number, number][]} | {mark: [number, number]}}
+ */
+export function paceOf(result, contest) {
+  const timeline = result.details?.timeline;
+  if (timeline) return { points: timeline.map(([ms, g]) => [ms / 1000, g]) };
+  const { generations, ms } = result.score;
+  return { mark: [ms === null ? contest.seconds : ms / 1000, generations] };
+}
+
+/** The most generations a pace reaches, for the chart's scale. */
+export function paceTop(pace) {
+  return pace.points ? pace.points[pace.points.length - 1][1] : pace.mark[1];
+}
+
+/**
+ * The generations a timeline pace had completed at `seconds`: straight between its points, and
+ * its last after them.
+ */
+export function paceAt(pace, seconds) {
+  const { points } = pace;
+  if (seconds <= points[0][0]) return points[0][1];
+  for (let i = 1; i < points.length; i++) {
+    const [t1, g1] = points[i];
+    if (seconds <= t1) {
+      const [t0, g0] = points[i - 1];
+      return t1 === t0 ? g1 : g0 + ((g1 - g0) * (seconds - t0)) / (t1 - t0);
+    }
+  }
+  return points[points.length - 1][1];
+}
+
+const generationsWords = (count) => `${n(count)} generation${count === 1 ? '' : 's'}`;
+
+/**
+ * Where the visitor stands against #1, at their latest point [seconds, generation]. Against a
+ * timeline: the generations between them at the same moment. Against a final mark: where the
+ * visitor's rate so far would finish, at the mark's time, against the mark.
+ * @returns {{gap: number, text: string}} gap > 0 ahead, < 0 behind, in whole generations
+ */
+export function raceText(pace, [seconds, generation]) {
+  if (pace.points) {
+    const gap = Math.round(generation - paceAt(pace, seconds));
+    if (gap === 0) return { gap, text: 'Level with #1' };
+    return { gap, text: `${gap > 0 ? 'Ahead of' : 'Behind'} #1 by ${generationsWords(Math.abs(gap))}` };
+  }
+  const [at, mark] = pace.mark;
+  if (seconds <= 0) return { gap: 0, text: `#1 reached ${generationsWords(mark)}` };
+  const projected = seconds >= at ? generation : Math.round((generation * at) / seconds);
+  const gap = projected - mark;
+  if (gap === 0) return { gap, text: "On pace to match #1's mark" };
+  return { gap, text: `On pace to finish ${generationsWords(Math.abs(gap))} ${gap > 0 ? 'ahead of' : 'behind'} #1` };
+}
+
+/**
+ * A pace on a chart laid out by chartLayout(): its line, or its final mark, and the label at its
+ * end. Laid out again only when the chart's scale or size changes.
+ * @returns {{line: string | null, end: {x: number, y: number, label: string}}}
+ */
+export function paceLayout(pace, layout) {
+  if (pace.points) {
+    const xy = pace.points.map(layout.place);
+    const last = xy[xy.length - 1];
+    return { line: xy.map(([px, py]) => `${px},${py}`).join(' '), end: { x: last[0], y: last[1], label: n(paceTop(pace)) } };
+  }
+  const [x, y] = layout.place(pace.mark);
+  return { line: null, end: { x, y, label: n(pace.mark[1]) } };
 }
 
 /**
