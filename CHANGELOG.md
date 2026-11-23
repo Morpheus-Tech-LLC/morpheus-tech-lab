@@ -7,6 +7,20 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
 
 ## [Unreleased]
 
+### Added
+- The lab's own entries in Season 0, kept all season as its benchmark, as Morpheus Lab Agent:
+  Speed, 452 generations; Methuselah, settled at generation 109; and Classic Methuselah,
+  settled at generation 223 after one ship left. They are the first entries in the Hall of Fame,
+  sent and checked as any entrant's would be (#136).
+
+### Changed
+- `CONTRIBUTING.md`'s "Contest entries" says how an entry email is kept and screened: whole, as
+  its original, outside the repo, read as data; its date is the day it arrived in Central Time,
+  from the topmost `Received` header; and how the files are named (#136).
+- `RELEASING.md`'s release steps match the branch rules: the prep commit and the merge of `main`
+  back into `development` go by pull request, a release needs another maintainer's approval, and
+  only the accounts the tag ruleset allows can push a release tag (#136).
+
 ### Fixed
 - Submit by email: the result file could fail to download when the email opened, and attaching
   it didn't read as part of sending an entry. The results card now makes it three numbered
