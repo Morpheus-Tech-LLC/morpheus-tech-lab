@@ -10,7 +10,7 @@ import {
   initialSetup, makeShape, presetSeed, fileSeed, simulationFile, simulationOf, changeSeed, changeRules, changeArena, changeMemory,
   ownRules, configOf, boxesOf, lockOf, rulesOf, arenaOf, startOf, restartNote, seedLabel, SHAPES,
   DEFAULT_RULES, DEFAULT_MEMORY_MB, DEFAULT_ARENA, deathCounts, designOf, designFile, useDesign,
-  contestArena,
+  contestArena, entrySetup, edgeOf,
 } from '../../src/explore/setup.js';
 import { shapeSeed, toSeedFile, SeedError, arenaBox } from '../../src/explore/seed.js';
 import { contestById } from '../../src/unbounded/contests.js';
@@ -379,6 +379,54 @@ test("a contest's arena for designing an entry: on at its side, already so, or l
   const kept = contestArena(saved, 64, 'Methuselah');
   assert.equal(kept.setup, saved);
   assert.match(kept.note, /stays the saved generation's, so a run of it here may not end as Methuselah's would/);
+});
+
+// ---- A Hall of Fame entry's Open seed (#146) ----
+
+test("Open seed sets up an entry's seed and rules, named for it, in its contest's arena", () => {
+  const cells = Int32Array.from([0, 0, 0, 1, 0, 0, 0, 1, 0, -5, -5, -5, 4, 4, 4]);
+  const entry = { name: 'Methuselah: Somebody', cells, rules: B5 };
+  // From a setup whose arena is off and whose seed, a 60-cell cube, wouldn't fit some arenas
+  const from = changeSeed(start(), makeShape('cube', { size: 60, density: 1 }));
+  const opened = entrySetup(from, entry, 64, 'Methuselah');
+  assert.equal(opened.setup.seed.cells, cells);
+  assert.deepEqual(rulesOf(opened.setup), B5);
+  assert.equal(arenaOf(opened.setup), 64);
+  assert.equal(edgeOf(opened.setup), 'end');
+  assert.deepEqual(simulationOf(opened.setup), { name: 'Methuselah: Somebody', from: 'file' });
+  assert.match(opened.note, /^The arena in Game of Life 3D \(unbounded\) is now on, at 64³, as Methuselah's/);
+  // The editor opens on it, under its rules
+  const design = designOf(opened.setup);
+  assert.equal(design.reason, null);
+  assert.equal(design.places.reduce((a, b) => a + b, 0), 5);
+  assert.deepEqual(design.rules, B5);
+  // Classic Methuselah's: ships leave at the edge
+  const classic = entrySetup(from, entry, 64, 'Classic Methuselah', true);
+  assert.equal(edgeOf(classic.setup), 'ships');
+  assert.match(classic.note, /with ships leaving at its edge/);
+});
+
+test("Open seed on a Speed entry turns the arena off, as Speed has none, and it is Cube10 under Speed's rules", async () => {
+  const speed = contestById('speed-1');
+  const cells = Int32Array.from(speed.fixes.seed.flat());
+  const entry = { name: 'Speed: Somebody', cells, rules: speed.fixes.rules };
+  const off = entrySetup(start(), entry, null, 'Speed');
+  assert.equal(arenaOf(off.setup), null);
+  assert.equal(off.note, 'There is no arena, as in Speed.');
+  assert.deepEqual(simulationOf(off.setup), { name: 'Speed: Somebody', from: 'file' });
+  assert.deepEqual(rulesOf(off.setup), CUBE10.rules, "Speed's rules are Cube10's");
+  const on = entrySetup(changeArena(start(), true, 32), entry, null, 'Speed');
+  assert.equal(arenaOf(on.setup), null);
+  assert.match(on.note, /^The arena in Game of Life 3D \(unbounded\) is now off, as in Speed/);
+  // A saved generation in use is replaced by the entry, and its arena with it
+  const saved = changeSeed(start(), await savedGeneration(32));
+  assert.equal(arenaOf(entrySetup(saved, entry, null, 'Speed').setup), null);
+  assert.equal(arenaOf(entrySetup(saved, { ...entry, cells: Int32Array.from([0, 0, 0]) }, 64, 'Methuselah').setup), 64);
+});
+
+test('Open seed refuses an entry Explore cannot run, and the setup in use stays', () => {
+  const setup = start();
+  assert.throws(() => entrySetup(setup, { name: 'x', cells: new Int32Array(0), rules: B5 }, 64, 'Methuselah'), SeedError);
 });
 
 // ---- A seed apart from its simulation (#130) ----

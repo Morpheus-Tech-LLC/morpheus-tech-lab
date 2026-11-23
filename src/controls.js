@@ -5,7 +5,8 @@ import { initComputeControl, updateComputeControl } from "./gpu/computeControl.j
 import { isExplore, stopExplore, togglePlay, stepOnce, restart, exploreViewChanged, toggleSave, confirmSave, closeSave } from "./explore/explore.js";
 import { initHud, startFromSetup, openSeedEditor } from "./explore/hud.js";
 import { initSettingsHud, openModePopover, MODES } from "./hudSettings.js";
-import { contestArena } from "./explore/setup.js";
+import { contestArena, entrySetup } from "./explore/setup.js";
+import { SeedError } from "./explore/seed.js";
 import { isContests, startContests, stopContests, isWatching, closeWatch, watchTogglePlay, watchStep, watchViewChanged } from "./contests/contests.js";
 import { CONTESTS, SEASON } from "./unbounded/contests.js";
 import { closingText } from "./contests/format.js";
@@ -671,17 +672,33 @@ function enterContests() {
 /**
  * From a Discovery contest's page (#94): Explore, with the contest's arena (and, for Classic
  * Methuselah, ships leaving at its edge, #103) and the seed editor open on its seed, to design an
- * entry. The banner then brings the visitor back to Contests, and the panel to the contest's page.
- * @param {{note: string, arena: number, title: string, ships?: boolean}} contest - the editor's
- *   note, and the contest's arena side, title and whether ships leave at its edge
+ * entry. From a Hall of Fame entry's Open seed (#146), the same, on the entry's seed and rules, and
+ * for Speed, which has no arena, with none. The banner then brings the visitor back to Contests,
+ * and the panel to the contest's page.
+ * @param {{note: string, arena: number | null, title: string, ships?: boolean,
+ *   entry?: {name: string, cells: Int32Array, rules: object}}} contest - the editor's note, the
+ *   contest's arena side (null for none), title and whether ships leave at its edge, and the
+ *   entry to open, if any
+ * @returns {string | null} why the entry can't open, or null once Explore has started
  */
-function designInExplore({ note, arena, title, ships = false }) {
+function designInExplore({ note, arena, title, ships = false, entry = null }) {
+  let fitted;
+  if (entry) {
+    try {
+      fitted = entrySetup(state.explore, entry, arena, title, ships);
+    } catch (err) {
+      if (err instanceof SeedError) return err.message;
+      throw err;
+    }
+  } else {
+    fitted = contestArena(state.explore, arena, title, ships);
+  }
   beforeContests = null;
-  const fitted = contestArena(state.explore, arena, title, ships);
   state.explore = fitted.setup;
   state.simulationMode = 'explore';
   restartExplore();
   openSeedEditor({ note: `${note} ${fitted.note}` });
+  return null;
 }
 
 /**

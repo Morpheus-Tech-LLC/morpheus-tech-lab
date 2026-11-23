@@ -12,6 +12,11 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
   Speed, 452 generations; Methuselah, settled at generation 109; and Classic Methuselah,
   settled at generation 223 after one ship left. They are the first entries in the Hall of Fame,
   sent and checked as any entrant's would be (#136).
+- **Open seed** on every Hall of Fame entry, beside Watch: it opens the entry's seed and rules in
+  Game of Life 3D (unbounded), in its contest's arena (none for Speed), with the seed editor open,
+  and the Contests banner brings you back to the contest's page. A Methuselah or Classic
+  Methuselah entry's seed is anyone's to change and enter as their own, and their Hall of Fame
+  says so; a Speed entry opens to play with, since its seed and rules are everyone's (#146).
 
 ### Changed
 - `CONTRIBUTING.md`'s "Contest entries" says how an entry email is kept and screened: whole, as

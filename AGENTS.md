@@ -187,12 +187,12 @@ src/
                          walls with their own rules, #119) and the memory limit; what each HUD box shows,
                          what is locked, each popover's change or the reason it is refused, the config
                          startExplore() takes and the Worker's world (worldOf()), the simulation in use
-                         (simulationOf(), #130), and a contest's arena and ships for its Design a seed…
-                         (contestArena(), #94)
+                         (simulationOf(), #130), a contest's arena and ships for its Design a seed…
+                         (contestArena(), #94), and a Hall of Fame entry's for its Open seed (entrySetup(), #146)
                          (tested in Node)
   explore/hud.js         The gears in the Simulation, Seed, Rules and Limits boxes' titles and their popovers,
                          whose Apply changes `state.explore` and restarts the run, and the save icons;
-                         startFromSetup(); openSeedEditor() (Design a seed… from a contest's page); and
+                         startFromSetup(); openSeedEditor() (Design a seed… and Open seed from Contests); and
                          folding every HUD box to its title, in every mode
   explore/popover.js     One HUD popover open at a time, beside its box: Esc, a click or focus outside closes it,
                          and focus goes back to its button. The save popover opens through it too

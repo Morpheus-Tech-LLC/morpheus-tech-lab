@@ -622,6 +622,33 @@ export function contestArena(setup, side, title, ships = false) {
   }
 }
 
+/**
+ * Explore set up on a Hall of Fame entry (#146), to play with or to change into a new entry: its
+ * seed and rules, as a simulation named for it, in its contest's arena as contestArena() sets it,
+ * or with no arena for a contest that has none, as Speed.
+ * @param {{name: string, cells: Int32Array, rules: {birth: number[], survival: number[]}}} entry -
+ *   the simulation's name, and the seed and rules from the entry's result file
+ * @param {number | null} side - the contest's arena, a cube of this many cells a side, or null
+ * @param {string} title - the contest's, for the note
+ * @param {boolean} [ships] - whether ships leave at the contest's edge
+ * @returns {{setup: object, note: string}} the setup to use, and what the arena is, for the editor
+ * @throws {SeedError} for a seed or rules Explore can't run
+ */
+export function entrySetup(setup, entry, side, title, ships = false) {
+  const seed = { kind: 'file', name: entry.name, cells: entry.cells, rules: entry.rules };
+  // Seed and arena change together: the seed in use may not fit the contest's arena, nor the
+  // entry's seed the arena in use
+  const base = { ...setup, seed, rules: entry.rules };
+  if (side !== null) {
+    const fitted = contestArena(base, side, title, ships);
+    return { setup: checked(fitted.setup), note: fitted.note };
+  }
+  const note = setup.arena === null
+    ? `There is no arena, as in ${title}.`
+    : `The arena in Game of Life 3D (unbounded) is now off, as in ${title}: the Limits box turns it on.`;
+  return { setup: checked({ ...base, arena: null }), note };
+}
+
 /** The Limits popover's memory limit. @param {string | number} text - the limit in MB */
 export function changeMemory(setup, text) {
   const memoryMB = Number(text);
