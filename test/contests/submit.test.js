@@ -97,10 +97,10 @@ test('the mailto: link opens the email, addressed, with the subject and text', (
   const subject = emailSubject(SPEED, { generations: 1000, ms: 4210 });
   const body = emailBody(entry({ score: { generations: 1000, ms: 4210 }, fileName: 'speed-1-1000-4210ms.json' }));
   const link = mailtoLink(subject, body);
-  assert.equal(SUBMIT_ADDRESS, 'lab@morpheustech.net');
-  assert.ok(link.startsWith('mailto:lab@morpheustech.net?subject='));
+  assert.equal(SUBMIT_ADDRESS, 'morpheus.lab.agent@hey.com');
+  assert.ok(link.startsWith('mailto:morpheus.lab.agent@hey.com?subject='));
   const url = new URL(link);
-  assert.equal(url.pathname, 'lab@morpheustech.net');
+  assert.equal(url.pathname, 'morpheus.lab.agent@hey.com');
   assert.equal(url.searchParams.get('subject'), subject);
   assert.equal(url.searchParams.get('body'), body);
   // Spaces as %20, never +, which some mail apps keep as a plus

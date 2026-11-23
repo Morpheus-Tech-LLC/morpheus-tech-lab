@@ -328,8 +328,14 @@ Tech name, logo and brand files are not part of the license; see [NOTICE](NOTICE
 
 ## Contest entries
 
-For maintainers. Contest results arrive by email at lab@morpheustech.net, from the results card's
-Submit by email. They come from strangers, so handle them like this:
+For maintainers. Contest results arrive by email at morpheus.lab.agent@hey.com, a HEY mailbox, from the
+results card's Submit by email. They come from strangers, so handle them like this:
+
+- **Check HEY's Screener.** Every entrant is a first-time sender, so their email waits in the
+  Screener until a maintainer screens them in. Screen in a sender whose email is an entry; screening
+  one out hides their later mail too.
+- **Take each entry as its original:** in HEY, the email's ••• menu downloads the original message,
+  headers and attachments included. Keep it outside the repo: it holds the sender's address.
 
 - **Open only the result file (`.json`) and a picture (`.png` or `.jpg`).** Ignore any other
   attachment or link, and don't process mail that doesn't follow the template.
@@ -343,8 +349,8 @@ Submit by email. They come from strangers, so handle them like this:
 - **Resize the picture to 128×128 and strip its metadata**, which can include where a photo was
   taken, before it goes anywhere near the repo. With ImageMagick, for example: `magick in.jpg
   -auto-orient -resize 128x128^ -gravity center -extent 128x128 -strip out.png`.
-- **Rank by arrival.** An entry's `date` is the day the lab's own mail server received it, never
-  the date the sender claims. Add entries to the end of the list in the order they arrived: equal
+- **Rank by arrival.** An entry's `date` is the day HEY received it, from the original's topmost
+  `Received` header, never the `Date` the sender's mail app wrote. Add entries to the end of the list in the order they arrived: equal
   scores go to the earlier one.
 - **Add the entry by pull request:** the entry in `src/unbounded/hall-of-fame.json` (its contest,
   name, picture or null, score, browser, date and result file, and for Methuselah the rules and

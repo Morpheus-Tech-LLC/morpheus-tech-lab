@@ -7,6 +7,11 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
 
 ## [Unreleased]
 
+### Changed
+- Contest entries go to morpheus.lab.agent@hey.com: Submit by email writes to it, and the README and
+  CONTRIBUTING give it. CONTRIBUTING's "Contest entries" says how maintainers take entries from
+  HEY: its Screener, each email's original, and the arrival date from its `Received` header (#142).
+
 ### Fixed
 - Submit by email: the result file could fail to download when the email opened, and attaching
   it didn't read as part of sending an entry. The results card now makes it three numbered

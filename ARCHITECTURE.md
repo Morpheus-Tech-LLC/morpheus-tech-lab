@@ -315,7 +315,7 @@ toggles call `watchViewChanged()` for a new snapshot. Play and step in
 before it leaves the mode.
 
 **Submitting, and the Hall of Fame** (#79). A static site can't send email, so **Submit by
-email** on the results card is a `mailto:` link to lab@morpheustech.net (`submit.js`: the
+email** on the results card is a `mailto:` link to morpheus.lab.agent@hey.com (#142) (`submit.js`: the
 subject, the template's text and the link, tested in Node). A `mailto:` link can't attach the
 result file, and the entry is the file, so the card makes it three numbered steps (#140): **Save
 result file** (`explore.js`'s `writeJsonFile()`, Chrome's save dialog or a download), **Open the

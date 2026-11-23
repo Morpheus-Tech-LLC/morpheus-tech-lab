@@ -15,7 +15,7 @@
 import { scoreText } from './format.js';
 
 /** Where entries go, for every contest. */
-export const SUBMIT_ADDRESS = 'lab@morpheustech.net';
+export const SUBMIT_ADDRESS = 'morpheus.lab.agent@hey.com';
 
 /** The line an entrant keeps to appear in the Hall of Fame. Without it, an entry isn't listed. */
 export const HALL_OF_FAME_LINE = 'Hall of Fame: yes, show my name, picture, score, browser and date.';
