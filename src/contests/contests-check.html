@@ -459,7 +459,7 @@
       ok(subject === `[Speed] ${scoreWords}`, `The subject names the contest and the score ("${subject}")`);
       ok(body.startsWith(`BEFORE SENDING: attach your result file, ${fileName}.`), 'The text opens by saying to attach the file');
       const [top, bottom = ''] = body.split(`\n${'-'.repeat(40)}\n`);
-      ok(top.includes('Name to show: ') && top.includes('Picture (optional): ') && top.includes('Hardware (optional): ') && !top.includes('Browser and version'), 'Above the rule, only what to fill in: the browser is in the file');
+      ok(top.includes('Name to show: ') && top.includes('Picture (optional): ') && top.includes('Operating system (optional): ') && top.includes('Hardware (optional): ') && !top.includes('Browser and version'), 'Above the rule, only what to fill in: the browser is in the file');
       ok(top.split('\n').includes('Hall of Fame: yes, show my name, picture, score, browser and date.'), 'It has the Hall of Fame line, on its own line, to keep or delete');
       ok(!/Score:|Hash:|Result file:/.test(body), "It doesn't repeat what the file holds");
       ok(/must be yours to use/.test(bottom) && /repo is public/.test(bottom) && /email address is used only to reply/.test(bottom) && /Speed's timing is self-reported/.test(bottom), 'Below the rule, the picture conditions, that the repo is public, how the address is used, and that Speed is self-reported');

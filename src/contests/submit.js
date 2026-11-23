@@ -45,7 +45,8 @@ export function emailSubject(contest, score, ending) {
 export const RULE = '-'.repeat(40);
 
 /**
- * The email's text, for the visitor to finish (#140): what to attach and fill in first, and,
+ * The email's text, for the visitor to finish (#140): what to attach and fill in first (the
+ * operating system, optional, for every contest; hardware for Speed alone), and,
  * under a rule, what the lab promises. The score, rules, seed, ships and hash are in the result
  * file, and the score is in the subject, so the text doesn't repeat them. A mailto: body is plain
  * text, so the small print can't be set in italics.
@@ -63,6 +64,7 @@ export function emailBody({ contest, browser, fileName }) {
     'Picture (optional): attach a square PNG or JPEG, at most 1 MB.',
   ];
   if (!browser) lines.push('Browser and version: ');
+  lines.push('Operating system (optional): ');
   if (contest.kind === 'speed') lines.push('Hardware (optional): ');
   lines.push(
     '',

@@ -50,6 +50,7 @@ test('above the rule: only what the entrant attaches and fills in (#140)', () =>
     '',
     'Name to show: ',
     'Picture (optional): attach a square PNG or JPEG, at most 1 MB.',
+    'Operating system (optional): ',
     'Hardware (optional): ',
     '',
     'Delete the next line to opt out of the Hall of Fame (the entry is still verified, but not listed):',
@@ -128,8 +129,10 @@ test("a Methuselah entry's subject states its score as it settled; the result fi
   const { top, bottom } = halves(emailBody(lasting()));
   assert.equal(top[0], attachLine('methuselah-1-1234.json'));
   assert.ok(top.includes('Name to show: ') && top.includes(HALL_OF_FAME_LINE));
-  // Nothing about hardware or timing: the score depends on the seed and rules alone
+  // Nothing about hardware or timing: the score depends on the seed and rules alone. The
+  // operating system is asked for, optionally, as for every contest
   assert.ok(!top.includes('Hardware (optional): '));
+  assert.ok(top.includes('Operating system (optional): '));
   assert.doesNotMatch(bottom, /self-reported/);
   assert.match(bottom, /An entry for Methuselah \(methuselah-1\)\. The result file holds its score, rules and seed, the browser and the hash/);
   assert.match(bottom, /Methuselah's Hall of Fame also shows the entry's rules and its seed's cell count/);

@@ -13,7 +13,7 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
   steps: Save result file, Open the email (offered once the file is saved, by that button or
   Export result), and attach the file by hand, named. The webmail fallback folds away under the
   steps. The email's text is shorter: it opens by saying to attach the file, then has only what
-  the entrant fills in (name, picture, the Hall of Fame line); the score, rules, seed, ships and
+  the entrant fills in (name, picture, operating system, the Hall of Fame line); the score, rules, seed, ships and
   hash are left to the result file, and the conditions follow under a rule (#140).
 
 ## [1.7.0] — 2026-11-21
