@@ -1,0 +1,70 @@
+{
+  "format": "morpheus-tech-lab/result",
+  "version": 1,
+  "run": {
+    "contest": "methuselah-1",
+    "rules": {
+      "birth": [5],
+      "survival": [3, 4, 5]
+    },
+    "seed": [
+      [-1, -1, -1],
+      [0, -1, -1],
+      [1, -1, -1],
+      [0, 0, -1],
+      [-1, 1, -1],
+      [-1, 0, 0],
+      [0, 1, 0],
+      [1, 1, 0],
+      [-1, -1, 1],
+      [0, -1, 1],
+      [1, -1, 1],
+      [-1, 0, 1],
+      [0, 0, 1],
+      [0, 1, 1],
+      [1, 1, 1]
+    ],
+    "arena": {
+      "min": [-32, -32, -32],
+      "max": [31, 31, 31]
+    },
+    "limits": {
+      "cells": null,
+      "extent": null,
+      "generations": 10000
+    }
+  },
+  "generation": 109,
+  "ending": "repeat",
+  "score": {
+    "generations": 109,
+    "period": 1
+  },
+  "hash": "sha256:28c309479f294dc045540d4b80ff54ca974ea48fc4007bbf4823c23fb16bc370",
+  "seedHash": "sha256:0843da449df0bbca13c52eb66e825fef111cefad5659f2d3ce111060457789a3",
+  "details": {
+    "chunkSize": 16,
+    "elapsedMs": 37.5,
+    "stats": {
+      "generation": 109,
+      "elapsedMs": 37.5,
+      "generationMs": 36.5,
+      "rate": 0,
+      "live": 10,
+      "livePeak": 132,
+      "chunks": 1,
+      "chunksPeak": 8,
+      "chunksCreated": 197,
+      "extent": {
+        "min": [4, -7, 1],
+        "max": [6, -5, 4]
+      },
+      "memoryBytes": 67108864,
+      "usedBytes": 8192
+    },
+    "browser": {
+      "name": "Chromium",
+      "version": "155.0.8059.84"
+    }
+  }
+}
