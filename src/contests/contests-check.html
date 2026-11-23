@@ -277,6 +277,8 @@
       const drawing = await framesDrawn();
       ok(drawing >= 5, `The lab's frame is drawing, as the countdown and Watch need (${drawing} frames in 0.5 s; keep it in view and this tab in front)`);
       press('contests-run');
+      // With a #1 to race, the run screen waits for its result file (#149); with none, it is at once
+      await until(() => visible('contests-countdown'), 5000);
       ok(visible('contests-countdown') && text('contests-countdown') === '6.0', 'The countdown starts at 6.0');
       const arcOffset = () => Number(win.getComputedStyle(el('contests-clock-arc')).strokeDashoffset.replace('px', '')) || 0;
       ok(visible('contests-stop'), 'Stop is offered');

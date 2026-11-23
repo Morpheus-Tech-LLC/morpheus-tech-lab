@@ -858,20 +858,21 @@ function statsGrid(rows, idPrefix) {
 
 // ---- The run ----
 
-/**
- * The Hall of Fame's #1 to race in a Speed run (#149), with its pace, loaded from its result file
- * before the clock starts; null with no entries. If it can't be loaded, `failed` says why, and the
- * run races no one.
- * @returns {Promise<{entry: object, pace: object} | {failed: string} | null>}
- */
-async function raceFor(contest) {
-  let top;
+/** The Hall of Fame's #1 in a contest, or null with no entries. */
+function topEntry(contest) {
   try {
-    [top] = rankEntries(readHallOfFame(hallOfFameData), contest);
+    return rankEntries(readHallOfFame(hallOfFameData), contest)[0] ?? null;
   } catch {
     return null; // the page already says the Hall of Fame couldn't be read
   }
-  if (!top) return null;
+}
+
+/**
+ * The Hall of Fame's #1 to race in a Speed run (#149), with its pace, loaded from its result file
+ * before the clock starts. If it can't be loaded, `failed` says why, and the run races no one.
+ * @returns {Promise<{entry: object, pace: object} | {failed: string}>}
+ */
+async function raceFor(top, contest) {
   try {
     const response = await fetch(served(top.result));
     if (!response.ok) throw new Error(`the site answered ${response.status}`);
@@ -907,12 +908,16 @@ async function startRun(contest) {
   }
   endRun();
   // #1 is loaded, and its card and line drawn, before the clock starts: nothing of it is fetched
-  // or laid out while the run has the machine
-  const runButtonNode = el('contests-run');
-  if (runButtonNode) runButtonNode.disabled = true;
-  status("Loading the Hall of Fame's #1…");
-  const race = await raceFor(contest);
-  if (panel.view !== 'contest' || panel.contest !== contest || !panel.open) return; // the panel has moved on
+  // or laid out while the run has the machine. With no #1, the run starts at once, as before
+  const top = topEntry(contest);
+  let race = null;
+  if (top) {
+    const runButtonNode = el('contests-run');
+    if (runButtonNode) runButtonNode.disabled = true;
+    status("Loading the Hall of Fame's #1…");
+    race = await raceFor(top, contest);
+    if (panel.view !== 'contest' || panel.contest !== contest || !panel.open) return; // the panel has moved on
+  }
   const racing = race && !race.failed ? race : null;
   const chart = createChart(chartSpec(contest), { pace: racing?.pace ?? null });
   const run = new SpeedRun(contest, {
