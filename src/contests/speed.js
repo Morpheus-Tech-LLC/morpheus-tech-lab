@@ -10,7 +10,7 @@
 
 import { EngineDriver } from '../unbounded/driver.js';
 import { runFor, speedScore } from '../unbounded/contests.js';
-import { resultText } from '../unbounded/canonical.js';
+import { resultText, MAX_TIMELINE_POINTS } from '../unbounded/canonical.js';
 
 /**
  * The engine's own memory limit for a Speed run. It isn't part of the run's definition: a run
@@ -98,9 +98,24 @@ export class SpeedRun {
     const result = await this.driver.result({
       run: this.run,
       score,
-      details: { elapsedMs: stats.elapsedMs, stats, browser },
+      details: { elapsedMs: stats.elapsedMs, stats, browser, timeline: this.timeline() },
     });
     return { result, text: resultText(result) };
+  }
+
+  /**
+   * The run's timeline for its result file (#148): the chart's points, in whole milliseconds, from
+   * [0, 0] to the last counted generation, which the run's end added. Thinned evenly, keeping both
+   * ends, should a run ever have more than a file may hold.
+   * @returns {[number, number][]}
+   */
+  timeline() {
+    let points = this.points.map(([seconds, generation]) => [Math.round(seconds * 1000), generation]);
+    if (points.length > MAX_TIMELINE_POINTS) {
+      const last = points.length - 1;
+      points = Array.from({ length: MAX_TIMELINE_POINTS }, (_, i) => points[Math.round((i * last) / (MAX_TIMELINE_POINTS - 1))]);
+    }
+    return points;
   }
 
   /** Terminates the Worker, and with it the run's memory. */

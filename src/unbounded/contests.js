@@ -347,6 +347,9 @@ const SCORE_CHECKS = {
 export function checkContest(result) {
   const { run } = result;
   if (run.contest === null) {
+    if (result.details?.timeline !== undefined) {
+      return { verdict: 'mismatch', message: 'The file has a timeline, but only a Speed result has one.' };
+    }
     if (result.departures !== undefined) {
       return { verdict: 'mismatch', message: 'The file lists departures, but has no contest where ships leave.' };
     }
@@ -368,8 +371,26 @@ export function checkContest(result) {
       return { verdict: 'mismatch', message: `The run isn't ${contest.id}'s: its ${name} differs from the contest's.` };
     }
   }
-  const wrong = checkDepartures(result, contest) ?? SCORE_CHECKS[contest.kind](result, contest);
+  const wrong = checkDepartures(result, contest) ?? checkTimeline(result, contest) ?? SCORE_CHECKS[contest.kind](result, contest);
   return wrong ? { verdict: 'mismatch', message: wrong } : null;
+}
+
+/**
+ * A Speed result may carry its timeline (#148), the generations completed over its seconds; no
+ * other contest's does. It ends at the file's generation, by the end of the contest's seconds.
+ * The shape is readResult()'s to check.
+ * @returns {string | null} what is wrong, for a person
+ */
+function checkTimeline(result, contest) {
+  const timeline = result.details?.timeline;
+  if (timeline === undefined) return null;
+  if (contest.kind !== 'speed') return `The file has a timeline, but only a Speed result has one, not ${contest.id}.`;
+  const [ms, generation] = timeline[timeline.length - 1];
+  if (generation !== result.generation) {
+    return `The timeline ends at generation ${generation}, but the file is generation ${result.generation}.`;
+  }
+  if (ms > contest.seconds * 1000) return `The timeline runs to ${ms} ms, past the ${contest.seconds} seconds.`;
+  return null;
 }
 
 /**

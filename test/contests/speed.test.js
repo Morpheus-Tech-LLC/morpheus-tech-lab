@@ -9,7 +9,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Worker } from 'node:worker_threads';
 import { contestById } from '../../src/unbounded/contests.js';
-import { readResult } from '../../src/unbounded/canonical.js';
+import { readResult, MAX_TIMELINE_POINTS } from '../../src/unbounded/canonical.js';
 import { verifyResult } from '../../src/unbounded/verify.js';
 import { SpeedRun, verifyInWorker } from '../../src/contests/speed.js';
 
@@ -76,6 +76,11 @@ test('a timed Speed run scores the generations it completed, and its result file
     assert.deepEqual(result.details.browser, browser);
     assert.equal(result.details.chunkSize, 16);
     assert.equal(result.cells, undefined, "a contest entry doesn't carry its cells");
+    // Its timeline (#148): the chart's points, in whole milliseconds, ending at the score
+    assert.deepEqual(result.details.timeline, run.points.map(([t, g]) => [Math.round(t * 1000), g]));
+    assert.deepEqual(result.details.timeline[0], [0, 0]);
+    assert.equal(result.details.timeline.at(-1)[1], end.stats.generation);
+    assert.deepEqual(readResult(text).details.timeline, result.details.timeline);
     assert.deepEqual(readResult(text).score, end.score);
 
     const verdict = await verifyResult(text);
@@ -147,4 +152,16 @@ test('Verify a result… in a Worker refuses a file that is not a result, and a 
   } finally {
     run.close();
   }
+});
+
+test("a run's timeline is thinned evenly, keeping both ends, should it pass what a file may hold (#148)", () => {
+  const run = Object.create(SpeedRun.prototype); // only its points: no Worker
+  run.points = Array.from({ length: 2500 }, (_, i) => [i / 400, i]);
+  const timeline = run.timeline();
+  assert.equal(timeline.length, MAX_TIMELINE_POINTS);
+  assert.deepEqual(timeline[0], [0, 0]);
+  assert.deepEqual(timeline.at(-1), [6248, 2499]);
+  assert.ok(timeline.every(([ms, g], i) => i === 0 || (ms > timeline[i - 1][0] && g > timeline[i - 1][1])));
+  run.points = [[0, 0], [0.2504, 31], [0.4999, 60]];
+  assert.deepEqual(run.timeline(), [[0, 0], [250, 31], [500, 60]], 'whole milliseconds');
 });

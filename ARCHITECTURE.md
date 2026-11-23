@@ -228,7 +228,13 @@ list, departure for departure. It ranks as Methuselah does, on a board of its ow
 `runFor(contest, entry)` makes a run's definition from the contest's fixed parts and the
 entry's rules and seed, so a contest's result states its whole run like any other. A contest's
 result adds a `score`, outside the hash: Speed's is `{generations, ms}`, where `ms` is the time to
-reach the 1,000-generation ceiling, and null for a run the 6 seconds ended. `verifyResult()`
+reach the 1,000-generation ceiling, and null for a run the 6 seconds ended. A Speed result also
+carries its `details.timeline` (#148): the generations completed over the run, as `[ms,
+generation]` points in whole milliseconds on the Worker's clock, from `[0, 0]`, neither falling,
+at most `MAX_TIMELINE_POINTS`: the points the run's chart draws (`SpeedRun.timeline()`). Like the
+time it is self-reported and outside the hash; `readResult()` checks its shape, and
+`checkContest()` that it ends at the file's generation, within the 6 seconds, and that no other
+kind of result has one. A file without one still reads and verifies. `verifyResult()`
 first runs `checkContest()`: the run must be `runFor()` of its contest, with its own rules and
 seed, and the score must follow from the generation and ending; then the replay, or the table,
 confirms the generation. A contest the lab doesn't know isn't checked. The table for Speed is

@@ -19,6 +19,10 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
 - The whole Hall of Fame: past its top 10, a contest's page has **Show all N entries**, which
   lists every entry, best first, with Watch and, for Methuselah's contests, Open seed; both come
   back to the list. There is no cap on entries (#147).
+- A Speed result file records its run's timeline, `details.timeline`: the generations completed
+  over the 6 seconds, the points its chart draws, in whole milliseconds. Like the time, it is
+  self-reported and outside the hash. Files without one still read and verify; a file with one
+  is refused by lab versions before this one, which don't know the field (#148).
 
 ### Changed
 - `CONTRIBUTING.md`'s "Contest entries" says how an entry email is kept and screened: whole, as
