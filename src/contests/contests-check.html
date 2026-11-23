@@ -5,7 +5,7 @@
   through the Contests mode (#77) in a frame holding the lab, and marks each check ✔ or ✖: choosing
   the mode, the list, Speed's page, two real 6-second runs (one to the end, one stopped), Export,
   Submit by email (#79), Verify a result on the exported file, an edited copy and a file that
-  isn't a result, a staged Hall of Fame (#79) and its whole board of 250 (#147), Methuselah (#94: its page, Design a seed in Explore and back, Load simulation… and its
+  isn't a result, a staged Hall of Fame (#79) and its whole board of 250 (#147), racing #1 by its curve and by its final mark (#149), Methuselah (#94: its page, Design a seed in Explore and back, Load simulation… and its
   refusals, runs that die, reach the edge and are stopped, Export, Verify, Watch, Submit and its
   Hall of Fame, with Open seed), Classic Methuselah (#102: its page, a run whose ship leaves before it settles, its
   departures on the results card, in Export, Submit, Watch and Verify), and leaving the mode. It changes only the lab in its frame; reload to run it again. The list under
@@ -583,6 +583,44 @@
       ok(text('contests-panel-title') === 'Speed: Hall of Fame' && doc.activeElement === boardWatch && text('contest-hud-status') === 'Ready', "Esc comes back to the whole board, to the entry's Watch");
       press('contests-back');
       ok(text('contests-panel-title') === 'Speed' && el('contests-hof').children.length === 10, "Back to Speed goes to its page and its top 10");
+
+      section("Racing the Hall of Fame's #1 (#149)");
+      const stopRun = async () => {
+        press('contests-stop');
+        await until(() => text('contests-panel-title') === 'Speed: no score', 5000);
+        press('contests-again');
+        await sleep(300);
+      };
+      // #1 is now the staged ceiling entry, whose result file doesn't exist
+      press('contests-run');
+      ok(await until(() => visible('contests-stop'), 10000) && !el('contests-race') && !el('contests-chart-pace'), "With #1's file missing, the run goes ahead, racing no one");
+      ok(text('contests-panel-status').startsWith("The Hall of Fame's #1 couldn't be loaded"), `and says so ("${text('contests-panel-status')}")`);
+      await stopRun();
+      // #1 with a timeline: this run's own export; and one without, the same file with it taken out
+      const marked = JSON.stringify((({ details: { timeline, ...rest }, ...file }) => ({ ...file, details: rest }))(data));
+      win.fetch = (url, ...rest) => (String(url).endsWith('/hall-of-fame/results/check-run.json') ? Promise.resolve(new win.Response(file))
+        : String(url).endsWith('/hall-of-fame/results/check-mark.json') ? Promise.resolve(new win.Response(marked))
+          : realFetch.call(win, url, ...rest));
+      board.entries.length = 0;
+      board.entries.push(...win.JSON.parse(JSON.stringify([staged[1]])));
+      press('contests-run');
+      ok(await until(() => visible('contests-stop'), 10000) && visible('contests-race'), "The run screen pins #1's card");
+      ok(text('contests-race-name') === '<b>Check</b>, this run' && el('contests-race').querySelector('img'), `with its name, as text, and its picture (${text('contests-race-name')})`);
+      const pace = el('contests-chart-pace');
+      ok(pace && pace.getAttribute('points').split(' ').length === data.details.timeline.length, `#1's curve is on the chart, a point for each of its ${data.details.timeline.length} timeline points`);
+      ok(el('contests-chart-pace-end') && el('contests-race-gap').dataset.gap !== undefined, 'with its end marked');
+      await sleep(2000);
+      ok(el('contests-chart-pace') === pace, 'Two seconds on, it is the same line: laid out once, not redrawn');
+      ok(/^(Ahead of #1 by [\d,]+ generations?|Behind #1 by [\d,]+ generations?|Level with #1)$/.test(text('contests-race-gap')), `The gap follows the run ("${text('contests-race-gap')}")`);
+      await stopRun();
+      board.entries.length = 0;
+      board.entries.push(...win.JSON.parse(JSON.stringify([{ ...staged[1], name: 'Check, by its mark', result: 'hall-of-fame/results/check-mark.json' }])));
+      press('contests-run');
+      ok(await until(() => visible('contests-stop'), 10000) && visible('contests-race'), 'A #1 without a timeline is raced too');
+      ok(text('contests-race').includes('by its final mark') && !el('contests-chart-pace') && el('contests-chart-pace-end')?.classList.contains('contests-chart-pace-dot--mark'), 'by its final mark: a target, not a curve');
+      await sleep(1500);
+      ok(/^(On pace to finish [\d,]+ generations? (ahead of|behind) #1|On pace to match #1's mark)$/.test(text('contests-race-gap')), `The gap is where the run is on pace to finish ("${text('contests-race-gap')}")`);
+      await stopRun();
 
       board.entries.length = 0;
       win.fetch = realFetch;

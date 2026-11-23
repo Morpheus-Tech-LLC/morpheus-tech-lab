@@ -12,7 +12,7 @@ import {
   secondsText, boardScore, methuselahScoreText, scoreText, methuselahHero, methuselahEndingText, arenaText, budgetText,
   seedPicture, sentence,
   rulesText, bytesText, extentText, verdictTitle, closingText, watchGenerationText, selfVerifiedText,
-  departuresText, headingText, watchDeparturesText,
+  departuresText, headingText, watchDeparturesText, paceOf, paceTop, paceAt, raceText, paceLayout,
 } from '../../src/contests/format.js';
 
 const SPEED = contestById('speed-1');
@@ -290,4 +290,62 @@ test("a run where ships leave counts them among its statistics; others don't", (
   const stats = { generation: 40, rate: 100, live: 4, livePeak: 30, chunks: 1, memoryBytes: 1 << 20, extent: null };
   assert.equal(statsRows(stats).find(([label]) => label === 'Ships left'), undefined);
   assert.deepEqual(statsRows({ ...stats, departed: 2 }).at(-1), ['Ships left', '2']);
+});
+
+// ---- Racing the Hall of Fame's #1 (#149) ----
+
+const TIMELINE = [[0, 0], [250, 160], [1000, 210], [3000, 330], [5970, 449]];
+const timed = { score: { generations: 449, ms: null }, details: { timeline: TIMELINE } };
+
+test("#1's pace is its timeline in seconds, or without one its final mark", () => {
+  const pace = paceOf(timed, SPEED);
+  assert.deepEqual(pace.points, [[0, 0], [0.25, 160], [1, 210], [3, 330], [5.97, 449]]);
+  assert.equal(paceTop(pace), 449);
+  const mark = paceOf({ score: { generations: 452, ms: null }, details: {} }, SPEED);
+  assert.deepEqual(mark, { mark: [6, 452] });
+  assert.equal(paceTop(mark), 452);
+  assert.deepEqual(paceOf({ score: { generations: 1000, ms: 4210 }, details: {} }, SPEED), { mark: [4.21, 1000] }, 'at the ceiling, its time');
+});
+
+test('the pace at a moment is straight between its points, and its last after them', () => {
+  const pace = paceOf(timed, SPEED);
+  assert.equal(paceAt(pace, 0), 0);
+  assert.equal(paceAt(pace, 0.25), 160);
+  assert.equal(paceAt(pace, 2), 270);
+  assert.equal(paceAt(pace, 5.97), 449);
+  assert.equal(paceAt(pace, 6.02), 449);
+  assert.equal(paceAt({ points: [[0, 0], [1, 5], [1, 9], [2, 10]] }, 1), 5, 'two points at one moment: the first');
+});
+
+test('the gap to #1: generations at the same moment, or the finish the rate so far points to', () => {
+  const pace = paceOf(timed, SPEED);
+  assert.deepEqual(raceText(pace, [0, 0]), { gap: 0, text: 'Level with #1' });
+  assert.deepEqual(raceText(pace, [2, 281]), { gap: 11, text: 'Ahead of #1 by 11 generations' });
+  assert.deepEqual(raceText(pace, [2, 269]), { gap: -1, text: 'Behind #1 by 1 generation' });
+  assert.deepEqual(raceText(pace, [2, 270.4]), { gap: 0, text: 'Level with #1' });
+  const mark = { mark: [6, 452] };
+  assert.deepEqual(raceText(mark, [0, 0]), { gap: 0, text: '#1 reached 452 generations' });
+  assert.deepEqual(raceText(mark, [3, 230]), { gap: 8, text: 'On pace to finish 8 generations ahead of #1' });
+  assert.deepEqual(raceText(mark, [3, 225]), { gap: -2, text: 'On pace to finish 2 generations behind #1' });
+  assert.deepEqual(raceText(mark, [3, 226]), { gap: 0, text: "On pace to match #1's mark" });
+  assert.deepEqual(raceText(mark, [6, 440]), { gap: -12, text: 'On pace to finish 12 generations behind #1' }, 'at the mark, what was done');
+});
+
+test("the chart's scale fits #1 from the start, and its line or mark sits on it", () => {
+  const pace = paceOf(timed, SPEED);
+  const early = chartLayout([[0, 0], [0.25, 40]], { seconds: 6, width: 560, height: 260, floor: paceTop(pace) });
+  assert.ok(early.yTicks.at(-1).value >= 449, `the scale reaches #1's 449 (${early.yTicks.at(-1).value})`);
+  const placed = paceLayout(pace, early);
+  const coords = placed.line.split(' ').map((p) => p.split(',').map(Number));
+  assert.equal(coords.length, 5);
+  assert.deepEqual(coords[0], [early.plot.left, early.plot.bottom]);
+  assert.deepEqual([placed.end.x, placed.end.y], coords.at(-1));
+  assert.equal(placed.end.label, '449');
+  assert.ok(coords.every(([x, y]) => x >= early.plot.left && x <= early.plot.right && y >= early.plot.top && y <= early.plot.bottom), 'inside the plot');
+  // Without a floor, the scale fits only the run: #1 would leave the plot
+  assert.ok(chartLayout([[0, 0], [0.25, 40]], { seconds: 6, width: 560, height: 260 }).yTicks.at(-1).value < 449);
+  const mark = paceLayout({ mark: [6, 452] }, chartLayout([], { seconds: 6, width: 560, height: 260, floor: 452 }));
+  assert.equal(mark.line, null);
+  assert.equal(mark.end.x, 560 - CHART_MARGIN.right);
+  assert.equal(mark.end.label, '452');
 });

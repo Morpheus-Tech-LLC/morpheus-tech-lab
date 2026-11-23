@@ -427,7 +427,13 @@ never clipped, so a run can always be replayed to the same place.
 machine completes in 6 seconds, so the page gives it the whole machine: no 3D view while it runs,
 only a countdown and statistics four times a second. Its result file is made in the Worker, from
 the world it already holds, rather than by sending a generation of hundreds of thousands of cells
-to the page.
+to the page. Racing the Hall of Fame's #1 (#149) keeps to that: Run fetches #1's result file and
+draws its card and its pace line (`format.js`'s `paceOf()` and `paceLayout()`; its timeline, or
+its final mark for a file without one) before the clock starts. The chart's scale fits #1 from the
+start (`chartLayout()`'s `floor`), so the pace line's nodes are kept and laid out again only if the
+scale or the chart's size changes. Each statistics message then moves only the run's own line
+and the "ahead/behind" text (`raceText()`), with no animation. `race-bench.html` measures it: runs
+with and without the race, in turn, must score the same within the noise.
 
 **The unbounded engine runs in a Worker (#36).** A run can work flat out for as long as it
 lasts, so it runs off the page's thread, and the page only sends commands and draws what it

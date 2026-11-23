@@ -27,7 +27,7 @@ import { openWatch, closeWatch } from './watch.js';
 import {
   n, rulesText, countdownText, chartLayout, speedHero, speedScoreText, speedEndingText, resultFileName,
   statsRows, verdictTitle, closingText, scoreText, boardScore, methuselahHero, methuselahEndingText,
-  arenaText, budgetText, seedPicture, sentence, departuresText,
+  arenaText, budgetText, seedPicture, sentence, departuresText, paceOf, paceTop, paceLayout, raceText,
 } from './format.js';
 import { SUBMIT_ADDRESS, emailSubject, emailBody, mailtoLink } from './submit.js';
 import { HALL_OF_FAME_TOP, readHallOfFame, rankEntries, dayText } from './hallOfFame.js';
@@ -572,16 +572,7 @@ function showBoard(contest) {
  * are the same for every entry, so its entries have none.
  */
 function hallOfFameRow(entry, place, contest) {
-  const picture = h('img', {
-    className: 'contests-hof-picture',
-    attrs: { src: entry.picture ? served(entry.picture) : labLogo, alt: '', width: '40', height: '40', loading: 'lazy', decoding: 'async' },
-  });
-  // A picture that doesn't load gives way to the logo
-  picture.onerror = () => {
-    picture.onerror = null;
-    picture.src = labLogo;
-  };
-  if (!entry.picture) picture.classList.add('contests-hof-picture--logo');
+  const picture = entryPicture(entry);
   const score = scoreText(contest, entry.score);
   const watch = button('Watch', null, { id: `contests-hof-watch-${place}` });
   watch.onclick = () => watchEntry(entry, `Hall of Fame: ${entry.name}, ${score}`, watch);
@@ -601,6 +592,20 @@ function hallOfFameRow(entry, place, contest) {
       h('span', { className: 'contests-hof-meta', text: `${browser} · ${dayText(entry.date)}` })),
     hallOfFameScore(contest, entry),
     h('span', { className: 'contests-hof-actions' }, watch, open));
+}
+
+/** An entry's picture, or the lab's logo for none, or for one that doesn't load. */
+function entryPicture(entry, { lazy = true } = {}) {
+  const picture = h('img', {
+    className: 'contests-hof-picture',
+    attrs: { src: entry.picture ? served(entry.picture) : labLogo, alt: '', width: '40', height: '40', loading: lazy ? 'lazy' : 'eager', decoding: 'async' },
+  });
+  picture.onerror = () => {
+    picture.onerror = null;
+    picture.src = labLogo;
+  };
+  if (!entry.picture) picture.classList.add('contests-hof-picture--logo');
+  return picture;
 }
 
 /**
@@ -714,12 +719,30 @@ function chartSpec(contest) {
 /**
  * A line chart of a run (chartSpec()), drawn at the width it is given on the page, with axes,
  * their titles, a value at the line's end, and a crosshair that reads out the nearest point on
- * hover. With `table`, a table of the same points follows it, built when it is opened.
+ * hover. With `table`, a table of the same points follows it, built when it is opened. With a
+ * `pace` (#149), the Hall of Fame #1's line, or its final mark, is drawn under the run's: the
+ * scale fits it from the start, and its nodes are laid out again only if the scale or the size
+ * changes, so an update moves only the run's own line.
  * @returns {{node: HTMLElement, update: (points: [number, number][]) => void}}
  */
-function createChart(spec, { table = false } = {}) {
+function createChart(spec, { table = false, pace = null } = {}) {
   const { seconds } = spec;
-  const svg = svgNode('svg', { class: 'contests-chart-svg', role: 'img', 'aria-label': spec.label });
+  const svg = svgNode('svg', { class: 'contests-chart-svg', role: 'img', 'aria-label': pace ? `${spec.label}, against the Hall of Fame's #1` : spec.label });
+  let paceKey = null;
+  let paceNodes = [];
+  /** #1's line or mark, and its label, as nodes kept between draws. */
+  function paceParts(layout, width, height) {
+    const key = `${width}x${height}:${layout.yTicks[layout.yTicks.length - 1].value}`;
+    if (key === paceKey) return paceNodes;
+    paceKey = key;
+    const placed = paceLayout(pace, layout);
+    paceNodes = [
+      placed.line ? svgNode('polyline', { class: 'contests-chart-pace', points: placed.line, id: 'contests-chart-pace' }) : null,
+      svgNode('circle', { class: `contests-chart-pace-dot${placed.line ? '' : ' contests-chart-pace-dot--mark'}`, cx: placed.end.x, cy: placed.end.y, r: placed.line ? 3 : 5, id: 'contests-chart-pace-end' }),
+      svgNode('text', { class: 'contests-chart-pace-label', x: placed.end.x - 6, y: placed.end.y - 10, 'text-anchor': 'end' }, `#1 · ${placed.end.label}`),
+    ].filter(Boolean);
+    return paceNodes;
+  }
   const readout = h('div', { className: 'contests-chart-readout', attrs: { 'aria-hidden': 'true' } });
   readout.hidden = true;
   const tableBox = table ? h('details', { className: 'contests-chart-table' }, h('summary', { text: 'Show the data as a table' })) : null;
@@ -739,7 +762,7 @@ function createChart(spec, { table = false } = {}) {
     svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
     svg.setAttribute('width', width);
     svg.setAttribute('height', height);
-    layout = chartLayout(latest, { seconds, width, height });
+    layout = chartLayout(latest, { seconds, width, height, floor: pace ? paceTop(pace) : 0 });
     const { plot } = layout;
     const parts = [];
     for (const tick of layout.yTicks) {
@@ -755,6 +778,7 @@ function createChart(spec, { table = false } = {}) {
       class: 'contests-chart-axis-title', x: 0, y: 0, 'text-anchor': 'middle',
       transform: `translate(14 ${(plot.top + plot.bottom) / 2}) rotate(-90)`,
     }, spec.yTitle));
+    if (pace) parts.push(...paceParts(layout, width, height));
     if (layout.end) {
       parts.push(svgNode('path', { class: 'contests-chart-area', d: layout.area }));
       parts.push(svgNode('polyline', { class: 'contests-chart-line', points: layout.line }));
@@ -834,20 +858,70 @@ function statsGrid(rows, idPrefix) {
 
 // ---- The run ----
 
-function startRun(contest) {
+/**
+ * The Hall of Fame's #1 to race in a Speed run (#149), with its pace, loaded from its result file
+ * before the clock starts; null with no entries. If it can't be loaded, `failed` says why, and the
+ * run races no one.
+ * @returns {Promise<{entry: object, pace: object} | {failed: string} | null>}
+ */
+async function raceFor(contest) {
+  let top;
+  try {
+    [top] = rankEntries(readHallOfFame(hallOfFameData), contest);
+  } catch {
+    return null; // the page already says the Hall of Fame couldn't be read
+  }
+  if (!top) return null;
+  try {
+    const response = await fetch(served(top.result));
+    if (!response.ok) throw new Error(`the site answered ${response.status}`);
+    const text = await response.text();
+    if (text.length > MAX_RESULT_BYTES) throw new Error('its result file is too large');
+    return { entry: top, pace: paceOf(readResult(text), contest) };
+  } catch (err) {
+    return { failed: err?.message ?? String(err) };
+  }
+}
+
+/**
+ * The card for #1 on the run screen: its picture, name and score, and where the run stands
+ * against it, the only part that changes while the run goes.
+ */
+function raceCard(contest, { entry, pace }) {
+  const { main } = boardScore(contest, entry.score, entry);
+  return h('div', { className: 'contests-race', attrs: { id: 'contests-race' } },
+    entryPicture(entry, { lazy: false }),
+    h('span', { className: 'contests-race-who' },
+      h('span', { className: 'contests-race-kicker' },
+        h('span', { className: 'contests-race-swatch', attrs: { 'aria-hidden': 'true' } }),
+        document.createTextNode(pace.points ? "Racing the Hall of Fame's #1" : "Racing the Hall of Fame's #1, by its final mark")),
+      h('span', { className: 'contests-race-name', text: entry.name, attrs: { id: 'contests-race-name' } }),
+      h('span', { className: 'contests-race-score', text: main })),
+    h('span', { className: 'contests-race-gap', text: raceText(pace, [0, 0]).text, attrs: { id: 'contests-race-gap', 'data-gap': '0' } }));
+}
+
+async function startRun(contest) {
   if (contest.kind === 'methuselah') {
     startDiscovery(contest);
     return;
   }
   endRun();
-  const chart = createChart(chartSpec(contest));
+  // #1 is loaded, and its card and line drawn, before the clock starts: nothing of it is fetched
+  // or laid out while the run has the machine
+  const runButtonNode = el('contests-run');
+  if (runButtonNode) runButtonNode.disabled = true;
+  status("Loading the Hall of Fame's #1…");
+  const race = await raceFor(contest);
+  if (panel.view !== 'contest' || panel.contest !== contest || !panel.open) return; // the panel has moved on
+  const racing = race && !race.failed ? race : null;
+  const chart = createChart(chartSpec(contest), { pace: racing?.pace ?? null });
   const run = new SpeedRun(contest, {
     onStart: () => {
       if (panel.run !== run) return;
       panel.startedAt = performance.now();
       hud(undefined, 'Running');
     },
-    onStats: (stats) => panel.run === run && showStats(stats, chart),
+    onStats: (stats) => panel.run === run && showStats(stats, chart, racing),
     onEnd: (end) => panel.run === run && showResults(run, end),
     onError: (message) => panel.run === run && status(`The engine says: ${message}`),
   });
@@ -865,9 +939,11 @@ function startRun(contest) {
           h('span', { className: 'contests-countdown-value', text: countdownText(contest.seconds, 0), attrs: { id: 'contests-countdown' } }),
           h('span', { className: 'contests-clock-unit', text: 'seconds left' }))),
       statsGrid(statsRows(emptyStats(contest)), 'contests-stat')),
+    racing ? raceCard(contest, racing) : null,
     chart.node,
     h('div', { className: 'contests-actions' }, button('Stop', () => run.stop(), { id: 'contests-stop' })),
   ]);
+  if (race?.failed) status(`The Hall of Fame's #1 couldn't be loaded (${race.failed}), so this run races no one.`);
   chart.update(run.points);
   hud(contest.title, 'Starting', '0');
   run.start();
@@ -937,12 +1013,20 @@ function emptyStats(contest) {
   return stats;
 }
 
-function showStats(stats, chart) {
+function showStats(stats, chart, racing) {
   statsRows(stats).forEach(([, value], i) => {
     const cell = el(`contests-stat-${i}`);
     if (cell) cell.textContent = value;
   });
   chart.update(panel.run.points);
+  if (racing) {
+    const gap = el('contests-race-gap');
+    const now = raceText(racing.pace, panel.run.points[panel.run.points.length - 1]);
+    if (gap) {
+      gap.textContent = now.text;
+      gap.dataset.gap = String(Math.sign(now.gap));
+    }
+  }
   hud(undefined, undefined, n(stats.generation));
 }
 
