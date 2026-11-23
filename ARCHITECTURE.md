@@ -321,7 +321,9 @@ result file, and the entry is the file, so the card makes it three numbered step
 result file** (`explore.js`'s `writeJsonFile()`, Chrome's save dialog or a download), **Open the
 email**, which has no `href` until the file is saved, by that button or by Export result, and
 **attach the file** by hand, named. Saving and opening are separate clicks because, done in one,
-the hand-off to the mail app could lose the download. The email's text opens by saying to attach
+the hand-off to the mail app could lose the download. The email opens in a new tab
+(`target="_blank"`): where the browser sends `mailto:` to webmail, a plain link replaced the lab,
+and its results card, with the webmail page. The email's text opens by saying to attach
 the file, then has only what the entrant fills in; what the result file holds (score, rules, seed,
 ships, hash) isn't repeated, and the conditions follow under a rule of dashes, in plain text, since
 a `mailto:` body can't carry formatting. Under the steps, folded away, the card shows the address, subject and text with Copy,

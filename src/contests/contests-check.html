@@ -57,7 +57,7 @@
     <li>The GPU toggle's popover says contests run on the CPU.</li>
     <li>Watch: the run plays back in 3D as in Explore, the camera follows the pattern as it grows, and past the render budget the chunks show as boxes. Dragging the scrub bar back and forth feels responsive, and the view settles on the generation let go at.</li>
     <li>Watch's bar sits above the control bar, clear of it and of the HUD, at full width and at phone width.</li>
-    <li>Submit by email, in Chrome, Firefox and Safari with a mail app set up: Open the email is greyed out until Save result file has saved the file (Chrome asks where); then a new email opens to lab@morpheustech.net, with the subject and the text filled in, line breaks kept, and the saved file is still there (#140).</li>
+    <li>Submit by email, in Chrome, Firefox and Safari with a mail app set up: Open the email is greyed out until Save result file has saved the file (Chrome asks where); then a new email opens to lab@morpheustech.net, with the subject and the text filled in, line breaks kept, and the saved file is still there; where mailto: goes to webmail, it opens in a new tab and the lab stays on its results card (#140).</li>
     <li>The Copy buttons beside the address, the subject and the text each put it on the clipboard; pasted into a webmail compose window, the text keeps its lines.</li>
     <li>The Submit section and the Hall of Fame (staged by the check above, or with real entries) read well at full width and at phone width: long names end in an ellipsis, and Watch stays on the row.</li>
     <li>Methuselah's page: the seed's picture reads as cubes in a box, in Methuselah's violet, for one cell, a small design and a full 10³ box; the entry, the four endings and the facts read well at full width and at phone width.</li>
@@ -452,6 +452,7 @@
       ok(exported && (await exported.text()) === file, 'Save result file saves the result file, the same as Export\'s');
       ok(visible('contests-submit-saved') && text('contests-panel-status').includes(`attach ${fileName}`), `and says to attach it ("${text('contests-panel-status')}")`);
       ok(link.hasAttribute('href') && !link.hasAttribute('aria-disabled'), 'Then Open the email is ready');
+      ok(link.target === '_blank' && link.rel.includes('noopener'), 'in a new tab, so webmail opens beside the lab, not in place of it');
       const mail = new URL(link.href);
       const subject = mail.searchParams.get('subject');
       const body = mail.searchParams.get('body') ?? '';

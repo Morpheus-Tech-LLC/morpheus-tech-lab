@@ -1013,7 +1013,8 @@ async function copyText(text, what) {
  * The results card's Submit by email, as three numbered steps (#140): save the result file, open
  * the email, attach the file. The entry is the file, so the email opens only once it is saved,
  * by step 1 or by Export result. Saving and opening are separate clicks: done in one, a mailto:
- * link's hand-off to the mail app can lose the download (#140). Under them, folded away, the
+ * link's hand-off to the mail app can lose the download (#140). The email opens in a new tab, so
+ * a browser that sends mailto: to webmail doesn't navigate away from the results card. Under them, folded away, the
  * address, subject and text with Copy, for webmail.
  * @returns {{parts: Node[], saved: (said: string) => void}} the section's contents, and what
  *   Export result calls once it has saved the file
@@ -1030,7 +1031,8 @@ function submitParts({ contest, score, browser, text, ending }) {
   const link = h('a', {
     className: 'glass-button contests-button contests-submit-button',
     text: 'Open the email',
-    attrs: { id: 'contests-submit-email', 'aria-disabled': 'true', 'aria-describedby': 'contests-submit-wait' },
+    // A new tab: where mailto: goes to webmail, the email opens beside the lab, not in place of it
+    attrs: { id: 'contests-submit-email', target: '_blank', rel: 'noopener', 'aria-disabled': 'true', 'aria-describedby': 'contests-submit-wait' },
   });
   const wait = h('p', { className: 'contests-submit-wait', text: 'Save the result file first.', attrs: { id: 'contests-submit-wait' } });
   const step = (...content) => h('li', { className: 'contests-submit-step' }, ...content);
