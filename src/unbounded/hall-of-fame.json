@@ -1,3 +1,70 @@
 {
-  "entries": []
+  "entries": [
+    {
+      "contest": "speed-1",
+      "name": "Morpheus Lab Agent",
+      "picture": null,
+      "score": {
+        "generations": 452,
+        "ms": null
+      },
+      "browser": {
+        "name": "Chromium",
+        "version": "155.0.8059.84"
+      },
+      "date": "2026-11-23",
+      "result": "hall-of-fame/results/speed-1-morpheus-lab-agent.json"
+    },
+    {
+      "contest": "classic-methuselah-1",
+      "name": "Morpheus Lab Agent",
+      "picture": "hall-of-fame/classic-methuselah-1-morpheus-lab-agent.png",
+      "score": {
+        "generations": 223,
+        "period": 1
+      },
+      "browser": {
+        "name": "Chromium",
+        "version": "155.0.8059.84"
+      },
+      "date": "2026-11-23",
+      "rules": {
+        "birth": [
+          4
+        ],
+        "survival": [
+          1,
+          5
+        ]
+      },
+      "seedCells": 23,
+      "result": "hall-of-fame/results/classic-methuselah-1-morpheus-lab-agent.json"
+    },
+    {
+      "contest": "methuselah-1",
+      "name": "Morpheus Lab Agent",
+      "picture": "hall-of-fame/methuselah-1-morpheus-lab-agent.png",
+      "score": {
+        "generations": 109,
+        "period": 1
+      },
+      "browser": {
+        "name": "Chromium",
+        "version": "155.0.8059.84"
+      },
+      "date": "2026-11-23",
+      "rules": {
+        "birth": [
+          5
+        ],
+        "survival": [
+          3,
+          4,
+          5
+        ]
+      },
+      "seedCells": 15,
+      "result": "hall-of-fame/results/methuselah-1-morpheus-lab-agent.json"
+    }
+  ]
 }
