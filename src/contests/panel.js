@@ -966,10 +966,7 @@ async function showResults(run, end) {
   hash.textContent = made.result.hash;
   copy.disabled = false;
   copy.onclick = () => copyText(made.result.hash, 'hash');
-  const submit = submitParts({
-    contest, score, browser: made.result.details.browser, hash: made.result.hash, text: made.text,
-    ending: reason, run: made.result.run, departures: made.result.departures,
-  });
+  const submit = submitParts({ contest, score, browser: made.result.details.browser, text: made.text, ending: reason });
   submitBox.replaceChildren(submitBox.firstChild, ...submit.parts);
   exportButton.disabled = false;
   // Export result saves the same file, so it readies the email too
@@ -1021,10 +1018,10 @@ async function copyText(text, what) {
  * @returns {{parts: Node[], saved: (said: string) => void}} the section's contents, and what
  *   Export result calls once it has saved the file
  */
-function submitParts({ contest, score, browser, hash, text, ending, run, departures }) {
+function submitParts({ contest, score, browser, text, ending }) {
   const fileName = resultFileName(contest, score);
   const subject = emailSubject(contest, score, ending);
-  const body = emailBody({ contest, score, browser, hash, fileName, ending, run, departures });
+  const body = emailBody({ contest, browser, fileName });
   const fileWords = () => h('strong', { className: 'contests-submit-file', text: fileName });
 
   const savedLine = h('p', { className: 'contests-submit-done', attrs: { id: 'contests-submit-saved' } });

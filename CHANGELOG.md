@@ -11,8 +11,10 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
 - Submit by email: the result file could fail to download when the email opened, and attaching
   it didn't read as part of sending an entry. The results card now makes it three numbered
   steps: Save result file, Open the email (offered once the file is saved, by that button or
-  Export result), and attach the file by hand, named. The email's text opens by saying to attach
-  it, and the webmail fallback folds away under the steps (#140).
+  Export result), and attach the file by hand, named. The webmail fallback folds away under the
+  steps. The email's text is shorter: it opens by saying to attach the file, then has only what
+  the entrant fills in (name, picture, the Hall of Fame line); the score, rules, seed, ships and
+  hash are left to the result file, and the conditions follow under a rule (#140).
 
 ## [1.7.0] — 2026-11-21
 

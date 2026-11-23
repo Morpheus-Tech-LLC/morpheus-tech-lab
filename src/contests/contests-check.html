@@ -458,10 +458,11 @@
       ok(mail.protocol === 'mailto:' && mail.pathname === 'lab@morpheustech.net', `It writes to lab@morpheustech.net (${mail.protocol}${mail.pathname})`);
       ok(subject === `[Speed] ${scoreWords}`, `The subject names the contest and the score ("${subject}")`);
       ok(body.startsWith(`BEFORE SENDING: attach your result file, ${fileName}.`), 'The text opens by saying to attach the file');
-      const browserWords = `${data.details?.browser?.name} ${data.details?.browser?.version}`;
-      ok(body.includes('Name to show: ') && body.includes(`Browser and version: ${browserWords}`) && body.includes('Hardware (optional): ') && body.includes(`Result file: ${fileName}`), 'The text is the template, with the browser and the file filled in');
-      ok(body.split('\n').includes('Hall of Fame: yes, show my name, picture, score, browser and date.'), 'It has the Hall of Fame line, on its own line, to keep or delete');
-      ok(/PNG or JPEG, square, at most 1 MB/.test(body) && /repo is public/.test(body) && /email address is used only to reply/.test(body) && /Speed's timing is self-reported/.test(body), 'It states the picture conditions, that the repo is public, how the address is used, and that Speed is self-reported');
+      const [top, bottom = ''] = body.split(`\n${'-'.repeat(40)}\n`);
+      ok(top.includes('Name to show: ') && top.includes('Picture (optional): ') && top.includes('Hardware (optional): ') && !top.includes('Browser and version'), 'Above the rule, only what to fill in: the browser is in the file');
+      ok(top.split('\n').includes('Hall of Fame: yes, show my name, picture, score, browser and date.'), 'It has the Hall of Fame line, on its own line, to keep or delete');
+      ok(!/Score:|Hash:|Result file:/.test(body), "It doesn't repeat what the file holds");
+      ok(/must be yours to use/.test(bottom) && /repo is public/.test(bottom) && /email address is used only to reply/.test(bottom) && /Speed's timing is self-reported/.test(bottom), 'Below the rule, the picture conditions, that the repo is public, how the address is used, and that Speed is self-reported');
       ok(text('contests-submit-subject') === subject && visible('contests-submit-subject-copy'), 'The webmail fallback has the subject, with Copy');
       ok(visible('contests-submit-body') && el('contests-submit-body').value === body && el('contests-submit-body').readOnly && visible('contests-submit-body-copy'), 'and the text, the same as the link\'s, with Copy');
 
@@ -644,7 +645,7 @@
       const mLink = new URL(el('contests-submit-email').href);
       const mBody = mLink.searchParams.get('body') ?? '';
       ok(mLink.searchParams.get('subject') === '[Methuselah] died at generation 10', `Submit by email's subject gives the score ("${mLink.searchParams.get('subject')}")`);
-      ok(mBody.includes('Rules: B5,7-8/S1,4') && mBody.includes('Seed: 11 cells') && !mBody.includes('Hardware') && !mBody.includes('self-reported'), 'and its text the rules and the seed, with nothing on timing');
+      ok(mBody.startsWith('BEFORE SENDING: attach your result file, methuselah-1-10.json.') && !mBody.includes('Hardware') && !mBody.includes('self-reported'), 'and its text names the file, with nothing on timing');
       setSpeed(10);
       press('contests-watch-run');
       await sleep(300);
@@ -757,8 +758,8 @@
       ok(cData.run?.contest === 'classic-methuselah-1' && cData.departures?.length === 1 && cData.departures[0].generation === 35 && JSON.stringify(cData.departures[0].shift) === '[1,0,0]',
         'The file is a classic-methuselah-1 result, with its departure');
       const cLink = new URL(el('contests-submit-email').href);
-      ok(cLink.searchParams.get('subject') === '[Classic Methuselah] settled at generation 36: period 2' && (cLink.searchParams.get('body') ?? '').includes('Ships: 1 ship left, at generation 35'),
-        `Submit by email gives the score and the ships ("${cLink.searchParams.get('subject')}")`);
+      ok(cLink.searchParams.get('subject') === '[Classic Methuselah] settled at generation 36: period 2' && (cLink.searchParams.get('body') ?? '').startsWith('BEFORE SENDING: attach your result file, classic-methuselah-1-36.json.'),
+        `Submit by email gives the score, and names the file that holds the ships ("${cLink.searchParams.get('subject')}")`);
       setSpeed(10);
       press('contests-watch-run');
       await sleep(300);
