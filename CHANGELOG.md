@@ -16,6 +16,9 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
   opens the entry's seed and rules in Game of Life 3D (unbounded), in the contest's arena, with
   the seed editor open, to change and enter as your own; the Contests banner brings you back to
   the contest's page. Speed's entries all share one seed and rules, so they have none (#146).
+- The whole Hall of Fame: past its top 10, a contest's page has **Show all N entries**, which
+  lists every entry, best first, with Watch and, for Methuselah's contests, Open seed; both come
+  back to the list. There is no cap on entries (#147).
 
 ### Changed
 - `CONTRIBUTING.md`'s "Contest entries" says how an entry email is kept and screened: whole, as

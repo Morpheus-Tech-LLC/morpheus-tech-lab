@@ -52,13 +52,15 @@ const panel = {
   run: null, // the SpeedRun or DiscoveryRun on screen, until the panel moves on
   startedAt: 0, // when the Worker started a Speed run, on the page's clock, for the countdown
   verify: null, // the check in progress: {cancel}
-  view: null, // 'list', 'contest', 'running', 'results', 'verifying', 'verdict'
+  view: null, // 'list', 'contest', 'board', 'running', 'results', 'verifying', 'verdict'
   // Each Discovery contest's entry, by contest id: {rules, seed, source}, checked by runFor().
   // It stays while the page is open, so Run again runs it again
   entries: new Map(),
   refused: null, // why the last simulation file loaded was refused: {contest, message}
   designInExplore: null, // leaves for Explore's seed editor (controls.js), from the mode's start
-  resume: null, // the contest the visitor left to design an entry in, to come back to
+  // Where the visitor left for Explore, to come back to: {contest, board, place}, the contest, whether
+  // they were on its full Hall of Fame (#147), and the place of the entry they opened, if any
+  resume: null,
 };
 
 const el = (id) => document.getElementById(id);
@@ -161,8 +163,14 @@ export function openPanel({ designInExplore = null } = {}) {
   };
   const resume = panel.resume;
   panel.resume = null;
-  if (resume) showContest(resume);
-  else showList();
+  if (!resume) {
+    showList();
+    return;
+  }
+  if (resume.board) showBoard(resume.contest);
+  else showContest(resume.contest);
+  // Back on the entry that was opened, scrolled into view
+  if (resume.place) el(`contests-hof-open-${resume.place}`)?.focus();
 }
 
 /** Hides the panel, ending any run or check: for leaving the mode. */
@@ -415,7 +423,7 @@ function entrySection(contest, entry) {
 function designSeed(contest) {
   const design = panel.designInExplore;
   if (!design) return;
-  panel.resume = contest;
+  panel.resume = { contest };
   const { arena } = contest.fixes;
   design({
     note: `For ${contest.title}: keep the seed in this 10³ box, Use it, and save the simulation with the Simulation box's save icon. The Contests banner brings you back.`,
@@ -530,7 +538,32 @@ function hallOfFame(contest) {
   const top = entries.slice(0, HALL_OF_FAME_TOP);
   return section('Hall of Fame',
     h('ol', { className: 'contests-hof', attrs: { id: 'contests-hof' } }, ...top.map((entry, i) => hallOfFameRow(entry, i + 1, contest))),
-    entries.length > top.length ? h('p', { className: 'contests-note', text: `The top ${top.length} of ${n(entries.length)} entries.` }) : null);
+    entries.length > top.length
+      ? h('div', { className: 'contests-actions' }, button(`Show all ${n(entries.length)} entries`, () => showBoard(contest), { id: 'contests-hof-all' }))
+      : null);
+}
+
+/**
+ * A contest's whole Hall of Fame (#147): every entry, best first, with no cap. The rows are built
+ * once, as it opens, and their pictures load lazily, as the page's do; Watch and Open seed come
+ * back here.
+ */
+function showBoard(contest) {
+  endRun();
+  panel.contest = contest;
+  hud(contest.title, 'Ready', '–');
+  let entries = [];
+  try {
+    entries = rankEntries(readHallOfFame(hallOfFameData), contest);
+  } catch {
+    showContest(contest); // its page says why the Hall of Fame couldn't be read
+    return;
+  }
+  show('board', `${contest.title}: Hall of Fame`, [
+    h('p', { className: 'contests-note', text: `All ${n(entries.length)} entries, best first.`, attrs: { id: 'contests-board-about' } }),
+    h('ol', { className: 'contests-hof', attrs: { id: 'contests-hof' } }, ...entries.map((entry, i) => hallOfFameRow(entry, i + 1, contest))),
+    h('div', { className: 'contests-actions' }, button(`Back to ${contest.title}`, () => showContest(contest), { id: 'contests-back', main: true })),
+  ]);
 }
 
 /**
@@ -556,7 +589,7 @@ function hallOfFameRow(entry, place, contest) {
   let open = null;
   if (contest.kind === 'methuselah' && panel.designInExplore) {
     open = button('Open seed', null, { id: `contests-hof-open-${place}`, title: OPEN_TITLE });
-    open.onclick = () => openEntry(entry, contest);
+    open.onclick = () => openEntry(entry, contest, place);
     open.setAttribute('aria-label', `Open ${entry.name}'s seed and rules in Game of Life 3D (unbounded)`);
   }
   const browser = entry.browser ? `${entry.browser.name} ${entry.browser.version}` : 'Browser not given';
@@ -616,13 +649,14 @@ async function watchEntry(entry, title, from) {
  * seed and rules from its result file, in its contest's arena, with the seed editor open, to
  * change into the visitor's own entry; the banner comes back to this contest's page.
  */
-async function openEntry(entry, contest) {
+async function openEntry(entry, contest, place) {
   const design = panel.designInExplore;
   if (!design) return;
+  const board = panel.view === 'board';
   const result = await loadEntry(entry, 'opened');
   if (!result) return;
   const { arena } = contest.fixes;
-  panel.resume = contest;
+  panel.resume = { contest, board, place };
   const refused = design({
     note: `${entry.name}'s ${contest.title} entry: its seed and rules. Change it if you like, Use it, and save the simulation with the Simulation box's save icon; Load simulation… on ${contest.title}'s page then enters it as your own. The Contests banner brings you back.`,
     arena: arena.max[0] - arena.min[0] + 1,
@@ -1165,7 +1199,7 @@ function watchResult(result, title, from, line = null) {
     },
     onClose: () => {
       if (panel.view !== view) return;
-      hud(undefined, { results: 'Finished', contest: 'Ready' }[view] ?? 'Checked');
+      hud(undefined, { results: 'Finished', contest: 'Ready', board: 'Ready' }[view] ?? 'Checked');
       from.focus({ preventScroll: true });
     },
   });

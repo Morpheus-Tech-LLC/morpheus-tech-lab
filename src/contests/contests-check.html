@@ -5,7 +5,7 @@
   through the Contests mode (#77) in a frame holding the lab, and marks each check ✔ or ✖: choosing
   the mode, the list, Speed's page, two real 6-second runs (one to the end, one stopped), Export,
   Submit by email (#79), Verify a result on the exported file, an edited copy and a file that
-  isn't a result, a staged Hall of Fame (#79), Methuselah (#94: its page, Design a seed in Explore and back, Load simulation… and its
+  isn't a result, a staged Hall of Fame (#79) and its whole board of 250 (#147), Methuselah (#94: its page, Design a seed in Explore and back, Load simulation… and its
   refusals, runs that die, reach the edge and are stopped, Export, Verify, Watch, Submit and its
   Hall of Fame, with Open seed), Classic Methuselah (#102: its page, a run whose ship leaves before it settles, its
   departures on the results card, in Export, Submit, Watch and Verify), and leaving the mode. It changes only the lab in its frame; reload to run it again. The list under
@@ -552,6 +552,37 @@
       await sleep(300);
       ok(visible('contests-panel') && text('contests-panel-title') === 'Speed' && doc.activeElement === ownWatch, "Esc goes back to Speed's page, to the entry's Watch");
       ok(text('contest-hud-status') === 'Ready', 'The HUD says ready again');
+      ok(!visible('contests-hof-all'), 'With 10 entries or fewer, there is no Show all (#147)');
+
+      section('The whole Hall of Fame: 250 entries (#147)');
+      // 246 more, slower than the staged four, whose files don't exist
+      const fillers = Array.from({ length: 246 }, (_, i) => ({ contest: 'speed-1', name: `Filler ${i + 1}`, picture: null, score: { generations: 246 - i, ms: null }, browser: null, date: '2026-11-22', result: `hall-of-fame/results/filler-${i + 1}.json` }));
+      board.entries.push(...win.JSON.parse(JSON.stringify(fillers)));
+      const everyEntry = staged.concat(fillers);
+      const allExpected = everyEntry.map((e, order) => ({ e, order })).sort((a, b) => (b.e.score.generations - a.e.score.generations)
+        || ((a.e.score.ms ?? Infinity) - (b.e.score.ms ?? Infinity)) || (a.e.date < b.e.date ? -1 : a.e.date > b.e.date ? 1 : 0) || (a.order - b.order)).map(({ e }) => e.name);
+      press('contests-back');
+      press('contests-open-speed-1');
+      ok(el('contests-hof').children.length === 10, `Speed's page still shows its top 10 (${el('contests-hof').children.length})`);
+      ok(visible('contests-hof-all') && text('contests-hof-all') === 'Show all 250 entries', `with Show all under them ("${text('contests-hof-all')}")`);
+      const t0 = performance.now();
+      press('contests-hof-all');
+      const opened = Math.round(performance.now() - t0);
+      const bRows = [...(el('contests-hof')?.children ?? [])];
+      ok(text('contests-panel-title') === 'Speed: Hall of Fame' && text('contests-board-about') === 'All 250 entries, best first.', `It opens the whole board (${text('contests-panel-title')}), in ${opened} ms`);
+      ok(bRows.length === 250 && bRows.every((r, i) => cell(r, 'place')?.textContent === String(i + 1)), `every entry, numbered 1 to 250 (${bRows.length} rows)`);
+      const bShown = bRows.map((r) => cell(r, 'name')?.textContent);
+      ok(bShown.join('|') === allExpected.join('|'), `ranked as the page ranks them (first ${bShown.slice(0, 5).join(', ')}; last ${bShown.at(-1)})`);
+      ok(bRows.every((r) => [...r.querySelectorAll('button')].map((b) => b.textContent).join(' ') === 'Watch'), "Each has Watch, and Speed's have no Open seed");
+      ok(bRows.every((r) => r.querySelector('img')?.getAttribute('loading') === 'lazy'), 'Pictures load lazily');
+      const boardWatch = bRows.find((r) => cell(r, 'name')?.textContent === '<b>Check</b>, this run').querySelector('button');
+      boardWatch.click();
+      ok(await until(() => visible('contests-watch'), 5000), 'Watch plays an entry from the whole board');
+      doc.body.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+      await sleep(300);
+      ok(text('contests-panel-title') === 'Speed: Hall of Fame' && doc.activeElement === boardWatch && text('contest-hud-status') === 'Ready', "Esc comes back to the whole board, to the entry's Watch");
+      press('contests-back');
+      ok(text('contests-panel-title') === 'Speed' && el('contests-hof').children.length === 10, "Back to Speed goes to its page and its top 10");
 
       board.entries.length = 0;
       win.fetch = realFetch;
@@ -731,6 +762,27 @@
       await sleep(300);
       await openContests();
       ok(text('contests-panel-title') === 'Methuselah', "The banner brings it back to Methuselah's page");
+      ok(doc.activeElement?.id === 'contests-hof-open-3', 'to the Open seed it left from');
+
+      section("Methuselah's whole Hall of Fame (#147)");
+      const mFillers = Array.from({ length: 9 }, (_, i) => ({ contest: 'methuselah-1', name: `Filler ${i + 1}`, picture: null, score: { generations: 9 - i, period: 1 }, rules: { birth: [4], survival: [9] }, seedCells: 3, browser: null, date: '2026-11-22', result: `hall-of-fame/results/m-filler-${i + 1}.json` }));
+      board.entries.push(...win.JSON.parse(JSON.stringify(mFillers)));
+      press('contests-back');
+      press('contests-open-methuselah-1');
+      ok(el('contests-hof').children.length === 10 && text('contests-hof-all') === 'Show all 12 entries', `12 entries: the top 10, and Show all ("${text('contests-hof-all')}")`);
+      press('contests-hof-all');
+      const mBoard = [...el('contests-hof').children];
+      ok(mBoard.length === 12 && mBoard.every((r) => r.querySelectorAll('button').length === 2), 'The whole board has all 12, each with Watch and Open seed');
+      const mOwn = mBoard.findIndex((r) => cell(r, 'name')?.textContent === 'Check, this run');
+      mBoard[mOwn].querySelectorAll('button')[1].click();
+      ok(await until(() => doc.body.classList.contains('mode-explore') && visible('seed-editor'), 5000), 'Open seed from the whole board opens Explore');
+      el('seed-editor').querySelector('[data-action="cancel"]').click();
+      await sleep(300);
+      await openContests();
+      ok(text('contests-panel-title') === 'Methuselah: Hall of Fame' && el('contests-hof').children.length === 12, 'The banner comes back to the whole board');
+      ok(doc.activeElement?.id === `contests-hof-open-${mOwn + 1}`, `to the Open seed it left from (place ${mOwn + 1})`);
+      press('contests-back');
+      ok(text('contests-panel-title') === 'Methuselah', "Back goes to Methuselah's page");
       board.entries.length = 0;
       win.fetch = realFetch;
 
