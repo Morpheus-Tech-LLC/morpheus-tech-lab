@@ -28,6 +28,11 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
   ahead or behind you are; a #1 without a timeline is raced by its final mark. All of it is drawn
   before the clock starts, and each update moves only your own line and the gap, so racing
   doesn't change the score (#149).
+- Where your run stands: every scoring run's results card says where it would place in the Hall
+  of Fame if entered today ("You'd place 7th of 42", after any entry with the same score, since
+  that came first), with the entries just above and below it and a strip of every entry's score
+  with yours marked. Speed's chart keeps #1's curve beside yours. With no entries yet, it says
+  you'd be the first (#150).
 
 ### Changed
 - `CONTRIBUTING.md`'s "Contest entries" says how an entry email is kept and screened: whole, as

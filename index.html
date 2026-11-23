@@ -3696,6 +3696,70 @@
     font-size: 12px;
     font-variant-numeric: tabular-nums;
   }
+  /* #150: where a run would stand in the Hall of Fame, on its results card */
+  .contests-standing-place {
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0 0 6px;
+  }
+  .contests-standing-near {
+    display: grid;
+    gap: 2px;
+    margin: 0 0 8px;
+    padding: 0;
+    list-style: none;
+  }
+  .contests-standing-row {
+    display: grid;
+    grid-template-columns: 22px minmax(0, 1fr) auto;
+    gap: 10px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-variant-numeric: tabular-nums;
+  }
+  .contests-standing-row--you {
+    background: rgba(192, 134, 42, 0.16);
+    box-shadow: inset 3px 0 0 #c0862a;
+  }
+  .contests-standing-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .contests-standing-row--you .contests-standing-name {
+    color: #fff;
+    font-weight: 600;
+  }
+  .contests-strip {
+    display: block;
+    width: 100%;
+    max-width: 520px;
+    height: auto;
+    margin: 0 0 6px;
+  }
+  .contests-strip-line {
+    stroke: rgba(200, 220, 255, 0.3);
+    stroke-width: 2;
+  }
+  .contests-strip-dot {
+    fill: rgba(200, 220, 255, 0.55);
+  }
+  .contests-strip-mine {
+    fill: #c0862a;
+    stroke: rgb(35, 45, 60);
+    stroke-width: 2;
+  }
+  .contests-strip-you {
+    fill: #e8edf3;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .contests-strip-end {
+    fill: rgba(200, 220, 255, 0.7);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+  }
   .contests-race {
     display: grid;
     grid-template-columns: 40px minmax(0, 1fr) auto;

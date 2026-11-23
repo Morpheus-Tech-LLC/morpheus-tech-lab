@@ -5,7 +5,7 @@
   through the Contests mode (#77) in a frame holding the lab, and marks each check ✔ or ✖: choosing
   the mode, the list, Speed's page, two real 6-second runs (one to the end, one stopped), Export,
   Submit by email (#79), Verify a result on the exported file, an edited copy and a file that
-  isn't a result, a staged Hall of Fame (#79) and its whole board of 250 (#147), racing #1 by its curve and by its final mark (#149), Methuselah (#94: its page, Design a seed in Explore and back, Load simulation… and its
+  isn't a result, a staged Hall of Fame (#79) and its whole board of 250 (#147), racing #1 by its curve and by its final mark (#149) and where a run would stand (#150), Methuselah (#94: its page, Design a seed in Explore and back, Load simulation… and its
   refusals, runs that die, reach the edge and are stopped, Export, Verify, Watch, Submit and its
   Hall of Fame, with Open seed), Classic Methuselah (#102: its page, a run whose ship leaves before it settles, its
   departures on the results card, in Export, Submit, Watch and Verify), and leaving the mode. It changes only the lab in its frame; reload to run it again. The list under
@@ -312,6 +312,8 @@
         || (/^\d\.\d{3}$/.test(text('contests-score')) && text('contests-score-unit') === 'seconds to reach the ceiling of 1,000 generations'),
       `It leads with what ranks the score ("${text('contests-score')}", "${text('contests-score-unit')}")`);
       ok(parseFloat(win.getComputedStyle(el('contests-score')).fontSize) >= 56, `in large type (${win.getComputedStyle(el('contests-score')).fontSize})`);
+      ok(text('contests-standing-place') === "You'd be the first in the Hall of Fame." && !el('contests-strip') && !el('contests-chart-pace'), `With no entries, it says you'd be the first, with no strip and no #1 on the chart (#150: "${text('contests-standing-place')}")`);
+      ok(panelText().includes("Speed's times are self-reported, so the placing is too"), 'and that the placing is self-reported, as the time is');
       // The table is built when it is opened: a Methuselah run's has a row a generation
       const tableBox = chart()?.querySelector('details');
       if (tableBox) tableBox.open = true;
@@ -614,7 +616,25 @@
       await sleep(2000);
       ok(el('contests-chart-pace') === pace, 'Two seconds on, it is the same line: laid out once, not redrawn');
       ok(/^(Ahead of #1 by [\d,]+ generations?|Behind #1 by [\d,]+ generations?|Level with #1)$/.test(text('contests-race-gap')), `The gap follows the run ("${text('contests-race-gap')}")`);
-      await stopRun();
+      // This one runs its 6 seconds, for its results card (#150)
+      ok(await until(() => text('contests-panel-title') === 'Speed: your result', 10000), 'The raced run ends with a score');
+      ok(el('contests-chart-pace') && !el('contests-race'), "Its results card keeps #1's line on the chart, under the run's");
+      const atCeiling = text('contests-score-unit').includes('ceiling');
+      const racedScore = atCeiling
+        ? { generations: 1000, ms: Math.round(parseFloat(text('contests-score')) * 1000) }
+        : { generations: Number(text('contests-score').replace(/[^0-9]/g, '')), ms: null };
+      const rivalScore = staged[1].score;
+      // As rankEntries() would rank the run, entered after the entry: a tie goes to the entry
+      const entryFirst = rivalScore.generations !== racedScore.generations
+        ? rivalScore.generations > racedScore.generations
+        : (rivalScore.ms ?? Infinity) <= (racedScore.ms ?? Infinity);
+      ok(text('contests-standing-place') === `You'd place ${entryFirst ? '2nd' : '1st'} of 2.`, `It says where the run would place (${racedScore.generations} against the entry's ${rivalScore.generations}: "${text('contests-standing-place')}")`);
+      const nearNames = [...(el('contests-standing-near')?.children ?? [])].map((r) => r.querySelector('.contests-standing-name')?.textContent);
+      ok(nearNames.join(' | ') === (entryFirst ? '<b>Check</b>, this run | You' : 'You | <b>Check</b>, this run'), `with the entry beside it, as text (${nearNames.join(' | ')})`);
+      ok(el('contests-strip')?.querySelectorAll('.contests-strip-dot').length === 1 && el('contests-strip-mine'), "The strip has the entry's score, and the run's marked");
+      await until(() => el('contests-export') && !el('contests-export').disabled, 30000);
+      press('contests-again');
+      await sleep(300);
       board.entries.length = 0;
       board.entries.push(...win.JSON.parse(JSON.stringify([{ ...staged[1], name: 'Check, by its mark', result: 'hall-of-fame/results/check-mark.json' }])));
       press('contests-run');
@@ -705,6 +725,7 @@
       ok(text('contests-score') === '10' && text('contests-score-unit') === 'generations, until every cell had died', `It leads with the score ("${text('contests-score')}", "${text('contests-score-unit')}")`);
       ok(text('contests-ending').startsWith('Died at generation 10: no live cells remain.'), `It says how it ended ("${text('contests-ending').slice(0, 50)}…")`);
       ok(text('contests-result-entry-0') === '11 cells' && text('contests-result-entry-1') === 'B5,7-8/S1,4', 'It gives the seed\'s cells and the rules');
+      ok(text('contests-standing-place') === "You'd be the first in the Hall of Fame." && !el('contests-strip') && panelText().includes('the placing is exact'), `With no entries, it says you'd be the first, and that a placing here is exact (#150: "${text('contests-standing-place')}")`);
       const mChart = () => el('contests-panel').querySelector('.contests-chart');
       ok(await until(() => (mChart().querySelector('.contests-chart-line')?.getAttribute('points') ?? '').split(' ').length === 11, 3000), 'Its chart has every generation, 0 to 10');
       const mTitles = [...mChart().querySelectorAll('.contests-chart-axis-title')].map((t) => t.textContent);
@@ -823,6 +844,19 @@
       ok(doc.activeElement?.id === `contests-hof-open-${mOwn + 1}`, `to the Open seed it left from (place ${mOwn + 1})`);
       press('contests-back');
       ok(text('contests-panel-title') === 'Methuselah', "Back goes to Methuselah's page");
+
+      section("Where a Methuselah run would stand (#150)");
+      // The dying seed again: 10 generations from 11 cells, level with the staged entry "Check, this run"
+      await loadSeed('dies.json', seedFile(DIES.rules, DIES.cells));
+      press('contests-run');
+      ok(await until(() => visible('contests-score'), 15000) && text('contests-score') === '10', 'It scores 10 generations, from 11 cells');
+      ok(text('contests-standing-place') === "You'd place 4th of 13.", `Level with an entry, it places after it, since the entry came first ("${text('contests-standing-place')}")`);
+      const mNear = [...(el('contests-standing-near')?.children ?? [])].map((r) => [r.querySelector('.contests-hof-place')?.textContent, r.querySelector('.contests-standing-name')?.textContent].join(' '));
+      ok(mNear.join(' | ') === '3 Check, this run | 4 You | 5 Filler 1', `with the entries just above and below it (${mNear.join(' | ')})`);
+      ok(el('contests-strip')?.querySelectorAll('.contests-strip-dot').length === 12 && el('contests-strip-mine'), "The strip has all 12 entries' scores, and the run's marked");
+      ok(!el('contests-chart-pace'), 'and no pace line: Methuselah has no #1 to race');
+      press('contests-again');
+      await sleep(300);
       board.entries.length = 0;
       win.fetch = realFetch;
 

@@ -15,7 +15,7 @@ import { contestById, runFor, speedScore, methuselahScore } from '../../src/unbo
 import { Settler } from '../../src/unbounded/settle.js';
 import { STILL } from '../unbounded/helpers.js';
 import {
-  HallOfFameError, readHallOfFame, rankEntries, checkEntry, dayText, HALL_OF_FAME_TOP,
+  HallOfFameError, readHallOfFame, rankEntries, checkEntry, dayText, HALL_OF_FAME_TOP, placeFor,
 } from '../../src/contests/hallOfFame.js';
 
 const SPEED = contestById('speed-1');
@@ -224,4 +224,46 @@ test('rankEntries: Classic Methuselah ranks as Methuselah does, on a board of it
   const CLASSIC = contestById('classic-methuselah-1');
   assert.deepEqual(rankEntries(entries, CLASSIC).map((e) => e.name), ['classic-long-lean', 'classic-long', 'classic-short']);
   assert.deepEqual(rankEntries(entries, METHUSELAH).map((e) => e.name), ['strict']);
+});
+
+// ---- Where a run would stand (#150) ----
+
+test('placeFor: a Speed run places as rankEntries() would rank it, entered today, after any entry level with it', () => {
+  const at = (name, generations, ms, date) => entry({ name, score: { generations, ms }, date, result: `hall-of-fame/results/${name}.json` });
+  const entries = [
+    at('slow', 412, null, '2026-11-20'),
+    at('ceiling', 1000, 4210, '2026-11-22'),
+    at('mid-a', 900, null, '2026-11-21'),
+    at('mid-b', 900, null, '2026-11-21'),
+    entry({ name: 'other-contest', contest: 'methuselah-1', score: { generations: 5, period: 1 }, rules: { birth: [4], survival: [5] }, seedCells: 3, result: 'hall-of-fame/results/other.json' }),
+  ];
+  const place = (score) => {
+    const p = placeFor(entries, SPEED, { score });
+    return [p.place, p.of, p.above?.name ?? null, p.below?.name ?? null];
+  };
+  assert.deepEqual(place({ generations: 950, ms: null }), [2, 5, 'ceiling', 'mid-a']);
+  assert.deepEqual(place({ generations: 900, ms: null }), [4, 5, 'mid-b', 'slow'], 'a tie goes to the entries, which came first');
+  assert.deepEqual(place({ generations: 1000, ms: 4210 }), [2, 5, 'ceiling', 'mid-a'], 'at the ceiling, the same time is a tie too');
+  assert.deepEqual(place({ generations: 1000, ms: 4209 }), [1, 5, null, 'ceiling'], 'a millisecond faster is first');
+  assert.deepEqual(place({ generations: 10, ms: null }), [5, 5, 'slow', null]);
+  // It agrees with rankEntries() for the run as an entry that arrived last
+  for (const generations of [10, 412, 413, 900, 901, 999]) {
+    const run = at('run', generations, null, '2099-01-01');
+    const ranked = rankEntries([...entries, run], SPEED);
+    assert.equal(placeFor(entries, SPEED, { score: run.score }).place, ranked.indexOf(run) + 1, `at ${generations}`);
+  }
+  assert.deepEqual(placeFor([], SPEED, { score: { generations: 400, ms: null } }), { place: 1, of: 1, above: null, below: null, ranked: [] });
+});
+
+test('placeFor: a Methuselah run places by generations, then fewer seed cells, after any entry level with it', () => {
+  const at = (name, generations, seedCells) => lasting({ name, score: { generations, period: 1 }, seedCells, result: `hall-of-fame/results/${name}.json` });
+  const entries = [at('long', 400, 900), at('lean', 10, 5), at('same', 10, 11), at('short', 3, 1)];
+  const place = (generations, seedCells) => {
+    const p = placeFor(entries, METHUSELAH, { score: { generations, period: 1 }, seedCells });
+    return [p.place, p.of, p.above?.name ?? null, p.below?.name ?? null];
+  };
+  assert.deepEqual(place(10, 11), [4, 5, 'same', 'short'], 'the same score and seed cells: after the entry');
+  assert.deepEqual(place(10, 10), [3, 5, 'lean', 'same'], 'one cell fewer: before it');
+  assert.deepEqual(place(10, 4), [2, 5, 'long', 'lean']);
+  assert.deepEqual(place(9999, 1000), [1, 5, null, 'long']);
 });
