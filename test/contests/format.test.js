@@ -88,13 +88,14 @@ test('the closing date is the earliest set, or to be announced', () => {
   assert.equal(closingText([{ closes: '2027-02-28' }], { short: true }), 'Closes 28 Feb 2027');
 });
 
-test('Season 0 closes at 11:59 PM Central Time on 31 December 2026, in Central Time wherever it is read (#130)', () => {
-  assert.equal(SPEED.closes, '2026-12-31T23:59:00-06:00');
+test('Season 0 closes at 11:59 PM Central Time on 31 March 2027, in Central Time wherever it is read (#130, #166)', () => {
+  assert.equal(SPEED.closes, '2027-03-31T23:59:00-05:00');
   assert.ok(CONTESTS.every((contest) => contest.closes === SPEED.closes), 'all three close together');
-  assert.equal(closingText(CONTESTS), 'Entries close 31 December 2026, 11:59 PM Central Time');
-  assert.equal(closingText(CONTESTS, { short: true }), 'Closes 31 Dec 2026');
-  // A timed closing is ordered by its instant: 23:00 UTC on the 31st comes before it
-  assert.equal(closingText([{ closes: '2026-12-31T23:59:00-06:00' }, { closes: '2026-12-31T23:00:00Z' }]), 'Entries close 31 December 2026, 5:00 PM Central Time');
+  assert.equal(closingText(CONTESTS), 'Entries close 31 March 2027, 11:59 PM Central Time');
+  assert.equal(closingText(CONTESTS, { short: true }), 'Closes 31 Mar 2027');
+  // A timed closing is ordered by its instant: 23:00 UTC on the 31st comes before it, and reads
+  // in daylight time, five hours behind UTC
+  assert.equal(closingText([{ closes: '2027-03-31T23:59:00-05:00' }, { closes: '2027-03-31T23:00:00Z' }]), 'Entries close 31 March 2027, 6:00 PM Central Time');
 });
 
 test("a result's file name gives the contest and the score", () => {

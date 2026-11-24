@@ -248,7 +248,7 @@ checked.
 three contests: Speed, Methuselah, and Classic Methuselah (#102, which took Contained chaos's
 place), each a contest in the code too (`contests.js`'s `CONTESTS`, an id such as `speed-1`, and
 a result file's `run.contest`, which is hashed). All three close at the same instant, 11:59 PM
-Central Time on 31 December 2026 (`closes`). It is a sixth mode, opened from a compact banner
+Central Time on 31 March 2027 (`closes`). It is a sixth mode, opened from a compact banner
 left of the company logo, which also gives the date entries close ("Closes TBD" while `closes` is
 null). It has nothing to set, so one click opens it (`enterContests()` in `controls.js`), and the
 Mode popover has no Contests option. In Contests the banner stays, pressed; a click on it,

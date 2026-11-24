@@ -22,6 +22,8 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
 - The Morpheus Tech logo at the top right shows at full strength, no longer dimmed until
   hovered, so the Info button and the Contests banner don't outshine it. Hovered or focused, it
   glows blue (#164).
+- Season 0 of the contests now closes at 11:59 PM Central Time on **31 March 2027**, not 31
+  December 2026; the Contests banner and pages say so (#166).
 
 ## [1.8.0] — 2026-11-23
 
