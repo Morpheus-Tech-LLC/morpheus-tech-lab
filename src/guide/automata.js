@@ -206,6 +206,21 @@ export const PATTERNS = {
     10bo5bo7bo$11bo3bo$12b2o!`,
 };
 
+/**
+ * Life's oscillators that step 9 shows, one for each period it names: since 2023, Life is known
+ * to have oscillators of every period. Each returns to where it began after `period` generations,
+ * and not before; a test runs each one.
+ */
+export const OSCILLATORS = [
+  { name: 'Blinker', period: 2, rle: '3o!' },
+  { name: 'Pulsar', period: 3, rle: '2b3o3b3o2$o4bobo4bo$o4bobo4bo$o4bobo4bo$2b3o3b3o2$2b3o3b3o$o4bobo4bo$o4bobo4bo$o4bobo4bo2$2b3o3b3o!' },
+  { name: 'Mold', period: 4, rle: '3b2o$2bo2bo$o2bobo$4bo$ob2o$bo!' },
+  { name: 'Octagon 2', period: 5, rle: '3b2o$2bo2bo$bo4bo$o6bo$o6bo$bo4bo$2bo2bo$3b2o!' },
+  { name: 'Figure eight', period: 8, rle: '2o$2obo$4bo$bo$2bob2o$4b2o!' },
+  { name: 'Tumbler', period: 14, rle: 'bo5bo$obo3bobo$o2bobo2bo$2bo3bo$2b2ob2o!' },
+  { name: 'Pentadecathlon', period: 15, rle: '2bo4bo$2ob4ob2o$2bo4bo!' },
+];
+
 // ---- Life in three dimensions ----
 
 /** The lab's default rule, B9,10/S5–15: born with 9 or 10 live neighbours of 26, survives with 5 to 15. */

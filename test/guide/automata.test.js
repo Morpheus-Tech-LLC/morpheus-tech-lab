@@ -8,6 +8,7 @@ import assert from 'node:assert/strict';
 import {
   seededRandom, ruleCases, elementaryStep, Life, parseRle, PATTERNS, torusLifeStep, hppStep, particles,
   EAST, WEST, NORTH, SOUTH, trafficStep, placeCars, Sandpile, hexNeighbours, scalesStep, LAB_RULE, CASES_3D,
+  OSCILLATORS,
 } from '../../src/guide/automata.js';
 import { STEPS } from '../../src/guide/steps.js';
 import { DEFAULT_RULES } from '../../src/explore/setup.js';
@@ -83,6 +84,22 @@ test('Life: Gosper’s gun repeats every 30 generations, firing a glider each ti
   assert.deepEqual(sorted(inGun), sorted(gun), 'the gun is back as it was');
   run(life, 30);
   assert.equal(life.population, 46);
+});
+
+test('step 9’s oscillators: each returns to where it began after its period, and not before', () => {
+  assert.deepEqual(OSCILLATORS.map((o) => o.period), [2, 3, 4, 5, 8, 14, 15]);
+  for (const { name, period, rle } of OSCILLATORS) {
+    const start = sorted(parseRle(rle));
+    const life = new Life(parseRle(rle));
+    for (let g = 1; g < period; g++) {
+      life.step();
+      assert.notDeepEqual(sorted(life.cells()), start, `${name} is back after only ${g}`);
+    }
+    life.step();
+    assert.deepEqual(sorted(life.cells()), start, `${name} is back after ${period}`);
+  }
+  const words = STEPS.find((s) => s.id === 'compute').body.join(' ');
+  assert.ok(words.includes('oscillators of every period'), 'the finding the gallery illustrates');
 });
 
 test('step 6’s counts: 2^18 = 262,144 rules on a flat grid, 2^54 (about 18 quadrillion) on a cubic one', () => {
