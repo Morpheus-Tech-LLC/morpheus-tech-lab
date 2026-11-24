@@ -17,6 +17,11 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
   with its authors, year and a link. A playing simulation pauses while it is open. With reduced
   motion, each step shows a still frame (#159). Beside its 3D cube and ship, the step on this
   lab's rules shows a 2D cross-section, the layer y = 0, marked in the 3D view (#162).
+- For maintainers, `npm run guide:video` renders the Info guide as a video for YouTube: a
+  1920×1080, 60 fps MP4 of every step's animation with its words and sources on screen, a
+  credits roll naming every source and an end card with the lab's address, with music (and
+  narration, if recorded) mixed under it, plus its captions and a description with chapters and
+  every source's link (#161).
 
 ### Changed
 - The readouts above the control bar each take one line, a small label beside each value,

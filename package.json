@@ -11,7 +11,8 @@
     "test": "node --test",
     "deploy": "npm run build && gh-pages -d dist",
     "brand:sync": "node scripts/brand.mjs sync",
-    "brand:check": "node scripts/brand.mjs check"
+    "brand:check": "node scripts/brand.mjs check",
+    "guide:video": "node scripts/guide-video.mjs"
   },
   "devDependencies": {
     "gh-pages": "^6.3.0",

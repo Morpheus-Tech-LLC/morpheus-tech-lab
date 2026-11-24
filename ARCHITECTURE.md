@@ -401,6 +401,14 @@ page runs headless. Each animation runs the rule its words describe, and the 3D 
 lab's own unbounded engine, so what the guide shows is what the lab does. Its claims are data,
 with their sources, in `guide/steps.js`, and a test checks that every one is cited.
 
+**The guide's video is rendered, not recorded (#161).** Every frame of a guide animation depends
+only on its time, so `scripts/guide-video.mjs` has headless Chromium draw each frame of the video
+on request (`guide/guide-render.html`) and hands it to ffmpeg, instead of recording the screen:
+the frames are even, sharp and free of dialogs, and the video can be made again whenever the
+guide changes. Its words, timing, captions and description come from `guide/steps.js` through
+`guide/video.js`, so the video says what the guide says. The render page and the script are
+maintainers' tools: neither is bundled, and nothing they render is committed.
+
 **Precompute the whole history.** It costs memory (`size³ × generations`, all at once) and a
 wait up front. In return, scrubbing and reverse playback are instant and the render loop never
 waits on compute.

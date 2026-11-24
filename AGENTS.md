@@ -30,6 +30,11 @@ scripts/brand.mjs        `sync --org <brand repo>` re-pins the brand at a tag (m
 scripts/verify.mjs       Checks result files from the unbounded engine in Node: by replay, or by lookup with --table;
                          a contest's result is checked against its contest too, and its score printed. Takes
                          several files (public/hall-of-fame/results/*.json); the worst verdict sets the exit status
+scripts/guide-video.mjs  `npm run guide:video`: renders the Info guide as a video for YouTube (#161), maintainers only:
+                         serves guide-render.html with Vite, has headless Chromium draw every frame over the DevTools
+                         protocol, several segments at once, encodes them with ffmpeg and joins them, mixes the
+                         music (and narration, one recording per step) under them, and writes the .srt and the
+                         description. Writes outside the clone; nothing it renders is committed
 scripts/reference-hashes.mjs Computes a run's reference table: the hash of every generation, for checking Speed by lookup;
                          --contest speed-1 takes the run from contests.js
 scripts/bench.mjs        Benchmarks for the unbounded engine (#39): chunk sizes, seeds and rules, bytes against bit-packed
@@ -64,7 +69,8 @@ test/                    `npm test` (Node's built-in node:test, no dependency): 
                          (walls.test.js), camera framing
                          and the seed editor's model (editorModel.test.js); guide/ checks the Info guide's automata
                          against published facts (automata.test.js), and its steps, its sources, its 3D camera
-                         and that every animation draws (steps.test.js)
+                         and that every animation draws (steps.test.js); the guide as a video: its timeline, its
+                         words on screen, captions and YouTube description (video.test.js)
 src/
   main.js                Boot: Game of Life 3D (unbounded) (startExplore()) by default, or initSimulation(); then animate()
   browser.js             detectBrowser(): the browser's name and version, from navigator.userAgentData or the
@@ -193,6 +199,13 @@ src/
                          and Esc, Sources and credits, pausing the lab behind it (isGuideOpen(), which
                          animate() checks), and a still frame with reduced motion. Sets only textContent
   guide/guide.css        The top bar's buttons and the guide's layout, a phone's included
+  guide/video.js         The guide as a video (#161): the timeline (a title card, the steps, the credits roll, an end
+                         card, each a whole number of frames at 60 fps), the words on screen a sentence or two at a
+                         time, at a reading pace or a narration's, the captions (.srt) and the YouTube description,
+                         all from steps.js (no DOM; tested in Node)
+  guide/guide-render.html Not bundled: a dev page that draws the video's frames at 1920 × 1080, one segment at a time
+                         (guideVideo.open(), guideVideo.frame(n)), for scripts/guide-video.mjs;
+                         ?segment=N&t=S shows one frame
   guide/guide-check.html Not bundled: a dev page (/src/guide/guide-check.html under `npm run dev`) that checks the
                          guide on its own, with its markup and styles from index.html and stand-ins for the lab, so
                          it runs without WebGL; ?step=N&wait leaves step N open, for a look or a screenshot

@@ -1,0 +1,194 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!--
+  Not bundled: a dev page (/src/guide/guide-render.html under `npm run dev`) that draws the Info
+  guide as video frames (#161), 1920 × 1080, for scripts/guide-video.mjs to capture. It draws one
+  segment of video.js's timeline at a time: guideVideo.open(segment), then guideVideo.frame(n)
+  draws frame n of it and returns it as a PNG data URL. Each frame depends only on its number.
+  Opened on its own, ?segment=N&t=S shows segment N of the timeline at S seconds, for a look.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Info guide video frames</title>
+  <style>
+    html, body { margin: 0; background: #0b0e13; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <canvas id="frame" width="1920" height="1080"></canvas>
+  <script type="module">
+    import '@fontsource/roboto-mono/400.css';
+    import '@fontsource/roboto-mono/600.css';
+    import { SCENES } from '/src/guide/scenes.js';
+    import { elementaryStep } from '/src/guide/automata.js';
+    import { VIDEO, LAYOUT, PACE, LAB_URL, VIDEO_TITLE, timeline } from '/src/guide/video.js';
+
+    const C = { bg: '#0b0e13', text: '#d8e2f0', dim: '#8492a8', accent: '#ffa200', live: '#4da3ff', rule: 'rgba(180, 200, 255, 0.14)' };
+    const FONT = '"Roboto Mono", ui-monospace, monospace';
+    const canvas = document.getElementById('frame');
+    const ctx = canvas.getContext('2d');
+    const { width: W, height: H, fps } = VIDEO;
+
+    function text(str, x, y, { size, weight = 400, color = C.text, align = 'left', alpha = 1 }) {
+      ctx.save();
+      ctx.globalAlpha *= alpha;
+      ctx.font = `${weight} ${size}px ${FONT}`;
+      ctx.textAlign = align;
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillStyle = color;
+      ctx.fillText(str, x, y);
+      ctx.restore();
+    }
+
+    /** 0 → 1 over `d` seconds from `from`, back to 0 over `d` before `to` */
+    const fadeIn = (t, from, to, d) => Math.max(0, Math.min(1, (t - from) / d, (to - t) / d));
+
+    /** The whole frame fades from and to the background at a segment's ends. */
+    function fadeFrame(t, duration) {
+      const a = fadeIn(t, 0, duration, PACE.fade);
+      if (a >= 1) return;
+      ctx.fillStyle = C.bg;
+      ctx.globalAlpha = 1 - a;
+      ctx.fillRect(0, 0, W, H);
+      ctx.globalAlpha = 1;
+    }
+
+    function clear() {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = C.bg;
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    /** A scene, drawn into a rectangle of the frame at `scale` times its CSS size. */
+    function drawScene(scene, rect, scale, t) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(rect.x, rect.y, rect.w, rect.h);
+      ctx.clip();
+      ctx.translate(rect.x, rect.y);
+      ctx.scale(scale, scale);
+      scene.draw(ctx, rect.w / scale, rect.h / scale, t);
+      ctx.restore();
+    }
+
+    // ---- The title card: Rule 30 growing behind the title ----
+
+    const RULE30 = (() => {
+      const rows = 140, width = 2 * rows + 1;
+      const out = [];
+      let row = new Uint8Array(width);
+      row[rows] = 1;
+      for (let i = 0; i < rows; i++) {
+        out.push(row);
+        row = elementaryStep(row, 30);
+      }
+      return { rows: out, width };
+    })();
+
+    function titleCard(t, segment) {
+      const { rows, width } = RULE30;
+      const size = H / rows.length;
+      const x0 = (W - width * size) / 2;
+      const shown = Math.min(rows.length, Math.floor((t / segment.duration) * rows.length * 1.15));
+      ctx.fillStyle = C.live;
+      ctx.globalAlpha = 0.16;
+      for (let y = 0; y < shown; y++) {
+        for (let x = 0; x < width; x++) if (rows[y][x]) ctx.fillRect(x0 + x * size, y * size, size - 1, size - 1);
+      }
+      ctx.globalAlpha = 1;
+      text(VIDEO_TITLE.split(',')[0], W / 2, 470, { size: 104, weight: 600, align: 'center' });
+      text(VIDEO_TITLE.split(',')[1].trim(), W / 2, 560, { size: 52, color: C.dim, align: 'center' });
+      text('Morpheus Tech Lab', W / 2, 700, { size: 32, color: C.accent, align: 'center', alpha: fadeIn(t, 1.2, Infinity, 0.6) });
+    }
+
+    // ---- A step: its title, animation, words and sources ----
+
+    function stepFrame(t, segment, scene) {
+      const { margin, count, title, stage, words, sources } = LAYOUT;
+      text(segment.count, margin, count.y, { size: count.size, color: C.dim });
+      text(segment.title, margin, title.y, { size: title.size, weight: 600 });
+      drawScene(scene, stage, stage.scale, t);
+      const chunk = segment.chunks.find((c) => t >= c.from && t < c.to);
+      if (chunk) {
+        const a = fadeIn(t, chunk.from, chunk.to, PACE.wordsFade);
+        const top = words.centre - ((chunk.lines.length - 1) * words.lineHeight) / 2 + words.size * 0.35;
+        chunk.lines.forEach((line, i) => text(line, W / 2, top + i * words.lineHeight, { size: words.size, align: 'center', alpha: a }));
+      }
+      const lines = segment.sources;
+      lines.forEach((line, i) => text(line, margin, sources.bottom - (lines.length - 1 - i) * sources.lineHeight,
+        { size: sources.size, color: C.dim }));
+    }
+
+    // ---- The credits roll ----
+
+    function creditsFrame(t, segment) {
+      const top = H - t * LAYOUT.credits.speed;
+      for (const line of segment.lines) {
+        const y = top + line.y;
+        if (y < -60 || y > H + 60) continue;
+        text(line.text, W / 2, y, { size: line.size, weight: line.weight, color: C[line.tone], align: 'center' });
+      }
+    }
+
+    // ---- The end card: the lab's cube, and its address ----
+
+    function endCard(t, segment, scene) {
+      drawScene(scene, { x: 460, y: 90, w: 1000, h: 540 }, 1.6, t);
+      text('Try it yourself, in your browser', W / 2, 740, { size: 40, align: 'center' });
+      text(LAB_URL.replace('https://', ''), W / 2, 850, { size: 88, weight: 600, color: C.accent, align: 'center' });
+      text('Morpheus Tech Lab · open source, Apache-2.0', W / 2, 940, { size: 28, color: C.dim, align: 'center' });
+    }
+
+    let current = null;
+
+    function open(segment) {
+      const scene = segment.kind === 'step' ? SCENES[segment.scene]()
+        : segment.kind === 'end' ? SCENES.finale() : null;
+      current = { segment, scene };
+    }
+
+    function draw(n) {
+      const { segment, scene } = current;
+      const t = n / fps;
+      clear();
+      if (segment.kind === 'title') titleCard(t, segment);
+      else if (segment.kind === 'step') stepFrame(t, segment, scene);
+      else if (segment.kind === 'credits') creditsFrame(t, segment);
+      else endCard(t, segment, scene);
+      fadeFrame(t, segment.duration);
+    }
+
+    const ready = Promise.all([
+      document.fonts.load(`400 40px ${FONT}`),
+      document.fonts.load(`600 40px ${FONT}`),
+    ]).then(() => {
+      // video.js lays lines out by character count: check the font is the one it assumes
+      ctx.font = `400 100px ${FONT}`;
+      const em = ctx.measureText('M'.repeat(10)).width / 1000;
+      if (Math.abs(em - LAYOUT.charEm) > 0.01) throw new Error(`Roboto Mono didn't load (a character is ${em} em)`);
+      return true;
+    });
+
+    window.guideVideo = {
+      ready,
+      open,
+      /** Draws frame n of the open segment; returns it as a PNG data URL */
+      frame(n) {
+        draw(n);
+        return canvas.toDataURL('image/png');
+      },
+    };
+
+    const params = new URLSearchParams(location.search);
+    if (params.has('segment')) {
+      await ready;
+      const tl = timeline();
+      open(tl.segments[Number(params.get('segment'))]);
+      draw(Math.round(Number(params.get('t') ?? 3) * fps));
+    }
+  </script>
+</body>
+</html>
