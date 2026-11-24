@@ -18,6 +18,11 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
   motion, each step shows a still frame (#159). Beside its 3D cube and ship, the step on this
   lab's rules shows a 2D cross-section, the layer y = 0, marked in the 3D view (#162).
 
+### Changed
+- The Morpheus Tech logo at the top right shows at full strength, no longer dimmed until
+  hovered, so the Info button and the Contests banner don't outshine it. Hovered or focused, it
+  glows blue (#164).
+
 ## [1.8.0] — 2026-11-23
 
 ### Added
