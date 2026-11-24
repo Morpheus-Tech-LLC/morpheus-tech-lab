@@ -510,6 +510,8 @@ function lab3d() {
   const cols = path.max[0] - path.min[0] + 1, rows = path.max[2] - path.min[2] + 1;
   return {
     still: 9,
+    /** Its two parts, in its own time, so the video can show each while its words are on screen. */
+    parts: [{ name: 'cube', start: 0, span: cube.span }, { name: 'ship', start: cube.span, span: shipSpan }],
     draw(ctx, w, h, t) {
       clear(ctx, w, h);
       const u = t % (cube.span + shipSpan);

@@ -33,8 +33,10 @@ scripts/verify.mjs       Checks result files from the unbounded engine in Node: 
 scripts/guide-video.mjs  `npm run guide:video`: renders the Info guide as a video for YouTube (#161), maintainers only:
                          serves guide-render.html with Vite, has headless Chromium draw every frame over the DevTools
                          protocol, several segments at once, encodes them with ffmpeg and joins them, mixes the
-                         music (and narration, one recording per step) under them, and writes the .srt and the
-                         description. Writes outside the clone; nothing it renders is committed
+                         music under them, building step by step (faster with rubberband, its pitch kept, and
+                         louder), and narration, one recording per step, and writes the .srt and the description.
+                         --remix puts new music under a rendered video. Writes outside the clone; nothing it
+                         renders is committed
 scripts/reference-hashes.mjs Computes a run's reference table: the hash of every generation, for checking Speed by lookup;
                          --contest speed-1 takes the run from contests.js
 scripts/bench.mjs        Benchmarks for the unbounded engine (#39): chunk sizes, seeds and rules, bytes against bit-packed
@@ -201,8 +203,9 @@ src/
   guide/guide.css        The top bar's buttons and the guide's layout, a phone's included
   guide/video.js         The guide as a video (#161): the timeline (a title card, the steps, the credits roll, an end
                          card, each a whole number of frames at 60 fps), the words on screen a sentence or two at a
-                         time, at a reading pace or a narration's, the captions (.srt) and the YouTube description,
-                         all from steps.js (no DOM; tested in Node)
+                         time, at a reading pace or a narration's, which part of a step's animation plays with which
+                         words (SCENE_CUES: step 7's ship with its words), how the music builds (musicBuild()), the
+                         captions (.srt) and the YouTube description, all from steps.js (no DOM; tested in Node)
   guide/guide-render.html Not bundled: a dev page that draws the video's frames at 1920 × 1080, one segment at a time
                          (guideVideo.open(), guideVideo.frame(n)), for scripts/guide-video.mjs;
                          ?segment=N&t=S shows one frame

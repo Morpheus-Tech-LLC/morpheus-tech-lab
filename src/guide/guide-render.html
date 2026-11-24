@@ -106,11 +106,19 @@
 
     // ---- A step: its title, animation, words and sources ----
 
+    /** The animation's own time at the step's time t: with cues, the part its words are about. */
+    function sceneTime(t, segment, scene) {
+      const cue = segment.cues.findLast((c) => c.from <= t);
+      if (!cue) return t;
+      const part = scene.parts.find((p) => p.name === cue.part);
+      return part.start + ((t - cue.from) % part.span);
+    }
+
     function stepFrame(t, segment, scene) {
       const { margin, count, title, stage, words, sources } = LAYOUT;
       text(segment.count, margin, count.y, { size: count.size, color: C.dim });
       text(segment.title, margin, title.y, { size: title.size, weight: 600 });
-      drawScene(scene, stage, stage.scale, t);
+      drawScene(scene, stage, stage.scale, sceneTime(t, segment, scene));
       const chunk = segment.chunks.find((c) => t >= c.from && t < c.to);
       if (chunk) {
         const a = fadeIn(t, chunk.from, chunk.to, PACE.wordsFade);
@@ -122,15 +130,33 @@
         { size: sources.size, color: C.dim }));
     }
 
-    // ---- The credits roll ----
+    // ---- The credits roll, with the lab's address pinned below it ----
 
     function creditsFrame(t, segment) {
-      const top = H - t * LAYOUT.credits.speed;
+      const { band, speed } = LAYOUT.credits;
+      const top = band - t * speed;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(0, 0, W, band);
+      ctx.clip();
       for (const line of segment.lines) {
         const y = top + line.y;
-        if (y < -60 || y > H + 60) continue;
+        if (y < -60 || y > band + 60) continue;
         text(line.text, W / 2, y, { size: line.size, weight: line.weight, color: C[line.tone], align: 'center' });
       }
+      ctx.restore();
+      // The roll fades out at the top of the frame and into the band
+      for (const [y0, y1] of [[0, 120], [band, band - 120]]) {
+        const fade = ctx.createLinearGradient(0, y0, 0, y1);
+        fade.addColorStop(0, C.bg);
+        fade.addColorStop(1, 'rgba(11, 14, 19, 0)');
+        ctx.fillStyle = fade;
+        ctx.fillRect(0, Math.min(y0, y1), W, 120);
+      }
+      ctx.fillStyle = C.rule;
+      ctx.fillRect(W / 2 - 360, band + 12, 720, 2);
+      text('Try it yourself, in your browser', W / 2, band + 78, { size: 32, align: 'center' });
+      text(LAB_URL.replace('https://', ''), W / 2, band + 160, { size: 68, weight: 600, color: C.accent, align: 'center' });
     }
 
     // ---- The end card: the lab's cube, and its address ----
@@ -145,6 +171,7 @@
     let current = null;
 
     function open(segment) {
+      segment.cues ??= [];
       const scene = segment.kind === 'step' ? SCENES[segment.scene]()
         : segment.kind === 'end' ? SCENES.finale() : null;
       current = { segment, scene };

@@ -19,9 +19,9 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
   lab's rules shows a 2D cross-section, the layer y = 0, marked in the 3D view (#162).
 - For maintainers, `npm run guide:video` renders the Info guide as a video for YouTube: a
   1920×1080, 60 fps MP4 of every step's animation with its words and sources on screen, a
-  credits roll naming every source and an end card with the lab's address, with music (and
-  narration, if recorded) mixed under it, plus its captions and a description with chapters and
-  every source's link (#161).
+  credits roll naming every source under the lab's address, and an end card, with music that
+  builds a little with each step (and narration, if recorded) mixed under it, plus its captions
+  and a description with chapters and every source's link (#161).
 
 ### Changed
 - The readouts above the control bar each take one line, a small label beside each value,
