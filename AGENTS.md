@@ -48,7 +48,8 @@ test/                    `npm test` (Node's built-in node:test, no dependency): 
                          against convolve3D() (dense.test.js); an arena that wraps, against the reference
                          and convolve3D() with wrapping on, and the worlds refused (wrap.test.js); an arena
                          with walls, against the reference and by hand (walls.test.js);
-                         browser.test.js checks telling the browser; shapeGenerators.test.js the bounded
+                         browser.test.js checks telling the browser; selfHosted.test.js that the page loads no
+                         font from Google's servers (fonts come from npm, served with the site); shapeGenerators.test.js the bounded
                          mode's seed shapes (#49); memoryAdvice.test.js checks the precomputed modes'
                          memory estimate against real runs, and that the old caps' runs don't ask; brandMark.test.js that the company
                          panel's inline mark keeps the pinned favicon's paths and gilt; contests/ checks a Speed run and Verify a
@@ -451,6 +452,10 @@ src/
   path is optional and must match it exactly. Libraries come in as npm dependencies, not copies.
 - No secrets, tokens, internal hostnames, or paths outside this repo. The repo and the site are
   public.
+- Don't load anything the page needs from a third party's servers (fonts, scripts, styles): each
+  request hands that party the visitor's IP address. Fonts come in as npm packages
+  (`@fontsource/*`), imported in `main.js`, and are served with the site; `test/selfHosted.test.js`
+  fails on a Google Fonts link.
 - Don't commit `dist/` (ignored); `gh-pages` holds the build.
 - Don't add brand files beyond the two pinned in `brand.lock`: the brand's design documents and
   the full-size logo stay private.
