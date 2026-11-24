@@ -4,6 +4,7 @@ import { updatePoints } from './simulationModel.js';
 import { isExplore, exploreFrame, setSpeed } from './explore/explore.js';
 import { isEditorOpen, editorFrame } from './explore/editor.js';
 import { isContests, contestsFrame, watchSpeed } from './contests/contests.js';
+import { isGuideOpen } from './guide/guide.js';
 
 let lastFrameTime = 0;
 let lastUpdateTime = 0;
@@ -160,6 +161,12 @@ export function animate(currentTime) {
     // panel's countdown moves
     if (isContests()) {
       contestsFrame(currentTime);
+      return;
+    }
+
+    // The guide (#159) covers the view and draws on its own canvas: nothing moves or draws behind it
+    if (isGuideOpen()) {
+      lastUpdateTime = currentTime;
       return;
     }
 

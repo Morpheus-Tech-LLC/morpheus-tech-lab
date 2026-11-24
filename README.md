@@ -129,6 +129,16 @@ memory limit starts at 1,024 MB: the browser caps each tab's memory, and a page 
 cap, so the limit stops a run cleanly before the browser or the system does. On a 16 GB machine,
 one Chrome tab could take about 6 GB; 512 MB is the cautious choice for phones and small machines.
 
+### Info
+
+**Info**, left of the Contests banner, opens a short guide to cellular automata, in ten steps:
+what they are, Rule 30, Conway's Game of Life and what lives in it, Game of Life 3D and this
+lab's own rules, and what cellular automata have shown in biology, physics, engineering and
+mathematics. Each step comes with an animation running the rule it describes, and names its
+sources; **Sources and credits** lists every work the guide cites. Back, Next, the dots and the
+arrow keys move through it; Close, Esc or Info again closes it, and a playing simulation, paused
+while it was open, plays on.
+
 ### Settings of Game of Life 3D (unbounded)
 
 In Game of Life 3D (unbounded), the **Simulation** box comes first. A simulation is a seed and

@@ -1,0 +1,405 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* The top bar's buttons and the Info guide (src/guide/, #159) */
+
+/* ==== The top bar: Info and Contests, left of the company logo ==== */
+.top-actions {
+  position: fixed;
+  top: 21px;
+  right: 92px;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+body.company-modal-open .top-actions,
+body.seed-editor-open .top-actions {
+  display: none;
+}
+/* Above the guide's backdrop while it is open, so Info (pressed) can close it */
+body.guide-open .top-actions {
+  z-index: 1120;
+}
+
+.info-button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px 6px 9px;
+  border: 1px solid rgba(120, 180, 255, 0.55);
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(25, 52, 90, 0.88), rgba(35, 40, 50, 0.85));
+  box-shadow: 0 0 12px rgba(77, 163, 255, 0.2);
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.info-button:hover {
+  transform: translateY(-1px);
+  border-color: rgba(150, 200, 255, 0.95);
+}
+.info-button:focus-visible {
+  outline: 3px solid rgba(120, 180, 255, 0.9);
+  outline-offset: 3px;
+}
+.info-button[aria-pressed="true"] {
+  border-color: #8cc6ff;
+  background: linear-gradient(180deg, #8cc6ff 0%, #4d8fe0 100%);
+  box-shadow: 0 0 20px rgba(77, 163, 255, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  color: #071526;
+}
+.info-button-icon {
+  flex: none;
+  color: #8cc6ff;
+}
+.info-button[aria-pressed="true"] .info-button-icon {
+  color: #071526;
+}
+.info-button-name {
+  font-size: 15px;
+  font-weight: 700;
+}
+@media (max-width: 640px) {
+  .top-actions {
+    top: 72px;
+    right: 10px;
+    gap: 8px;
+  }
+}
+
+/* ==== The guide ==== */
+.guide-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  background: rgba(5, 8, 12, 0.72);
+  backdrop-filter: blur(3px);
+}
+.guide {
+  position: fixed;
+  z-index: 1110;
+  top: 72px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(1120px, calc(100vw - 32px));
+  height: min(660px, calc(100vh - 92px));
+  height: min(660px, calc(100dvh - 92px));
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "head head"
+    "stage text"
+    "nav nav";
+  border: 1px solid rgba(120, 160, 220, 0.3);
+  border-radius: 12px;
+  background: rgba(18, 21, 27, 0.97);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.6);
+  color: var(--color-info-display-text, #d8e2f0);
+  font-family: "Roboto Mono", monospace;
+  overflow: hidden;
+  color-scheme: dark;
+}
+.guide[hidden],
+.guide-backdrop[hidden] {
+  display: none;
+}
+
+.guide-head {
+  grid-area: head;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px 10px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+.guide-heading {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-title, rgba(255, 162, 0, 0.7));
+  letter-spacing: 0.3px;
+}
+.guide-count {
+  margin-right: auto;
+  font-size: 12px;
+  color: #8492a8;
+}
+.guide-close {
+  padding: 6px 14px;
+}
+
+.guide-stage {
+  grid-area: stage;
+  position: relative;
+  min-height: 0;
+  background: #0b0e13;
+}
+.guide-stage[hidden] {
+  display: none;
+}
+.guide-canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+.guide-pause {
+  position: absolute;
+  right: 10px;
+  bottom: 30px;
+  padding: 3px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 6px;
+  background: rgba(11, 14, 19, 0.75);
+  color: #b7d4f5;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+.guide-pause:hover,
+.guide-pause:focus-visible {
+  border-color: rgba(120, 180, 255, 0.7);
+}
+
+.guide-text {
+  grid-area: text;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 18px 20px 14px;
+  border-left: 1px solid rgba(255, 255, 255, 0.07);
+}
+.guide-text[hidden] {
+  display: none;
+}
+.guide-title {
+  margin: 0 0 12px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+  line-height: 1.3;
+}
+.guide-body p {
+  margin: 0 0 12px;
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+.guide-cites {
+  margin: 16px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: #8492a8;
+}
+.guide a,
+.guide-link {
+  color: #8cc6ff;
+  text-decoration: underline;
+  text-decoration-color: rgba(140, 198, 255, 0.4);
+  text-underline-offset: 2px;
+}
+.guide a:hover,
+.guide-link:hover {
+  text-decoration-color: currentColor;
+}
+.guide-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+.guide-head .guide-link {
+  font-size: 12px;
+}
+
+.guide-finale {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 6px 0 4px;
+}
+.guide-finale[hidden] {
+  display: none;
+}
+.guide-action {
+  padding: 8px 16px;
+}
+.guide-action--contests {
+  border-color: rgba(255, 205, 90, 0.6);
+  color: #f6dc9a;
+}
+
+/* Sources and credits, across the stage and the text */
+.guide-sources {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 18px 24px;
+}
+.guide-sources[hidden] {
+  display: none;
+}
+.guide-sources-note {
+  max-width: 80ch;
+  margin: 0 0 16px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: #aab6c8;
+}
+.guide-sources-list {
+  margin: 0;
+  padding-left: 2.4em;
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+.guide-sources-list li {
+  margin-bottom: 10px;
+}
+.guide-sources-list cite {
+  font-style: italic;
+  color: #fff;
+}
+.guide-sources-list a {
+  word-break: break-all;
+}
+.guide-source-steps {
+  color: #8492a8;
+}
+
+.guide-nav {
+  grid-area: nav;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+.guide-step {
+  padding: 8px 18px;
+}
+.guide-step:disabled {
+  opacity: 0.35;
+  cursor: default;
+  pointer-events: none;
+}
+.guide-step--next {
+  border-color: rgba(120, 180, 255, 0.6);
+}
+.guide-dots {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.guide-dot {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  position: relative;
+}
+.guide-dot::before {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  background: rgba(183, 212, 245, 0.28);
+  transition: background 0.15s ease, inset 0.15s ease;
+}
+.guide-dot--sources::before {
+  border-radius: 2px;
+}
+.guide-dot:hover::before {
+  background: rgba(183, 212, 245, 0.6);
+}
+.guide-dot[aria-current="step"]::before {
+  inset: 6px;
+  background: #4da3ff;
+}
+.guide-dot:focus-visible,
+.guide button:focus-visible,
+.guide a:focus-visible {
+  outline: 2px solid rgba(120, 180, 255, 0.9);
+  outline-offset: 2px;
+}
+
+/* Narrower: the animation above the words */
+@media (max-width: 900px) {
+  .guide {
+    height: min(900px, calc(100vh - 92px));
+    height: min(900px, calc(100dvh - 92px));
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(180px, 46%) minmax(0, 1fr) auto;
+    grid-template-areas:
+      "head"
+      "stage"
+      "text"
+      "nav";
+  }
+  .guide-text {
+    border-left: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+  }
+  .guide-sources {
+    grid-row: 2 / 4;
+  }
+}
+/* A phone: the guide takes the whole screen, and Close takes Info's place */
+@media (max-width: 640px) {
+  .guide {
+    top: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    border-radius: 0;
+    border: 0;
+    grid-template-rows: auto minmax(160px, 40%) minmax(0, 1fr) auto;
+  }
+  body.guide-open .top-actions {
+    display: none;
+  }
+  .guide-head {
+    gap: 10px;
+    padding: 8px 10px 8px 14px;
+  }
+  .guide-heading {
+    display: none;
+  }
+  .guide-text {
+    padding: 14px 16px 10px;
+  }
+  .guide-title {
+    font-size: 16px;
+  }
+  .guide-nav {
+    gap: 6px;
+    padding: 8px 10px;
+  }
+  .guide-step {
+    padding: 8px 12px;
+  }
+  .guide-dots {
+    gap: 2px;
+  }
+  .guide-dot {
+    width: 16px;
+  }
+  .guide-dot::before {
+    inset: 6px 5px;
+  }
+  .guide-dot[aria-current="step"]::before {
+    inset: 5px 4px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .info-button,
+  .guide-dot::before {
+    transition: none;
+  }
+}

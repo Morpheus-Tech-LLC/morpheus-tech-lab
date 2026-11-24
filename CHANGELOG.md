@@ -7,6 +7,16 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
 
 ## [Unreleased]
 
+### Added
+- **Info**, left of the Contests banner in every mode, opens a short guide to cellular automata:
+  what they are, Rule 30, Conway's Game of Life and what lives in it, Game of Life 3D and this
+  lab's own rules, and what cellular automata have shown in biology, physics, engineering and
+  mathematics. Each of its ten steps comes with an animation running the rule it describes
+  (Rule 30 and Rule 110, Life, the lab's own 3D engine, a lattice gas, traffic and the
+  sandpile), and names its sources; **Sources and credits** lists every work the guide cites,
+  with its authors, year and a link. A playing simulation pauses while it is open. With reduced
+  motion, each step shows a still frame (#159).
+
 ## [1.8.0] — 2026-11-23
 
 ### Added

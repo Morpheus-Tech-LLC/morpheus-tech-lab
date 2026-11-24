@@ -9,6 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="src/color.css">
   <link rel="stylesheet" href="src/style.css">
+  <link rel="stylesheet" href="src/guide/guide.css">
 </head>
 <body>
   <!-- Explore's notices (src/explore/explore.js): what the view draws, and why a run stopped -->
@@ -470,9 +471,21 @@
       </div>
     </section>
   </div>
-  <!-- The Contests banner (#77), left of the company logo in every mode: one click opens the
-       Contests mode, and in it, shown as pressed, one click (or Esc) goes back. controls.js fills in
-       the date entries close, from src/unbounded/contests.js -->
+  <!-- The top bar's buttons, left of the company logo in every mode: Info and Contests -->
+  <div id="top-actions" class="top-actions">
+  <!-- Info (src/guide/, #159): opens the guide, a short tour of cellular automata with its
+       sources; shown as pressed while it is open, when one click (or Esc) closes it -->
+  <button type="button" id="info-button" class="info-button" aria-controls="guide" aria-expanded="false" aria-pressed="false" title="A short guide to cellular automata">
+    <svg class="info-button-icon" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="9"></circle>
+      <path d="M12 11 V16.5"></path>
+      <circle cx="12" cy="7.6" r="0.6" fill="currentColor"></circle>
+    </svg>
+    <span class="info-button-name">Info</span>
+  </button>
+  <!-- The Contests banner (#77): one click opens the Contests mode, and in it, shown as pressed,
+       one click (or Esc) goes back. controls.js fills in the date entries close, from
+       src/unbounded/contests.js -->
   <button type="button" id="contests-banner" class="contests-banner" aria-pressed="false" title="Open the contests">
     <svg class="contests-banner-trophy" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <path d="M7 3.5 H17 V9 A5 5 0 0 1 7 9 Z"></path>
@@ -482,6 +495,7 @@
     <span class="contests-banner-name">Contests</span>
     <span id="contests-banner-closes" class="contests-banner-closes">Closes TBD</span>
   </button>
+  </div>
   <!-- The Contests mode's panel (src/contests/panel.js, #77): the list of contests, a contest's
        page, its run, its results and Verify a result. panel.js fills it; nothing is drawn in 3D
        behind it -->
@@ -764,6 +778,41 @@
     </div>
 
   </div>
+  <!-- The Info guide (src/guide/guide.js, #159): each step's words and its animation, drawn on
+       the guide's own canvas, and Sources and credits, every work the tour cites. guide.js fills
+       it from src/guide/steps.js -->
+  <div id="guide-backdrop" class="guide-backdrop" hidden></div>
+  <section id="guide" class="guide" role="dialog" aria-modal="true" aria-labelledby="guide-heading" hidden>
+    <header class="guide-head">
+      <h2 id="guide-heading" class="guide-heading">Cellular automata, a short guide</h2>
+      <span id="guide-count" class="guide-count" aria-live="polite">1 / 10</span>
+      <button type="button" id="guide-sources-button" class="guide-link">Sources</button>
+      <button type="button" id="guide-close" class="glass-button guide-close" title="Close the guide (Esc)">Close</button>
+    </header>
+    <div id="guide-stage" class="guide-stage">
+      <canvas id="guide-canvas" class="guide-canvas" role="img" aria-label=""></canvas>
+      <button type="button" id="guide-pause" class="guide-pause" aria-pressed="false">Pause</button>
+    </div>
+    <div id="guide-text" class="guide-text">
+      <h3 id="guide-title" class="guide-title"></h3>
+      <div id="guide-body" class="guide-body"></div>
+      <div id="guide-finale" class="guide-finale" hidden>
+        <button type="button" id="guide-open-modes" class="glass-button guide-action">Pick a mode</button>
+        <button type="button" id="guide-open-contests" class="glass-button guide-action guide-action--contests">Open the Contests</button>
+      </div>
+      <p id="guide-cites" class="guide-cites"></p>
+    </div>
+    <div id="guide-sources" class="guide-sources" hidden>
+      <h3 class="guide-title">Sources and credits</h3>
+      <p class="guide-sources-note">Every finding in this guide comes from the work below; the people named here made the discoveries. The animations were written for the lab and run the rules they show: Rule 30 and Rule 110, Conway’s Life with the Life community’s standard patterns, the HPP lattice gas, the Nagel–Schreckenberg traffic model, the Bak–Tang–Wiesenfeld sandpile, and the lab’s own Game of Life 3D engine. The lizard’s scales are an illustration, drawn by a simple rule on a hexagonal grid, not the model Manukyan et al. fitted.</p>
+      <ol id="guide-sources-list" class="guide-sources-list"></ol>
+    </div>
+    <footer class="guide-nav">
+      <button type="button" id="guide-back" class="glass-button guide-step">Back</button>
+      <div id="guide-dots" class="guide-dots" role="group" aria-label="Steps"></div>
+      <button type="button" id="guide-next" class="glass-button guide-step guide-step--next">Next</button>
+    </footer>
+  </section>
   <script type="module" src="src/main.js"></script>
 </body>
 </html>
@@ -3136,10 +3185,6 @@
   /* The Contests banner, left of the company logo, glowing gold. In Contests it stays, pressed:
      a click there (or Esc) goes back */
   .contests-banner {
-    position: fixed;
-    top: 21px;
-    right: 92px;
-    z-index: 100;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -3207,12 +3252,9 @@
     font-weight: 600;
     white-space: nowrap;
   }
-  /* On a phone there is no room beside the logo: the banner goes under it, without the date */
+  /* On a phone there is no room beside the logo: the banner goes under it (with Info, in
+     src/guide/guide.css), without the date */
   @media (max-width: 640px) {
-    .contests-banner {
-      top: 72px;
-      right: 10px;
-    }
     .contests-banner-closes {
       display: none;
     }

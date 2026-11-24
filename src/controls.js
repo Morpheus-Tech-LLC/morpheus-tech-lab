@@ -10,6 +10,7 @@ import { SeedError } from "./explore/seed.js";
 import { isContests, startContests, stopContests, isWatching, closeWatch, watchTogglePlay, watchStep, watchViewChanged } from "./contests/contests.js";
 import { CONTESTS, SEASON } from "./unbounded/contests.js";
 import { closingText } from "./contests/format.js";
+import { initGuide, isGuideOpen, closeGuide } from "./guide/guide.js";
 
 
 // Helper functions for updating displays (must be outside initControls to be accessible from resetControlsUI)
@@ -70,7 +71,13 @@ export function initControls() {
   // The Contests banner by the company logo opens the mode in one click, and says when entries
   // close; in Contests, a click on it or Esc goes back to the mode before
   const contestsBanner = document.getElementById('contests-banner');
-  if (contestsBanner) contestsBanner.onclick = () => (isContests() ? leaveContests() : enterContests());
+  if (contestsBanner) {
+    contestsBanner.onclick = () => {
+      if (isGuideOpen()) closeGuide(); // the banner stays clickable above the guide
+      if (isContests()) leaveContests();
+      else enterContests();
+    };
+  }
   const contestsCloses = document.getElementById('contests-banner-closes');
   if (contestsCloses) contestsCloses.textContent = closingText(CONTESTS, { short: true });
   document.addEventListener('keydown', (event) => {
@@ -82,6 +89,24 @@ export function initControls() {
       return;
     }
     leaveContests();
+  });
+  // Info, left of the Contests banner, opens the guide (#159); a playing simulation waits behind it
+  initGuide({
+    pauseLab: () => {
+      if (isContests() || !state.isPlaying) return false; // a contest's run is left alone
+      document.getElementById('playPauseButton')?.click();
+      return true;
+    },
+    resumeLab: () => {
+      if (!state.isPlaying) document.getElementById('playPauseButton')?.click();
+    },
+    openModes: () => {
+      if (state.showHUD === false) document.getElementById('hudToggleButton')?.click();
+      openModePopover();
+    },
+    openContests: () => {
+      if (!isContests()) enterContests();
+    },
   });
   // GPU compute toggle and indicator
   initComputeControl();
