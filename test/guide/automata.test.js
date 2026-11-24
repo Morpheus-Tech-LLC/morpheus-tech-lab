@@ -7,8 +7,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   seededRandom, ruleCases, elementaryStep, Life, parseRle, PATTERNS, torusLifeStep, hppStep, particles,
-  EAST, WEST, NORTH, SOUTH, trafficStep, placeCars, Sandpile, hexNeighbours, scalesStep,
+  EAST, WEST, NORTH, SOUTH, trafficStep, placeCars, Sandpile, hexNeighbours, scalesStep, LAB_RULE, CASES_3D,
 } from '../../src/guide/automata.js';
+import { STEPS } from '../../src/guide/steps.js';
+import { DEFAULT_RULES } from '../../src/explore/setup.js';
 
 const sorted = (cells) => cells.map(([x, y]) => `${x},${y}`).sort();
 const shifted = (cells, dx, dy) => cells.map(([x, y]) => [x + dx, y + dy]);
@@ -81,6 +83,36 @@ test('Life: Gosper’s gun repeats every 30 generations, firing a glider each ti
   assert.deepEqual(sorted(inGun), sorted(gun), 'the gun is back as it was');
   run(life, 30);
   assert.equal(life.population, 46);
+});
+
+test('step 6’s counts: 2^18 = 262,144 rules on a flat grid, 2^54 (about 18 quadrillion) on a cubic one', () => {
+  // Birth and survival are each any set of the possible counts: 0 to 8 neighbours, or 0 to 26
+  const rules = (neighbours) => 2n ** BigInt(2 * (neighbours + 1));
+  assert.equal(rules(8), 262144n);
+  assert.equal(rules(26), 18014398509481984n);
+  const words = STEPS.find((s) => s.id === 'three').body.join(' ');
+  assert.ok(words.includes('262,144') && words.includes('about 18 quadrillion'));
+  assert.ok(!/Life \d{4}/.test(words), 'no four-number rule names');
+  assert.ok(words.includes('B3/S23') && words.includes('B9,10/S5–15'), 'Conway’s shorthand, then the lab’s rule in it');
+});
+
+test('step 6’s cases follow the lab’s default rule: each count, in every layer of the 26, decides as the words say', () => {
+  assert.deepEqual(LAB_RULE.birth, [...DEFAULT_RULES.birth], 'the lab’s own default, B9,10/S5–15');
+  assert.deepEqual(LAB_RULE.survival, [...DEFAULT_RULES.survival]);
+  for (const c of CASES_3D) {
+    const keys = c.live.map((p) => p.join());
+    assert.equal(new Set(keys).size, keys.length, `${c.text}: each neighbour once`);
+    assert.ok(c.live.every((p) => p.every((v) => v >= -1 && v <= 1) && p.some((v) => v !== 0)), `${c.text}: neighbours, not the cell`);
+    assert.ok(c.live.some(([, y]) => y === 1) && c.live.some(([, y]) => y === -1), `${c.text}: some above and some below`);
+    const count = c.live.length;
+    assert.ok(c.text.startsWith(`${count} live neighbours`), `${c.text}: says its count`);
+    const next = c.alive ? LAB_RULE.survival.includes(count) : LAB_RULE.birth.includes(count);
+    assert.equal(next, /survives|is born/.test(c.text), `${c.text}: as the rule decides`);
+  }
+  const outcomes = CASES_3D.map((c) => c.text.split(': ')[1]);
+  assert.deepEqual(outcomes, ['it survives', 'a cell is born', 'it dies of loneliness', 'it dies of overcrowding'], 'the four cases of step 3, in 3D');
+  const lab = STEPS.find((s) => s.id === 'lab').body.join(' ');
+  assert.ok(lab.startsWith('The lab opens on B9,10/S5–15.'), 'step 7 names the rule step 6 explains');
 });
 
 test('parseRle reads counts and row ends, and refuses anything else', () => {

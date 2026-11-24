@@ -206,6 +206,27 @@ export const PATTERNS = {
     10bo5bo7bo$11bo3bo$12b2o!`,
 };
 
+// ---- Life in three dimensions ----
+
+/** The lab's default rule, B9,10/S5–15: born with 9 or 10 live neighbours of 26, survives with 5 to 15. */
+export const LAB_RULE = { birth: [9, 10], survival: [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15] };
+
+/**
+ * The lab's rule at work, as step 6 shows it: a cell, alive or not, and its live neighbours among
+ * the 26 around it (offsets from the cell, in every layer), with what happens to it. A test
+ * checks each against the rule.
+ */
+export const CASES_3D = [
+  { alive: 1, live: [[-1, 1, -1], [0, 1, 1], [1, 1, 0], [-1, 0, 1], [1, 0, -1], [0, -1, -1], [-1, -1, 0], [1, -1, 1]], text: '8 live neighbours of 26: it survives' },
+  { alive: 0, live: [[-1, 1, 0], [0, 1, -1], [1, 1, 1], [-1, 0, -1], [1, 0, 1], [0, 0, -1], [-1, -1, 1], [0, -1, 0], [1, -1, -1]], text: '9 live neighbours: a cell is born' },
+  { alive: 1, live: [[1, 1, -1], [-1, 0, 1], [0, -1, 1], [1, -1, 0]], text: '4 live neighbours: it dies of loneliness' },
+  {
+    alive: 1,
+    live: [[-1, -1, 0], [-1, -1, 1], [-1, 0, -1], [-1, 0, 1], [-1, 1, -1], [-1, 1, 0], [0, -1, -1], [0, -1, 1], [0, 0, -1], [0, 1, -1], [0, 1, 1], [1, -1, -1], [1, -1, 0], [1, 0, 0], [1, 0, 1], [1, 1, -1], [1, 1, 0]],
+    text: '17 live neighbours: it dies of overcrowding',
+  },
+];
+
 // ---- The HPP lattice gas (Hardy, Pomeau and de Pazzis, 1973) ----
 
 /** A cell's four particles, one bit each, by the way it is moving. */

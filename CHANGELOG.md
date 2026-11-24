@@ -16,7 +16,12 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
   sandpile), and names its sources; **Sources and credits** lists every work the guide cites,
   with its authors, year and a link. A playing simulation pauses while it is open. With reduced
   motion, each step shows a still frame (#159). Beside its 3D cube and ship, the step on this
-  lab's rules shows a 2D cross-section, the layer y = 0, marked in the 3D view (#162).
+  lab's rules shows a 2D cross-section, the layer y = 0, marked in the 3D view (#162). The step
+  on adding a dimension tells how many more rules 26 neighbours allow and how they are written,
+  B for birth and S for survival as in Conway's B3/S23, instead of Carter Bays' four-number names.
+  Its animation then shows the lab's default rule, B9,10/S5–15, at work as the step on Conway's
+  rules does: a cell's live neighbours among 26 counted, and whether it survives, is born or
+  dies (#182).
 
 ### Changed
 - The readouts above the control bar each take one line, a small label beside each value,

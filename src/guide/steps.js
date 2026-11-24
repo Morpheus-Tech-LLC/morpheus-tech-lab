@@ -312,18 +312,18 @@ export const STEPS = [
     id: 'three',
     title: 'Add a dimension',
     body: [
-      'On a cubic grid each cell has 26 neighbours instead of 8, and Conway’s balance doesn’t carry over. Game of Life 3D is a family of rules, each written as the neighbour counts for birth and survival.',
-      'Carter Bays explored them in 1987, naming each rule by four numbers. Life 4555 survives with 4 to 5 neighbours and is born with 5; Life 5766 survives with 5 to 7 and is born with 6, and contains Conway’s 2D Life within it.',
+      'On a cubic grid each cell has 26 neighbours instead of 8, so a rule has far more to choose from. Counting every way to choose the neighbour counts for birth and for survival, the flat grid allows 262,144 rules; the cubic grid allows about 18 quadrillion. Carter Bays began exploring them in 1987.',
+      'The lab writes them in the same shorthand as Conway’s B3/S23: B lists the neighbour counts that bring a cell to life, S the counts that keep it alive, now from 0 to 26. The lab’s default, B9,10/S5–15, brings a cell to life with 9 or 10 live neighbours and keeps it alive with 5 to 15.',
     ],
     scene: 'neighbourhood3d',
-    alt: 'A flat 3 by 3 neighbourhood tilts into 3D and gains a layer above and below: 8 neighbours become 26.',
+    alt: 'A flat 3 by 3 neighbourhood tilts into 3D and gains a layer above and below: 8 neighbours become 26. Then the lab’s default rule, B9,10/S5–15, at work in a 3 by 3 by 3 neighbourhood: live neighbours are counted, and the cell survives with 8, is born with 9, and dies with 4 or with 17.',
     sources: ['bays1987'],
   },
   {
     id: 'lab',
     title: 'In this lab',
     body: [
-      'The lab opens on B9,10/S5–15: a cell is born with 9 or 10 live neighbours and survives with 5 to 15. Game of Life 3D (bounded) runs inside a box. At its walls a cell has fewer neighbours (17 on a face, 11 on an edge, 7 at a corner), so each has its own rules.',
+      'The lab opens on B9,10/S5–15. Game of Life 3D (bounded) runs it inside a box. At its walls a cell has fewer neighbours (17 on a face, 11 on an edge, 7 at a corner), so each has its own rules.',
       'Game of Life 3D (unbounded) has no edges: the world grows wherever life goes. Under some rules a 3D ship travels at c, one cell per generation, twice the top speed of any spaceship in Conway’s Life.',
     ],
     scene: 'lab3d',
