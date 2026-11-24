@@ -7,7 +7,8 @@
 // first, and says to attach it by hand; the email's text opens by saying so too (#140).
 //
 // What the text says is the lab's promise to an entrant: the picture's conditions, that the repo
-// is public, how their email address is used, and, for Speed, that the timing is self-reported.
+// is public, who gets their email address and how it is used, and, for Speed, that the timing is
+// self-reported.
 // CONTRIBUTING.md's "Contest entries" is the maintainers' side of the same promise.
 //
 // No DOM: the tests run it in Node.
@@ -16,6 +17,15 @@ import { scoreText } from './format.js';
 
 /** Where entries go, for every contest. */
 export const SUBMIT_ADDRESS = 'lab@morpheustech.net';
+
+/**
+ * Who gets an entrant's email address and what is done with it: the email's small print says it,
+ * and so does the results card, before the visitor opens the email. CONTRIBUTING.md's "Contest
+ * entries" keeps the maintainers to it. Using the address for anything else, marketing included,
+ * would need the entrant's own yes first: never change this to take it away from entries already in.
+ * Kept short: it is in every mailto: link, which must stay within 2,000 characters.
+ */
+export const ADDRESS_PROMISE = 'This entry shares your email address with Morpheus Tech LLC. It is used only to reply about it, kept as its record, never published, and shared only with your written consent or as the law requires.';
 
 /** The line an entrant keeps to appear in the Hall of Fame. Without it, an entry isn't listed. */
 export const HALL_OF_FAME_LINE = 'Hall of Fame: yes, show my name, picture, score, browser and date.';
@@ -84,7 +94,7 @@ export function emailBody({ contest, browser, fileName }) {
     '',
     "The lab's repo is public: once committed, your name and picture are in its history and in every copy of it. Removal on request takes them off the site and out of the current files, but can't erase every copy.",
     '',
-    'Your email address is used only to reply about this entry. It is never published, committed or put in a result file.',
+    ADDRESS_PROMISE,
   );
   if (contest.kind === 'speed') {
     lines.push(

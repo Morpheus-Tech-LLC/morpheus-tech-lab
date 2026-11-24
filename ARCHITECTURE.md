@@ -341,7 +341,7 @@ the file, then has only what the entrant fills in; what the result file holds (s
 ships, hash) isn't repeated, and the conditions follow under a rule of dashes, in plain text, since
 a `mailto:` body can't carry formatting. Under the steps, folded away, the card shows the address, subject and text with Copy,
 for webmail. The text is the lab's promise to an
-entrant (the picture's conditions, the public repo, the email address used only to reply, Speed's
+entrant (the picture's conditions, the public repo, who gets the email address (Morpheus Tech, to reply only, shared only with written consent or as the law requires), Speed's
 self-reported timing); CONTRIBUTING.md's "Contest entries" is the maintainers' side of it. The
 **Hall of Fame** is data: `src/unbounded/hall-of-fame.json`, `{"entries": [...]}`, each entry
 with its contest, chosen name, picture (a path under `public/hall-of-fame/`, or null), score,

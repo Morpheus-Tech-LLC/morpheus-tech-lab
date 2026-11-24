@@ -30,7 +30,7 @@ import {
   arenaText, budgetText, seedPicture, sentence, departuresText, paceOf, paceTop, paceLayout, raceText,
   placeText, stripLayout,
 } from './format.js';
-import { SUBMIT_ADDRESS, emailSubject, emailBody, mailtoLink } from './submit.js';
+import { SUBMIT_ADDRESS, ADDRESS_PROMISE, emailSubject, emailBody, mailtoLink } from './submit.js';
 import { HALL_OF_FAME_TOP, readHallOfFame, rankEntries, placeFor, dayText } from './hallOfFame.js';
 import { LOOKS, logo, lookOf, verifyGlyph } from './looks.js';
 
@@ -1242,7 +1242,8 @@ async function copyText(text, what) {
  * the email, attach the file. The entry is the file, so the email opens only once it is saved,
  * by step 1 or by Export result. Saving and opening are separate clicks: done in one, a mailto:
  * link's hand-off to the mail app can lose the download (#140). The email opens in a new tab, so
- * a browser that sends mailto: to webmail doesn't navigate away from the results card. Under them, folded away, the
+ * a browser that sends mailto: to webmail doesn't navigate away from the results card. Above
+ * them, who gets the visitor's email address and what is done with it (ADDRESS_PROMISE). Under them, folded away, the
  * address, subject and text with Copy, for webmail.
  * @returns {{parts: Node[], saved: (said: string) => void}} the section's contents, and what
  *   Export result calls once it has saved the file
@@ -1311,6 +1312,8 @@ function submitParts({ contest, score, browser, text, ending }) {
     saved,
     parts: [
       h('p', { className: 'contests-submit-lead', text: "Your entry is an email with your result file attached. Without the file, it can't be verified or listed." }),
+      h('p', { className: 'contests-submit-privacy', attrs: { id: 'contests-submit-privacy' } },
+        h('strong', { text: 'Your email address. ' }), document.createTextNode(ADDRESS_PROMISE)),
       h('ol', { className: 'contests-submit-steps' },
         saveStep,
         emailStep,
