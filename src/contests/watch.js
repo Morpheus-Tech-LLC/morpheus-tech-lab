@@ -26,6 +26,7 @@ import { ExploreView, RENDER_BUDGET } from '../explore/view.js';
 import { rateFromSlider, fitSlice } from '../explore/explore.js';
 import { SPEED_MEMORY_MB } from './speed.js';
 import { watchGenerationText, selfVerifiedText, watchDeparturesText } from './format.js';
+import { holdWidth } from '../readouts.js';
 
 /** How long after the visitor lets go of the view the camera starts following again. */
 const FOLLOW_AFTER_MS = 3000;
@@ -317,6 +318,7 @@ function showGeneration(generation) {
   const text = watchGenerationText(generation, last);
   setText('contests-watch-generation', text);
   setText('bottom-gen', text);
+  holdWidth(document.getElementById('bottom-gen'), watchGenerationText(last, last));
   setText('contest-hud-generation', text);
   const departures = watch.result?.departures;
   if (departures) setText('contests-watch-departures', watchDeparturesText(departures, generation));

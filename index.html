@@ -1907,6 +1907,15 @@
   line-height: 1.2;
 }
 
+/* Fixed slots, in character widths, for the values that change while a run plays (#175): the
+   longest each can show. Generation's and Slice's are set by src/readouts.js */
+#bottom-state-value { min-width: 5ch; }
+#bottom-speed-value,
+#bottom-direction-value,
+#additional-grid-status { min-width: 3ch; }
+#additional-orientation-status,
+#additional-cell-size-value { min-width: 4ch; }
+
 .control-display-unit {
   color: rgba(200, 220, 255, 0.6);
   font-size: 11px;

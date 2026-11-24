@@ -49,7 +49,8 @@ test/                    `npm test` (Node's built-in node:test, no dependency): 
                          and convolve3D() with wrapping on, and the worlds refused (wrap.test.js); an arena
                          with walls, against the reference and by hand (walls.test.js);
                          browser.test.js checks telling the browser; selfHosted.test.js that the page loads no
-                         font from Google's servers (fonts come from npm, served with the site); shapeGenerators.test.js the bounded
+                         font from Google's servers (fonts come from npm, served with the site); readouts.test.js that a
+                         readout's slot fits every value it counts through; shapeGenerators.test.js the bounded
                          mode's seed shapes (#49); memoryAdvice.test.js checks the precomputed modes'
                          memory estimate against real runs, and that the old caps' runs don't ask; brandMark.test.js that the company
                          panel's inline mark keeps the pinned favicon's paths and gilt; contests/ checks a Speed run and Verify a
@@ -70,6 +71,8 @@ src/
                          user-agent string, for a result's details (no DOM; tested in Node)
   brand/tokens.css       Brand pin: the Morpheus Tech brand tokens. Not imported yet. Never hand-edit
   state.js               The one shared, mutable `state` object: settings, rules, scene handles, history
+  readouts.js            holdWidth(): keeps a readout above the control bar as wide as the longest value it
+                         will show while a run plays, so it doesn't shift as it counts (#175) (tested in Node)
   simulationModel.js     Builds the Three.js Points geometry from the history; updatePoints() per frame
   matrixFunctions.js     The automata: generateSimulation() and each mode's evolve step (the CPU reference);
                          convolve3D() here passes `state`'s settings to denseStep.js
