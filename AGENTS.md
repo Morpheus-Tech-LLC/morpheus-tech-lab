@@ -184,7 +184,7 @@ src/
   guide/steps.js         The ten steps' words, each one's animation and sources, and SOURCES: every cited work's
                          authors, year, title, venue and link (no DOM; tested in Node)
   guide/automata.js      The small automata the animations run, written for the lab: elementary rules (Rule 30,
-                         Rule 110), Life on the plane and on a torus, RLE patterns, Bays' B6/S5–7 and the four
+                         Rule 110), Life on the plane and on a torus, RLE patterns, the lab's default rule and the four
                          cases step 6 shows it deciding (CASES_3D), the HPP lattice gas,
                          Nagel–Schreckenberg traffic, the sandpile, and the scales' illustration (no DOM; tested)
   guide/iso.js           An orthographic camera that draws shaded cubes on a 2D canvas (no DOM; tested)

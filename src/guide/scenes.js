@@ -8,7 +8,7 @@
 
 import {
   seededRandom, ruleCases, elementaryStep, Life, parseRle, PATTERNS, torusLifeStep, torusNeighbours,
-  hppStep, particles, trafficStep, placeCars, Sandpile, scalesStep, BAYS_5766, CASES_3D,
+  hppStep, particles, trafficStep, placeCars, Sandpile, scalesStep, LAB_RULE, CASES_3D,
 } from './automata.js';
 import { camera, drawCubes, fitBox } from './iso.js';
 import { World } from '../unbounded/world.js';
@@ -333,7 +333,7 @@ function gun() {
   };
 }
 
-// ---- 6. From 8 neighbours to 26, then a 3D rule at work ----
+// ---- 6. From 8 neighbours to 26, then the lab's rule at work ----
 
 function drawNeighbourhood(ctx, w, h, u) {
   const tilt = ease((u - 2) / 2);
@@ -369,11 +369,13 @@ function drawNeighbourhood(ctx, w, h, u) {
  * so every layer shows, its live neighbours counted one by one, then the next generation.
  */
 function drawRuleCase(ctx, w, h, which, u) {
-  const COUNT = 0.3, REVEAL = 3.3;
+  const REVEAL = 3.3;
+  // Counted in at most 2.7 seconds, however many there are
+  const COUNT = Math.min(0.3, 2.7 / which.live.length);
   const counted = Math.min(which.live.length, Math.floor(u / COUNT));
   const reveal = u >= REVEAL;
   const count = which.live.length;
-  const next = which.alive ? BAYS_5766.survival.includes(count) : BAYS_5766.birth.includes(count);
+  const next = which.alive ? LAB_RULE.survival.includes(count) : LAB_RULE.birth.includes(count);
   const cam = camera(0.7 + u * 0.12, 0.5);
   const GAP = 1.55;
   const isLive = (x, y, z) => which.live.some(([a, b, c]) => a === x && b === y && c === z);
@@ -424,12 +426,12 @@ function drawRuleCase(ctx, w, h, which, u) {
   ctx.moveTo(half + 18, h / 2);
   ctx.lineTo(half + 11, h / 2 + 6);
   ctx.stroke();
-  const text = reveal ? `${which.text}${w < 520 ? '' : ' · B6/S5–7'}` : `Counting live neighbours: ${counted} of 26`;
+  const text = reveal ? `${which.text}${w < 520 ? '' : ' · B9,10/S5–15'}` : `Counting live neighbours: ${counted} of 26`;
   label(ctx, text, w / 2, h - 16, { align: 'center', color: reveal ? COLORS.text : COLORS.dim, size: 13 });
 }
 
 function neighbourhood3d() {
-  // The neighbourhood grows for NEIGHBOURS seconds; then B6/S5–7 decides four cells, PER seconds each
+  // The neighbourhood grows for NEIGHBOURS seconds; then the lab's rule decides four cells, PER seconds each
   const NEIGHBOURS = 9, PER = 5;
   const RULES = PER * CASES_3D.length;
   return {
