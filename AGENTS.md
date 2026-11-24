@@ -72,7 +72,7 @@ test/                    `npm test` (Node's built-in node:test, no dependency): 
                          and the seed editor's model (editorModel.test.js); guide/ checks the Info guide's automata
                          against published facts (automata.test.js), and its steps, its sources, its 3D camera
                          and that every animation draws (steps.test.js); the guide as a video: its timeline, its
-                         words on screen, captions and YouTube description (video.test.js)
+                         words on screen, captions and YouTube description (video.test.js), and its music (music.test.js)
 src/
   main.js                Boot: Game of Life 3D (unbounded) (startExplore()) by default, or initSimulation(); then animate()
   browser.js             detectBrowser(): the browser's name and version, from navigator.userAgentData or the
@@ -205,6 +205,9 @@ src/
                          card, each a whole number of frames at 60 fps), the words on screen a sentence or two at a
                          time, at a reading pace or a narration's, which part of a step's animation plays with which
                          words (SCENE_CUES: step 7's ship with its words), the captions (.srt) and the YouTube description, all from steps.js (no DOM; tested in Node)
+  guide/music.js         Original music for the guide's video (#161): four tracks (Glider, Rule 30, Lattice,
+                         Lightspeed) composed as notes and synthesised as samples, fitting any length and ending on
+                         their home chord; renderTrack() and wav() (no DOM; tested in Node)
   guide/guide-render.html Not bundled: a dev page that draws the video's frames at 1920 × 1080, one segment at a time
                          (guideVideo.open(), guideVideo.frame(n)), for scripts/guide-video.mjs;
                          ?segment=N&t=S shows one frame
