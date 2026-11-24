@@ -48,16 +48,6 @@ export const SCENE_CUES = {
   lab: [{ part: 'cube', at: 'The lab opens' }, { part: 'ship', at: 'Game of Life 3D (unbounded)' }],
 };
 
-/** How the music builds, unless the command says otherwise. */
-export const MUSIC_BUILD = {
-  /** Its tempo at the last step, against its own: 1.15 is 15% faster, its pitch kept. */
-  tempo: 1.15,
-  /** How much louder it is by the last step, in dB. */
-  lift: 5,
-  /** How long each step's rise takes, from the step's first frame, in seconds. */
-  glide: 2,
-};
-
 /** How long things stay on screen, in seconds. */
 export const PACE = {
   /** Reading pace for the words on screen, in characters a second. */
@@ -329,44 +319,3 @@ export function description(tl, { musicCredit = '' } = {}) {
   return `${parts.join('\n\n')}\n`;
 }
 
-/**
- * How the music builds through the video: as the first step plays, the track is as it is; each
- * later step brings it a little faster (its pitch kept) and louder, gliding up over the step's
- * first seconds, until the last step, after which it holds through the credits.
- * @returns {{level: (t: number) => number, tempoAt: (t: number) => number, gainAt: (t: number) => number,
- *   commands: {input: number, tempo: number}[], gains: {at: number, gain: number}[]}} level, from 0 to 1,
- *   tempo and gain in dB at video time t; the tempo changes for ffmpeg's rubberband filter, each at
- *   its time in the track as played so far, and the gain changes, each at its time in the video
- */
-export function musicBuild(tl, { tempo = MUSIC_BUILD.tempo, lift = MUSIC_BUILD.lift, glide = MUSIC_BUILD.glide } = {}) {
-  const starts = tl.segments.filter((s) => s.kind === 'step').map((s) => s.start);
-  const last = starts.length - 1;
-  const level = (t) => {
-    let k = 0;
-    while (k < last && t >= starts[k + 1]) k++;
-    if (k === 0) return 0;
-    const from = (k - 1) / last, to = k / last;
-    return from + (to - from) * Math.min(1, (t - starts[k]) / glide);
-  };
-  const tempoAt = (t) => 1 + (tempo - 1) * level(t);
-  const gainAt = (t) => lift * level(t);
-  // The track's own time runs faster than the video's once the tempo rises: τ = ∫ tempo dt.
-  // A change every 0.2 s of video, while the tempo glides, is smooth enough.
-  const commands = [], gains = [];
-  const dt = 1 / 100;
-  let input = 0, previous = 1, previousGain = 0, next = 0;
-  for (let i = 0; i * dt < tl.duration; i++) {
-    const t = i * dt;
-    if (t >= next) {
-      const now = Math.round(tempoAt(t) * 10000) / 10000;
-      if (now !== previous) commands.push({ input: Math.round(input * 1000) / 1000, tempo: now });
-      previous = now;
-      const gain = Math.round(gainAt(t) * 100) / 100;
-      if (gain !== previousGain) gains.push({ at: Math.round(t * 1000) / 1000, gain });
-      previousGain = gain;
-      next += 0.2;
-    }
-    input += tempoAt(t) * dt;
-  }
-  return { level, tempoAt, gainAt, commands, gains };
-}

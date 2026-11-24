@@ -8,9 +8,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { STEPS, SOURCES, sourcesInOrder } from '../../src/guide/steps.js';
 import {
-  VIDEO, LAYOUT, PACE, DESCRIPTION_LIMIT, MUSIC_CREDIT_ROOM, LAB_URL, SCENE_CUES, MUSIC_BUILD,
+  VIDEO, LAYOUT, PACE, DESCRIPTION_LIMIT, MUSIC_CREDIT_ROOM, LAB_URL, SCENE_CUES,
   charsFor, wrap, wrapList, sentences, chunksOf, sourceLines, creditsRoll, timeline, chapters, chapterTime,
-  srt, srtTime, description, descriptionCitation, musicBuild,
+  srt, srtTime, description, descriptionCitation,
 } from '../../src/guide/video.js';
 import { SCENES } from '../../src/guide/scenes.js';
 
@@ -206,35 +206,3 @@ test('a step made of parts shows each while its words are on screen: the lab’s
   for (const segment of timeline().segments.filter((s) => s.kind === 'step' && s.id !== 'lab')) assert.deepEqual(segment.cues, []);
 });
 
-test('the music plays as it is through the first step, then builds with each step to the last, and holds', () => {
-  const tl = timeline();
-  const steps = tl.segments.filter((s) => s.kind === 'step');
-  const build = musicBuild(tl);
-  assert.equal(build.tempoAt(0), 1, 'the title card');
-  assert.equal(build.tempoAt(steps[1].start - 0.01), 1, 'the whole first step');
-  assert.equal(build.gainAt(steps[0].start + 5), 0);
-  let previous = 1;
-  steps.forEach((step, k) => {
-    const settled = build.tempoAt(step.start + MUSIC_BUILD.glide + 0.01);
-    assert.ok(Math.abs(settled - (1 + ((MUSIC_BUILD.tempo - 1) * k) / (steps.length - 1))) < 1e-9, `${step.id} settles at its level`);
-    assert.ok(k === 0 || settled > previous, `${step.id} is faster than the step before`);
-    assert.ok(build.tempoAt(step.start + 0.5) <= settled, 'gliding up, not jumping');
-    previous = settled;
-  });
-  const last = tl.segments.find((s) => s.kind === 'end');
-  assert.equal(build.tempoAt(last.start + 5), MUSIC_BUILD.tempo, 'it holds through the credits and the end card');
-  assert.equal(build.gainAt(last.start + 5), MUSIC_BUILD.lift);
-
-  // Each tempo change is placed at its time in the track: the integral of the tempo so far
-  assert.ok(build.commands.length > 20);
-  for (let i = 1; i < build.commands.length; i++) assert.ok(build.commands[i].input > build.commands[i - 1].input);
-  assert.equal(build.commands.at(-1).tempo, MUSIC_BUILD.tempo);
-  const first = build.commands[0];
-  assert.ok(Math.abs(first.input - steps[1].start) < 0.25, 'the first change comes as the second step starts, the track not yet sped up');
-  assert.ok(build.commands.at(-1).input > steps.at(-1).start, 'by the last step, the track has run ahead of the video');
-  assert.ok(build.gains.every((g, i) => i === 0 || (g.at > build.gains[i - 1].at && g.gain > build.gains[i - 1].gain)));
-  assert.equal(build.gains.at(-1).gain, MUSIC_BUILD.lift);
-
-  const none = musicBuild(tl, { tempo: 1, lift: 0 });
-  assert.deepEqual([none.commands, none.gains], [[], []], 'no build: no changes');
-});

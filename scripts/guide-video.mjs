@@ -15,9 +15,6 @@
 // --music      a track licensed for YouTube, such as one from the YouTube Audio Library: looped
 //              to the video's length, faded in and out, and lowered under narration.
 // --music-credit  the credit line the track asks for, shown in the credits and the description.
-// --music-tempo   how much faster the music is by the last step (default 1.15: 15%, pitch kept);
-// --music-lift    and how much louder, in dB (default 5). It plays as it is through the first step,
-//                 and builds a little with each step after. --music-tempo 1 --music-lift 0: no build.
 // --remix      put new music (or narration) under the video already in --out, without drawing it
 //              again; the guide must not have changed since.
 // --narration  a folder with one recording per step, named by the step's id (what.wav,
@@ -38,9 +35,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createServer } from 'vite';
 import { STEPS } from '../src/guide/steps.js';
-import {
-  timeline, srt, description, chapters, chapterTime, musicBuild, DESCRIPTION_LIMIT, MUSIC_BUILD,
-} from '../src/guide/video.js';
+import { timeline, srt, description, chapters, chapterTime, DESCRIPTION_LIMIT } from '../src/guide/video.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -52,8 +47,6 @@ const { values: args } = parseArgs({
     narration: { type: 'string' },
     stills: { type: 'boolean', default: false },
     frame: { type: 'string' },
-    'music-tempo': { type: 'string', default: String(MUSIC_BUILD.tempo) },
-    'music-lift': { type: 'string', default: String(MUSIC_BUILD.lift) },
     remix: { type: 'boolean', default: false },
     jobs: { type: 'string', default: String(Math.max(1, Math.min(8, Math.floor(os.cpus().length / 3)))) },
     browser: { type: 'string', default: 'chromium' },
@@ -237,34 +230,18 @@ async function renderSegment(tab, segment, file, threads, progress) {
   await done;
 }
 
-/**
- * Mixes the music and the narration under the video. The music builds (video.js's musicBuild()):
- * rubberband speeds it up, its pitch kept, at times in the track's own clock, then a volume
- * filter lifts it at times in the video's.
- */
-async function addAudio(video, file, narrationFiles, tl, work) {
+/** Mixes the music and the narration under the video. */
+async function addAudio(video, file, narrationFiles, tl) {
   const inputs = ['-i', video];
   const filters = [];
   const mix = [];
   const D = tl.duration.toFixed(3);
   if (args.music) {
     inputs.push('-stream_loop', '-1', '-i', args.music);
-    const tempo = Number(args['music-tempo']), lift = Number(args['music-lift']);
-    if (!(tempo >= 1 && tempo <= 1.5) || !(lift >= 0 && lift <= 12)) {
-      throw new Refusal('--music-tempo goes from 1 to 1.5, and --music-lift from 0 to 12 dB');
-    }
-    const build = musicBuild(tl, { tempo, lift });
-    const tempos = path.join(work, 'tempo.cmd'), gains = path.join(work, 'gain.cmd');
-    fs.writeFileSync(tempos, build.commands.map((c) => `${c.input} rubberband@build tempo ${c.tempo};`).join('\n'));
-    fs.writeFileSync(gains, build.gains.map((g) => `${g.at} volume@lift volume ${g.gain}dB;`).join('\n'));
-    // It ends at about -16 LUFS on its own, or well under a voice; YouTube evens out the rest
-    // and its peaks leave room for the lift
-    const loudness = (narrationFiles ? -32 : -16) - lift;
-    const peak = Math.max(-9, -1.5 - lift);
-    filters.push(`[1:a]aformat=sample_rates=48000:channel_layouts=stereo,loudnorm=I=${loudness}:TP=${peak}:LRA=11,aresample=48000,`
-      + `asendcmd=f=${tempos},rubberband@build=tempo=1:pitchq=quality,atrim=0:${D},asetpts=PTS-STARTPTS,`
-      + `asendcmd=f=${gains},volume@lift=volume=0dB,alimiter=limit=0.9:level=false,`
-      + `afade=t=in:d=2,afade=t=out:st=${(tl.duration - 5).toFixed(3)}:d=5[m]`);
+    // Quieter under a voice; YouTube plays everything at about -14 LUFS anyway
+    const loudness = narrationFiles ? -30 : -16;
+    filters.push(`[1:a]aformat=sample_rates=48000:channel_layouts=stereo,atrim=0:${D},asetpts=PTS-STARTPTS,`
+      + `loudnorm=I=${loudness}:TP=-2:LRA=11,aresample=48000,afade=t=in:d=2,afade=t=out:st=${(tl.duration - 5).toFixed(3)}:d=5[m]`);
     mix.push('[m]');
   }
   if (narrationFiles) {
@@ -351,7 +328,7 @@ try {
     }
     const video = path.join(work, 'video.mp4');
     await ffmpeg(['-i', rendered, '-map', '0:v', '-c', 'copy', video]).done;
-    await addAudio(video, rendered, narrationFiles, timelineData, work);
+    await addAudio(video, rendered, narrationFiles, timelineData);
     console.log(`${rendered} (${chapterTime(lengthOf(rendered))})`);
   } else {
     await server.listen();
@@ -406,7 +383,7 @@ try {
       const video = path.join(work, 'video.mp4');
       await ffmpeg(['-f', 'concat', '-safe', '0', '-i', list, '-c', 'copy', '-movflags', '+faststart', video]).done;
       const final = path.join(out, 'guide.mp4');
-      if (args.music || narrationFiles) await addAudio(video, final, narrationFiles, timelineData, work);
+      if (args.music || narrationFiles) await addAudio(video, final, narrationFiles, timelineData);
       else {
         console.warn('guide-video: no --music or --narration, so the video is silent');
         fs.copyFileSync(video, final);
