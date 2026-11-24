@@ -312,8 +312,8 @@ export const STEPS = [
     id: 'three',
     title: 'Add a dimension',
     body: [
-      'On a cubic grid each cell has 26 neighbours instead of 8, so a rule has far more to choose from. Counting every way to choose the neighbour counts for birth and for survival, the flat grid allows 262,144 rules; the cubic grid allows about 18 quadrillion.',
-      'Carter Bays began exploring these rules in 1987. They use the same shorthand as Conway’s B3/S23: B lists the neighbour counts that bring a cell to life, S the counts that keep it alive, now from 0 to 26. The lab’s default, B9,10/S5–15, brings a cell to life with 9 or 10 live neighbours and keeps it alive with 5 to 15.',
+      'On a cubic grid each cell has 26 neighbours instead of 8, so a rule has far more to choose from. Counting every way to choose the neighbour counts for birth and for survival, the flat grid allows 262,144 rules; the cubic grid allows about 18 quadrillion. Carter Bays began exploring them in 1987.',
+      'The lab writes them in the same shorthand as Conway’s B3/S23: B lists the neighbour counts that bring a cell to life, S the counts that keep it alive, now from 0 to 26. The lab’s default, B9,10/S5–15, brings a cell to life with 9 or 10 live neighbours and keeps it alive with 5 to 15.',
     ],
     scene: 'neighbourhood3d',
     alt: 'A flat 3 by 3 neighbourhood tilts into 3D and gains a layer above and below: 8 neighbours become 26. Then the lab’s default rule, B9,10/S5–15, at work in a 3 by 3 by 3 neighbourhood: live neighbours are counted, and the cell survives with 8, is born with 9, and dies with 4 or with 17.',
