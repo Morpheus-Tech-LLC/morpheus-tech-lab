@@ -349,7 +349,7 @@ export const STEPS = [
       'In the 1940s John von Neumann designed a self-reproducing automaton whose instructions are copied separately from the machine that reads them, the division of labour living cells were later found to use with DNA. Today, neural cellular automata learn rules that grow a shape from one cell and repair it after damage.',
     ],
     scene: 'rule110',
-    alt: 'Rule 110 running from a random row: structures travel across a regular background and collide.',
+    alt: 'Rule 110 running from a random row in a narrow panel, its structures travelling across a regular background, beside seven of Life’s oscillators running in place, each labelled with its period: the blinker (2), the pulsar (3), the mold (4), octagon 2 (5), the figure eight (8), the tumbler (14) and the pentadecathlon (15).',
     sources: ['cook2004', 'brown2023', 'gemini', 'sirRobin', 'vonNeumann1966', 'mordvintsev2020'],
   },
   {

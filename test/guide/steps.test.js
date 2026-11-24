@@ -11,6 +11,7 @@ import { camera, visibleFaces, fitBox } from '../../src/guide/iso.js';
 import { World } from '../../src/unbounded/world.js';
 import { step as worldStep } from '../../src/unbounded/step.js';
 import { presetById } from '../../src/explore/presets.js';
+import { OSCILLATORS } from '../../src/guide/automata.js';
 
 test('ten steps, each with a title, words, an animation, a description of it and its sources', () => {
   assert.equal(STEPS.length, 10);
@@ -65,6 +66,8 @@ function fakeContext() {
     fillRect: () => calls.fills++,
     fill: () => calls.fills++,
     fillText: (text) => calls.texts.push(text),
+    // About as wide as Roboto Mono at 11px
+    measureText: (text) => ({ width: text.length * 6.6 }),
     strokeRect: noop, beginPath: noop, closePath: noop, moveTo: noop, lineTo: noop, stroke: noop,
     rect: noop, clip: noop, save: noop, restore: noop, setTransform: noop,
   };
@@ -91,6 +94,17 @@ test('every animation draws, at the start, later, after it loops and at its stil
         assert.ok(ctx.calls.fills > 0, `${name} draws something at ${t}s, ${w} × ${h}`);
       }
     }
+  }
+});
+
+test('step 9 labels each of Life’s oscillators with its name and period, beside Rule 110', () => {
+  for (const [w, h] of [[720, 460], [360, 220]]) {
+    const ctx = fakeContext();
+    SCENES.rule110().draw(ctx, w, h, 2);
+    for (const { name, period } of OSCILLATORS) {
+      assert.ok(ctx.calls.texts.includes(name) && ctx.calls.texts.includes(`period ${period}`), `${name}, at ${w} × ${h}`);
+    }
+    assert.ok(ctx.calls.texts.some((t) => t.startsWith('Rule 110 · ')), ctx.calls.texts.join(' | '));
   }
 });
 

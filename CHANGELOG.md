@@ -21,7 +21,8 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
   B for birth and S for survival as in Conway's B3/S23, instead of Carter Bays' four-number names.
   Its animation then shows the lab's default rule, B9,10/S5–15, at work as the step on Conway's
   rules does: a cell's live neighbours among 26 counted, and whether it survives, is born or
-  dies (#182).
+  dies (#182). The step on rules that compute shows Rule 110 in a smaller, slower panel, beside
+  seven of Life's oscillators running in place, each labelled with its period, from 2 to 15 (#180).
 
 ### Changed
 - The readouts above the control bar each take one line, a small label beside each value,

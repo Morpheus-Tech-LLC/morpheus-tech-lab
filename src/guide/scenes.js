@@ -8,7 +8,7 @@
 
 import {
   seededRandom, ruleCases, elementaryStep, Life, parseRle, PATTERNS, torusLifeStep, torusNeighbours,
-  hppStep, particles, trafficStep, placeCars, Sandpile, scalesStep, LAB_RULE, CASES_3D,
+  hppStep, particles, trafficStep, placeCars, Sandpile, scalesStep, LAB_RULE, CASES_3D, OSCILLATORS,
 } from './automata.js';
 import { camera, drawCubes, fitBox } from './iso.js';
 import { World } from '../unbounded/world.js';
@@ -786,29 +786,109 @@ function findings() {
   };
 }
 
-// ---- 9. Rule 110 ----
+// ---- 9. Rule 110 beside Life's oscillators ----
 
-function rule110() {
-  const WIDTH = 180, RATE = 14, RUN = 900;
+/** Rule 110 from a random row, scrolling: time runs down. @returns the panel's drawer */
+function rule110Panel() {
+  const WIDTH = 48, RATE = 6, RUN = 600;
   const random = seededRandom(110);
   let row = new Uint8Array(WIDTH);
   for (let i = 0; i < WIDTH; i++) row[i] = random() < 0.5 ? 1 : 0;
   const rows = [row];
   for (let i = 1; i < RUN; i++) rows.push(row = elementaryStep(row, 110));
+  return (ctx, rect, t) => {
+    ctx.fillStyle = COLORS.panel;
+    ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+    const grid = { x: rect.x + 6, y: rect.y + 22, w: rect.w - 12, h: rect.h - 28 };
+    const size = grid.w / WIDTH;
+    const visible = Math.max(1, Math.min(RUN, Math.floor(grid.h / size)));
+    // Full from the first frame: the top row is the random one, and the rows scroll up from there
+    const gen = visible - 1 + (Math.floor(t * RATE) % (RUN - visible + 1));
+    const first = gen - visible + 1;
+    const layout = { size, x0: grid.x, y0: grid.y };
+    for (let y = first; y <= gen; y++) {
+      const r = rows[y];
+      for (let x = 0; x < WIDTH; x++) if (r[x]) drawCell(ctx, layout, x, y - first, COLORS.live, 0.08);
+    }
+    label(ctx, rect.w < 260 ? `Rule 110 · gen ${n(gen)}` : `Rule 110 · generation ${n(gen)} · time runs down`,
+      rect.x + 6, rect.y + 15, { size: 11, color: COLORS.text });
+  };
+}
+
+/**
+ * Life's oscillators, one tile each with its name and period, all at one scale, running in place.
+ * The tiles fill a grid of 2 to 4 columns, whichever shows the cells largest; seven never fill
+ * it, so its bottom right corner, where the Pause button sits, stays empty.
+ */
+function oscillatorGallery() {
+  const RATE = 3, GAP = 6, TOP = 20, BOTTOM = 18;
+  const shows = OSCILLATORS.map((o) => {
+    const life = new Life(parseRle(o.rle));
+    const phases = [];
+    for (let g = 0; g < o.period; g++) {
+      phases.push(life.cells());
+      life.step();
+    }
+    // Every phase in view: the union of their bounds
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const cells of phases) {
+      for (const [x, y] of cells) {
+        minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+        minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+      }
+    }
+    return { ...o, phases, view: { minX, minY, cols: maxX - minX + 1, rows: maxY - minY + 1 } };
+  });
+  const widest = Math.max(...shows.map((s) => s.view.cols)), tallest = Math.max(...shows.map((s) => s.view.rows));
+  const tiling = (rect, cols) => {
+    const rows = Math.ceil(shows.length / cols);
+    const w = (rect.w - (cols - 1) * GAP) / cols, h = (rect.h - (rows - 1) * GAP) / rows;
+    return { cols, w, h, size: Math.min((w - 12) / widest, (h - TOP - BOTTOM) / tallest) };
+  };
+  return (ctx, rect, t) => {
+    const gen = Math.floor(t * RATE);
+    const tiles = [2, 3, 4].map((cols) => tiling(rect, cols)).reduce((a, b) => (b.size > a.size ? b : a));
+    const size = Math.max(1, Math.floor(tiles.size * 2) / 2);
+    shows.forEach((show, i) => {
+      const x = rect.x + (i % tiles.cols) * (tiles.w + GAP), y = rect.y + Math.floor(i / tiles.cols) * (tiles.h + GAP);
+      ctx.fillStyle = COLORS.panel;
+      ctx.fillRect(x, y, tiles.w, tiles.h);
+      const { view } = show;
+      const layout = {
+        size,
+        x0: Math.round(x + (tiles.w - view.cols * size) / 2),
+        y0: Math.round(y + TOP + (tiles.h - TOP - BOTTOM - view.rows * size) / 2),
+      };
+      drawGridLines(ctx, layout, view.cols, view.rows);
+      for (const [cx, cy] of show.phases[gen % show.period]) drawCell(ctx, layout, cx - view.minX, cy - view.minY, COLORS.live);
+      // A long name in a narrow tile, as on a phone, takes a smaller size
+      let nameSize = 11;
+      ctx.font = `400 ${nameSize}px ${FONT}`;
+      while (nameSize > 8 && ctx.measureText(show.name).width > tiles.w - 10) ctx.font = `400 ${--nameSize}px ${FONT}`;
+      label(ctx, show.name, x + 6, y + 14, { size: nameSize, color: COLORS.text });
+      label(ctx, `period ${show.period}`, x + 6, y + tiles.h - 6, { size: 11, color: COLORS.accent });
+    });
+  };
+}
+
+function rule110() {
+  const rule = rule110Panel();
+  const gallery = oscillatorGallery();
   return {
-    still: 40,
+    still: 0,
     draw(ctx, w, h, t) {
       clear(ctx, w, h);
-      const layoutW = (w - 20) / WIDTH;
-      const visible = Math.min(RUN, Math.floor((h - 34) / layoutW));
-      const gen = visible - 1 + (Math.floor(t * RATE) % (RUN - visible + 1));
-      const first = Math.max(0, gen - visible + 1);
-      const layout = { size: layoutW, x0: 10, y0: 10 };
-      for (let y = first; y <= gen; y++) {
-        const r = rows[y];
-        for (let x = 0; x < WIDTH; x++) if (r[x]) drawCell(ctx, layout, x, y - first, COLORS.live, 0.08);
-      }
-      label(ctx, `Rule 110 · generation ${n(gen)} · time runs down`, w / 2, h - 12, { align: 'center', color: COLORS.text });
+      const pad = 8;
+      // Side by side, Rule 110 a third of the stage; on a phone, Rule 110 above the gallery
+      const stacked = w < 560;
+      const left = stacked
+        ? { x: pad, y: pad, w: w - 2 * pad, h: Math.round((h - 3 * pad) * 0.4) }
+        : { x: pad, y: pad, w: Math.round((w - 3 * pad) / 3), h: h - 2 * pad };
+      const right = stacked
+        ? { x: pad, y: left.y + left.h + pad, w: w - 2 * pad, h: h - left.h - 3 * pad }
+        : { x: left.x + left.w + pad, y: pad, w: w - left.w - 3 * pad, h: h - 2 * pad };
+      rule(ctx, left, t);
+      gallery(ctx, right, t);
     },
   };
 }
