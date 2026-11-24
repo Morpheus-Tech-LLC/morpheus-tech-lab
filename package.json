@@ -18,6 +18,7 @@
     "vite": "^7.0.4"
   },
   "dependencies": {
+    "@fontsource/roboto-mono": "^5.3.0",
     "three": "^0.178.0"
   }
 }

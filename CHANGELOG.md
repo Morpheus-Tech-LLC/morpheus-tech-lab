@@ -24,6 +24,8 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
   glows blue (#164).
 - Season 0 of the contests now closes at 11:59 PM Central Time on **31 March 2027**, not 31
   December 2026; the Contests banner and pages say so (#166).
+- The lab's font, Roboto Mono, is served with the site, no longer from Google's font servers, so
+  visiting the lab no longer sends your IP address to Google (#171).
 
 ## [1.8.0] — 2026-11-23
 
