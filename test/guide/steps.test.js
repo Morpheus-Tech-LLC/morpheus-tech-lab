@@ -8,6 +8,9 @@ import assert from 'node:assert/strict';
 import { STEPS, SOURCES, sourcesInOrder, citation } from '../../src/guide/steps.js';
 import { SCENES } from '../../src/guide/scenes.js';
 import { camera, visibleFaces, fitBox } from '../../src/guide/iso.js';
+import { World } from '../../src/unbounded/world.js';
+import { step as worldStep } from '../../src/unbounded/step.js';
+import { presetById } from '../../src/explore/presets.js';
 
 test('ten steps, each with a title, words, an animation, a description of it and its sources', () => {
   assert.equal(STEPS.length, 10);
@@ -98,6 +101,36 @@ test('the R-pentomino and the gun say where they are; the ship is run by the lab
   const lab = fakeContext();
   SCENES.lab3d().draw(lab, 720, 460, 24 / 3 + 2.5 + 60 / 6);
   assert.ok(lab.calls.texts.some((t) => /^A ship · B4\/S6 · generation 60 · its front at x = \d+/.test(t)), lab.calls.texts.join(' | '));
+});
+
+const n = (value) => value.toLocaleString('en');
+
+/** The cells of a lab preset's layer y = 0 at a generation, counted from all its cells. */
+function layerCount(id, generation) {
+  const preset = presetById(id);
+  const world = new World({ rules: preset.rules, slabBytes: 1 << 20 });
+  const cells = [];
+  for (let i = 0; i < preset.cells.length; i += 3) cells.push([preset.cells[i], preset.cells[i + 1], preset.cells[i + 2]]);
+  world.setCells(cells);
+  for (let g = 0; g < generation; g++) worldStep(world);
+  const all = world.cells();
+  let count = 0;
+  for (let i = 1; i < all.length; i += 3) if (all[i] === 0) count++;
+  return count;
+}
+
+test('step 7’s cross-section holds exactly the layer y = 0 of the world beside it, wide or narrow', () => {
+  const cubeCount = layerCount('cube10', 24);
+  const shipCount = layerCount('ship-p1', 60);
+  assert.equal(shipCount, 4, 'the ship’s middle layer');
+  for (const [w, h] of [[720, 460], [360, 520]]) {
+    const cube = fakeContext();
+    SCENES.lab3d().draw(cube, w, h, SCENES.lab3d().still);
+    assert.ok(cube.calls.texts.some((t) => t.endsWith(`y = 0 · ${n(cubeCount)} cells`)), cube.calls.texts.join(' | '));
+    const ship = fakeContext();
+    SCENES.lab3d().draw(ship, w, h, 24 / 3 + 2.5 + 60 / 6);
+    assert.ok(ship.calls.texts.some((t) => t.endsWith('y = 0 · 4 cells')), ship.calls.texts.join(' | '));
+  }
 });
 
 test('the 3D camera: straight down shows only tops; tilted, three faces, and a box fits', () => {

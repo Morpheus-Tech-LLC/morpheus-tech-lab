@@ -327,7 +327,7 @@ export const STEPS = [
       'Game of Life 3D (unbounded) has no edges: the world grows wherever life goes. Under some rules a 3D ship travels at c, one cell per generation, twice the top speed of any spaceship in Conway’s Life.',
     ],
     scene: 'lab3d',
-    alt: 'The lab’s 10 by 10 by 10 cube swelling under its default rules, then an 8-cell ship flying one cell per generation, both run by the lab’s own engine.',
+    alt: 'The lab’s 10 by 10 by 10 cube swelling under its default rules, then an 8-cell ship flying one cell per generation, both run by the lab’s own engine. Beside each, a flat grid shows the cross-section through its middle layer, marked by a plane in the 3D view.',
     sources: ['speedOfLight'],
   },
   {
