@@ -667,11 +667,11 @@
           </span>
         </div>
         <div class="control-display-line">
-          <span class="control-display-label">Direction</span>
+          <span class="control-display-label"><span aria-hidden="true">Dir</span><span class="visually-hidden">Direction</span></span>
           <span id="bottom-direction-value" class="control-display-value">fwd</span>
         </div>
         <div class="control-display-line">
-          <span class="control-display-label">Generation</span>
+          <span class="control-display-label"><span aria-hidden="true">Gen</span><span class="visually-hidden">Generation</span></span>
           <span id="bottom-gen" class="control-display-value">0</span>
         </div>
       </div>
@@ -719,11 +719,11 @@
             <span id="additional-grid-status" class="control-display-value">off</span>
           </div>
           <div class="control-display-line">
-            <span class="control-display-label">Orientation</span>
+            <span class="control-display-label"><span aria-hidden="true">Orient</span><span class="visually-hidden">Orientation</span></span>
             <span id="additional-orientation-status" class="control-display-value">up</span>
           </div>
           <div class="control-display-line">
-            <span class="control-display-label">Cell Size</span>
+            <span class="control-display-label"><span aria-hidden="true">Cell</span><span class="visually-hidden">Cell size</span></span>
             <span id="additional-cell-size-value" class="control-display-value">1.2</span>
           </div>
           <div class="control-display-line">
@@ -1734,13 +1734,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-}
-
-#additional-controls-display {
-  width: 180px; /* Wider to accommodate the labels and values */
-  min-width: 180px;
-  max-width: 180px;
+  gap: 6px;
 }
 
 #additional-controls-panel {
@@ -1768,7 +1762,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 #config-controls-panel {
@@ -1855,31 +1849,32 @@
   border: 0;
 }
 
+/* The readouts above the control bar (#175): one line each, a small capital label beside each
+   value, as wide as the line and centred over its panel, so they take as little of the view as
+   they can. A long value makes the line longer, never two lines */
 .bottom-controls-display {
   background: rgba(35, 45, 60, 0.4);
   border: 1px solid rgba(100, 150, 200, 0.15);
-  border-radius: 8px;
-  padding: 10px 14px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px 16px;
+  border-radius: 6px;
+  padding: 5px 12px;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: 14px;
+  white-space: nowrap;
+  box-sizing: border-box;
   pointer-events: none;
   cursor: default;
   opacity: 0.85;
-  align-items: start;
-}
-
-#bottom-controls-display {
-  width: 294px; /* Match bottom-controls-panel width: 4 buttons (60px each) + 3 gaps (10px each) + 2 padding (12px each) = 240 + 30 + 24 = 294px */
-  box-sizing: border-box;
 }
 
 .control-display-line {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 5px;
   min-width: 0;
-  align-items: flex-start;
 }
 
 .control-display-value-wrapper {
@@ -1889,19 +1884,21 @@
 }
 
 .control-display-label {
-  color: rgba(200, 220, 255, 0.7);
-  font-size: 13px;
+  color: rgba(200, 220, 255, 0.55);
+  font-size: 10px;
   font-weight: 500;
-  letter-spacing: 0.2px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
   white-space: nowrap;
   line-height: 1.2;
 }
 
 .control-display-value {
   color: rgba(200, 220, 255, 0.95);
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 600;
-  min-width: 30px;
+  font-variant-numeric: tabular-nums;
+  min-width: 0;
   text-align: left;
   display: inline-flex;
   align-items: center;
@@ -1910,14 +1907,9 @@
   line-height: 1.2;
 }
 
-#bottom-gen {
-  min-width: 60px;
-  width: auto;
-}
-
 .control-display-unit {
   color: rgba(200, 220, 255, 0.6);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
 }
 
@@ -4407,7 +4399,7 @@
   .contests-watch {
     position: fixed;
     left: 50%;
-    bottom: 226px;
+    bottom: 148px;
     transform: translateX(-50%);
     width: min(640px, calc(100vw - 32px));
     padding: 10px 14px;

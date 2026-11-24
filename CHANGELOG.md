@@ -19,6 +19,9 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
   lab's rules shows a 2D cross-section, the layer y = 0, marked in the 3D view (#162).
 
 ### Changed
+- The readouts above the control bar each take one line, a small label beside each value,
+  instead of two rows of labels over values, giving the simulation about 80px more height. Watch's
+  bar sits just above them (#175).
 - The company panel's **morpheustech.net** link shows the Morpheus Tech mark in its gilt, as
   morpheustech.net draws its logo, in place of a globe (#169).
 - The Morpheus Tech logo at the top right shows at full strength, no longer dimmed until

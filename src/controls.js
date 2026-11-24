@@ -540,8 +540,8 @@ export function initControls() {
     document.getElementById('company-logo-button-top')?.setAttribute('aria-expanded', 'false');
     if (footerIcons) footerIcons.style.display = '';
     if (glassDisplayContainer && state.showHUD) glassDisplayContainer.style.display = 'flex';
-    if (bottomControlsDisplay && state.showHUD) bottomControlsDisplay.style.display = 'grid';
-    if (additionalControlsDisplay && state.showHUD) additionalControlsDisplay.style.display = 'grid';
+    if (bottomControlsDisplay && state.showHUD) bottomControlsDisplay.style.display = '';
+    if (additionalControlsDisplay && state.showHUD) additionalControlsDisplay.style.display = '';
     if (controlsWrapper) controlsWrapper.style.display = '';
   }
   
@@ -605,10 +605,10 @@ export function initControls() {
       
       // Toggle control panel info displays
       if (bottomControlsDisplay) {
-        bottomControlsDisplay.style.display = state.showHUD ? 'grid' : 'none';
+        bottomControlsDisplay.style.display = state.showHUD ? '' : 'none';
       }
       if (additionalControlsDisplay) {
-        additionalControlsDisplay.style.display = state.showHUD ? 'grid' : 'none';
+        additionalControlsDisplay.style.display = state.showHUD ? '' : 'none';
       }
       
       // Update icon color - blue when visible, white/gray when hidden
@@ -624,12 +624,12 @@ export function initControls() {
       hudIcon.style.stroke = '#4da3ff'; // Blue when visible
     }
     
-    // Initialize display state to match CSS (grid layout)
+    // Initialize display state: shown, the stylesheet lays the readouts out on one line (#175)
     if (bottomControlsDisplay) {
-      bottomControlsDisplay.style.display = state.showHUD ? 'grid' : 'none';
+      bottomControlsDisplay.style.display = state.showHUD ? '' : 'none';
     }
     if (additionalControlsDisplay) {
-      additionalControlsDisplay.style.display = state.showHUD ? 'grid' : 'none';
+      additionalControlsDisplay.style.display = state.showHUD ? '' : 'none';
     }
   }
 
