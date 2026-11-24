@@ -50,7 +50,8 @@ test/                    `npm test` (Node's built-in node:test, no dependency): 
                          with walls, against the reference and by hand (walls.test.js);
                          browser.test.js checks telling the browser; shapeGenerators.test.js the bounded
                          mode's seed shapes (#49); memoryAdvice.test.js checks the precomputed modes'
-                         memory estimate against real runs, and that the old caps' runs don't ask; contests/ checks a Speed run and Verify a
+                         memory estimate against real runs, and that the old caps' runs don't ask; brandMark.test.js that the company
+                         panel's inline mark keeps the pinned favicon's paths and gilt; contests/ checks a Speed run and Verify a
                          result… on worker_threads (verifyNodeWorker.js stands in for verify.worker.js) and
                          Methuselah and Classic Methuselah runs on worker_threads (discovery.test.js),
                          the panel's text (format.test.js), Watch's, Methuselah's and the ships' included, the email's text (submit.test.js)
