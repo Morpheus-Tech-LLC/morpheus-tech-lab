@@ -21,6 +21,8 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
 ### Changed
 - The company panel's **morpheustech.net** link shows the Morpheus Tech mark in its gilt, as
   morpheustech.net draws its logo, in place of a globe (#169).
+- The reverse and flip-orientation buttons show bold arrows with solid heads, the direction in use
+  lit; the orientation icon loses the line that outweighed its arrows (#176).
 - The Morpheus Tech logo at the top right shows at full strength, no longer dimmed until
   hovered, so the Info button and the Contests banner don't outshine it. Hovered or focused, it
   glows blue (#164).
