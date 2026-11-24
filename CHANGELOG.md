@@ -19,6 +19,9 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
   lab's rules shows a 2D cross-section, the layer y = 0, marked in the 3D view (#162).
 
 ### Changed
+- The Morpheus Tech logo at the top right shows at full strength, no longer dimmed until
+  hovered, so the Info button and the Contests banner don't outshine it. Hovered or focused, it
+  glows blue (#164).
 - Season 0 of the contests now closes at 11:59 PM Central Time on **31 March 2027**, not 31
   December 2026; the Contests banner and pages say so (#166).
 
