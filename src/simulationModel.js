@@ -4,6 +4,7 @@ import { state } from "./state.js";
 import { initControls } from './controls.js';
 import { initSpace } from './space.js';
 import { isOutOfMemory, outOfMemoryText } from './memoryAdvice.js';
+import { holdWidth, countWidth } from './readouts.js';
 
 // Each rebuild gets a number. A GPU run awaits the GPU, so another rebuild can start while one
 // is computing; only the latest one may write its result.
@@ -313,6 +314,7 @@ export function updatePoints() {
   if (bottomGen) {
     const maxGen = state.simulationData && state.simulationData.length > 0 ? state.simulationData.length - 1 : 0;
     bottomGen.textContent = `${genDisplay} / ${maxGen}`;
+    holdWidth(bottomGen, countWidth(maxGen));
   }
 }
 

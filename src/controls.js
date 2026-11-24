@@ -11,6 +11,7 @@ import { isContests, startContests, stopContests, isWatching, closeWatch, watchT
 import { CONTESTS, SEASON } from "./unbounded/contests.js";
 import { closingText } from "./contests/format.js";
 import { initGuide, isGuideOpen, closeGuide } from "./guide/guide.js";
+import { holdWidth, countWidth } from "./readouts.js";
 
 
 // Helper functions for updating displays (must be outside initControls to be accessible from resetControlsUI)
@@ -179,8 +180,10 @@ export function initControls() {
         const index = state.sliceIndex !== null ? state.sliceIndex : 0;
         const maxIndex = sliceSlider ? (parseInt(sliceSlider.max) || state.sim_size - 1) : (state.sim_size - 1);
         displayText.textContent = `${index} / ${maxIndex}`;
+        holdWidth(displayText, countWidth(maxIndex));
       } else {
         displayText.textContent = '-';
+        holdWidth(displayText, '-');
       }
     }
   }
@@ -324,6 +327,7 @@ export function initControls() {
     if (bottomGen) {
       const maxGen = state.simulationData && state.simulationData.length > 0 ? state.simulationData.length - 1 : 0;
       bottomGen.textContent = `${state.currentGen} / ${maxGen}`;
+      holdWidth(bottomGen, countWidth(maxGen));
     }
   });
 
@@ -540,8 +544,8 @@ export function initControls() {
     document.getElementById('company-logo-button-top')?.setAttribute('aria-expanded', 'false');
     if (footerIcons) footerIcons.style.display = '';
     if (glassDisplayContainer && state.showHUD) glassDisplayContainer.style.display = 'flex';
-    if (bottomControlsDisplay && state.showHUD) bottomControlsDisplay.style.display = 'grid';
-    if (additionalControlsDisplay && state.showHUD) additionalControlsDisplay.style.display = 'grid';
+    if (bottomControlsDisplay && state.showHUD) bottomControlsDisplay.style.display = '';
+    if (additionalControlsDisplay && state.showHUD) additionalControlsDisplay.style.display = '';
     if (controlsWrapper) controlsWrapper.style.display = '';
   }
   
@@ -605,10 +609,10 @@ export function initControls() {
       
       // Toggle control panel info displays
       if (bottomControlsDisplay) {
-        bottomControlsDisplay.style.display = state.showHUD ? 'grid' : 'none';
+        bottomControlsDisplay.style.display = state.showHUD ? '' : 'none';
       }
       if (additionalControlsDisplay) {
-        additionalControlsDisplay.style.display = state.showHUD ? 'grid' : 'none';
+        additionalControlsDisplay.style.display = state.showHUD ? '' : 'none';
       }
       
       // Update icon color - blue when visible, white/gray when hidden
@@ -624,12 +628,12 @@ export function initControls() {
       hudIcon.style.stroke = '#4da3ff'; // Blue when visible
     }
     
-    // Initialize display state to match CSS (grid layout)
+    // Initialize display state: shown, the stylesheet lays the readouts out on one line (#175)
     if (bottomControlsDisplay) {
-      bottomControlsDisplay.style.display = state.showHUD ? 'grid' : 'none';
+      bottomControlsDisplay.style.display = state.showHUD ? '' : 'none';
     }
     if (additionalControlsDisplay) {
-      additionalControlsDisplay.style.display = state.showHUD ? 'grid' : 'none';
+      additionalControlsDisplay.style.display = state.showHUD ? '' : 'none';
     }
   }
 
@@ -825,6 +829,7 @@ function resetControlsUI() {
   if (bottomGen) {
     const maxGen = state.simulationData && state.simulationData.length > 0 ? state.simulationData.length - 1 : 0;
     bottomGen.textContent = `0 / ${maxGen}`;
+    holdWidth(bottomGen, countWidth(maxGen));
   }
 
   // Update tristate button visibility based on view mode

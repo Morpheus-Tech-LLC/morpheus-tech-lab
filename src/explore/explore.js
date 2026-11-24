@@ -17,6 +17,7 @@ import { SHIP_PERIOD, worldOf } from './setup.js';
 import { headingText } from '../contests/format.js';
 import { detectBrowser } from '../browser.js';
 import { openPopover, closePopover, placeOpenPopover } from './popover.js';
+import { holdWidth, countWidth } from '../readouts.js';
 /** How long after the visitor lets go of the view the camera starts following again. */
 const FOLLOW_AFTER_MS = 3000;
 /** The speed slider's top position runs as fast as possible. */
@@ -537,6 +538,7 @@ function showStats(stats) {
   const limit = session.config ? ` / ${n(session.config.memoryMB)}` : '';
   setText('explore-memory-used', `${n(Math.round(stats.memoryBytes / 2 ** 20))}${limit} MB`);
   setText('bottom-gen', n(stats.generation));
+  holdWidth(document.getElementById('bottom-gen'), n(Math.max(stats.generation, 9999999)));
   if (stats.departed !== undefined) showDeparted(stats);
   session.extent = stats.extent;
   fitSliceSlider();
@@ -583,7 +585,10 @@ export function fitSlice(extent) {
     slider.value = `${clamped}`;
   }
   // As in the other modes: the slice's position across the pattern, and the last position
-  if (state.viewMode === 'slice') setText('view-controls-display-text', `${clamped - min} / ${max - min}`);
+  if (state.viewMode === 'slice') {
+    setText('view-controls-display-text', `${clamped - min} / ${max - min}`);
+    holdWidth(document.getElementById('view-controls-display-text'), countWidth(max - min));
+  }
   return moved;
 }
 
