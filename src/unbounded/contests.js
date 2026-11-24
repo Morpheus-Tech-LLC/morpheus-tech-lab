@@ -81,10 +81,11 @@ const deepFreeze = (value) => {
 
 /**
  * Season 0 (#130): Speed, Methuselah and Classic Methuselah, each a contest of its own, close
- * together at 11:59 PM Central Time on 31 December 2026, which is CST, six hours behind UTC.
+ * together at 11:59 PM Central Time on 31 March 2027, which is CDT (daylight time, from 14 March),
+ * five hours behind UTC.
  */
 export const SEASON = 'Season 0';
-const SEASON_0_CLOSES = '2026-12-31T23:59:00-06:00';
+const SEASON_0_CLOSES = '2027-03-31T23:59:00-05:00';
 
 /**
  * Speed: generations completed in 6 seconds, on the visitor's own machine. It fixes everything,

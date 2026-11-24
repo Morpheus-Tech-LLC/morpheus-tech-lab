@@ -181,7 +181,7 @@
       ok(banner.right <= brand.left && brand.left - banner.right >= 16 && brand.left - banner.right <= 40, `It sits left of the company logo, with room between (${Math.round(brand.left - banner.right)} px apart)`);
       ok(Math.abs((banner.top + banner.bottom) / 2 - (brand.top + brand.bottom) / 2) <= 6, 'level with it');
       ok(banner.height <= 44 && banner.width <= 260, `It is compact (${Math.round(banner.width)} × ${Math.round(banner.height)} px)`);
-      ok(text('contests-banner').replace(/\s+/g, ' ') === 'Contests Closes 31 Dec 2026', `It says only Contests and when entries close ("${text('contests-banner').replace(/\s+/g, ' ')}")`);
+      ok(text('contests-banner').replace(/\s+/g, ' ') === 'Contests Closes 31 Mar 2027', `It says only Contests and when entries close ("${text('contests-banner').replace(/\s+/g, ' ')}")`);
       ok(win.getComputedStyle(el('contests-banner')).boxShadow.includes('rgba(242, 193, 78'), 'It glows gold');
       ok(el('contests-banner').getAttribute('aria-pressed') === 'false', 'It is not pressed outside Contests');
       section('The company panel');
@@ -244,7 +244,7 @@
       ok(logoOf(tiles[2]) > logoOf(tiles[1]), "Classic Methuselah's logo is Methuselah's hourglass with a ship leaving");
       const nameTops = tiles.map((t) => Math.round(t.querySelector('.contests-tile-name').getBoundingClientRect().top));
       ok(new Set(nameTops).size === 1, `The cards' names line up, however long the line under them (${nameTops.join(', ')})`);
-      ok(text('contests-closes') === 'Entries close 31 December 2026, 11:59 PM Central Time', `The list gives the closing date and time ("${text('contests-closes')}")`);
+      ok(text('contests-closes') === 'Entries close 31 March 2027, 11:59 PM Central Time', `The list gives the closing date and time ("${text('contests-closes')}")`);
       ok(text('contests-list-about').startsWith('Three contests') && text('contests-list-about').includes('on the CPU'), 'It speaks of three contests, all on the CPU (#116)');
       ok(!/branch/i.test(panelText()) && (panelText().match(/same (engine|thing)/g) ?? []).length === 1, 'It never says branch, and says once that everyone runs the same thing');
       ok(el('contests-verify').classList.contains('contests-verify-button') && el('contests-verify').querySelector('svg.contests-verify-glyph path'), 'Verify a result has its own button, with the scales');
@@ -260,7 +260,7 @@
       press('contests-open-speed-1');
       ok(text('contests-panel-title') === 'Speed', 'Open shows Speed');
       ok(el('contests-panel').querySelector('.contests-page-logo path'), "Speed's page shows Speed's logo");
-      ok(panelText().includes('A Season 0 contest') && text('contests-panel').includes('Entries close 31 December 2026'), 'It says Speed is a Season 0 contest, and when entries close');
+      ok(panelText().includes('A Season 0 contest') && text('contests-panel').includes('Entries close 31 March 2027'), 'It says Speed is a Season 0 contest, and when entries close');
       const areas = [...el('contests-panel').querySelectorAll('.contests-section-title')].map((t) => t.textContent);
       ok(areas.join(' / ') === 'What everyone runs / Hall of Fame / How it runs / Fair play', `Its details are in titled areas (${areas.join(' / ')})`);
       ok(visible('contests-hof-empty') && text('contests-hof-empty').startsWith('No entries yet.') && !el('contests-hof'), `With no entries, the Hall of Fame says so ("${text('contests-hof-empty')}")`);

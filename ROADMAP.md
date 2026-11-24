@@ -21,7 +21,7 @@ and none of them has a date.
 
 Three contests on the unbounded engine, open to everyone in the lab's **Contests** banner:
 **Speed**, **Methuselah** and **Classic Methuselah**. Entries close at **11:59 PM Central Time on
-31 December 2026**. Every result is checked by replaying it from its seed, and verified entries
+31 March 2027**. Every result is checked by replaying it from its seed, and verified entries
 go into each contest's Hall of Fame. Season 0 runs on the CPU only, so every entrant runs the
 same engine.
 

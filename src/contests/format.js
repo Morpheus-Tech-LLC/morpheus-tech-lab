@@ -396,7 +396,7 @@ export function departuresText(departures) {
 /**
  * When entries close: the earliest closing among the contests, or that it is still to be
  * announced while none has one. A day ("2027-02-28") reads as that day; an instant with its offset
- * ("2026-12-31T23:59:00-06:00") reads as the day and time in Central Time, where the lab is.
+ * ("2027-03-31T23:59:00-05:00") reads as the day and time in Central Time, where the lab is.
  * @param {{closes: string | null}[]} contests
  * @param {{short?: boolean}} [options] - short, for the banner: "Closes TBD", "Closes 28 Feb 2027"
  */
