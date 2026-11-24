@@ -8,7 +8,7 @@
 
 import {
   seededRandom, ruleCases, elementaryStep, Life, parseRle, PATTERNS, torusLifeStep, torusNeighbours,
-  hppStep, particles, trafficStep, placeCars, Sandpile, scalesStep,
+  hppStep, particles, trafficStep, placeCars, Sandpile, scalesStep, BAYS_5766, twoLayers,
 } from './automata.js';
 import { camera, drawCubes, fitBox } from './iso.js';
 import { World } from '../unbounded/world.js';
@@ -333,41 +333,89 @@ function gun() {
   };
 }
 
-// ---- 6. From 8 neighbours to 26 ----
+// ---- 6. From 8 neighbours to 26, then Bays' glider ----
+
+function drawNeighbourhood(ctx, w, h, u) {
+  const tilt = ease((u - 2) / 2);
+  const rise = ease((u - 4.5) / 2);
+  const yaw = 0.55 * tilt + Math.max(0, u - 6.5) * 0.35;
+  const pitch = Math.PI / 2 - tilt * (Math.PI / 2 - 0.5);
+  const cam = camera(yaw, pitch);
+  const cubes = [];
+  for (let y = -1; y <= 1; y++) {
+    if (y && !rise) continue;
+    for (let z = -1; z <= 1; z++) {
+      for (let x = -1; x <= 1; x++) {
+        const centre = !x && !y && !z;
+        cubes.push({
+          x, y: y * (1 + 1.2 * (1 - rise)), z,
+          color: centre ? COLORS.accentRGB : COLORS.liveRGB,
+          alpha: y ? rise : 1,
+        });
+      }
+    }
+  }
+  const fit = fitBox({ min: [-1, -1, -1], max: [1, 1, 1] }, cam, w, h - 40, 0.62);
+  drawCubes(ctx, cubes, cam, { ...fit, cy: fit.cy + 4, size: 0.8 });
+  const count = 8 + Math.round(18 * rise);
+  const text = u < 2 ? 'In 2D, a cell (orange) has 8 neighbours'
+    : rise < 1 ? (u < 4.5 ? 'Turn the grid into space…' : `…and add a layer above and below: ${count} neighbours`)
+      : 'In 3D, a cell has 26 neighbours';
+  label(ctx, text, w / 2, h - 16, { align: 'center', color: COLORS.text, size: 13 });
+}
 
 function neighbourhood3d() {
-  const CYCLE = 13;
+  // The neighbourhood grows for NEIGHBOURS seconds; then Conway's glider, doubled into two
+  // layers, flies LAST generations under B6/S5–7 on the lab's engine, beside the flat glider
+  const NEIGHBOURS = 9, LAST = 24, RATE = 3, HOLD = 1.5;
+  const GLIDE = LAST / RATE + HOLD;
+  const flat = parseRle(PATTERNS.glider);
+  const glider3d = stepper(() => {
+    const world = new World({ rules: BAYS_5766, slabBytes: 1 << 20 });
+    world.setCells(twoLayers(flat));
+    return world;
+  }, (world) => worldStep(world));
+  const glider2d = stepper(() => new Life(flat), (life) => life.step());
+  const reach = LAST / 4 + 3;
+  const path = { min: [-1, 0, -1], max: [reach, 1, reach] };
   return {
-    still: 9,
+    still: 8,
+    /** Its two parts, in its own time, so the video can show each while its words are on screen. */
+    parts: [{ name: 'neighbours', start: 0, span: NEIGHBOURS }, { name: 'glider', start: NEIGHBOURS, span: GLIDE }],
     draw(ctx, w, h, t) {
       clear(ctx, w, h);
-      const u = t % CYCLE;
-      const tilt = ease((u - 2) / 2);
-      const rise = ease((u - 4.5) / 2);
-      const yaw = 0.55 * tilt + Math.max(0, u - 6.5) * 0.35;
-      const pitch = Math.PI / 2 - tilt * (Math.PI / 2 - 0.5);
-      const cam = camera(yaw, pitch);
-      const cubes = [];
-      for (let y = -1; y <= 1; y++) {
-        if (y && !rise) continue;
-        for (let z = -1; z <= 1; z++) {
-          for (let x = -1; x <= 1; x++) {
-            const centre = !x && !y && !z;
-            cubes.push({
-              x, y: y * (1 + 1.2 * (1 - rise)), z,
-              color: centre ? COLORS.accentRGB : COLORS.liveRGB,
-              alpha: y ? rise : 1,
-            });
-          }
-        }
+      const u = t % (NEIGHBOURS + GLIDE);
+      if (u < NEIGHBOURS) {
+        drawNeighbourhood(ctx, w, h, u);
+        return;
       }
-      const fit = fitBox({ min: [-1, -1, -1], max: [1, 1, 1] }, cam, w, h - 40, 0.62);
-      drawCubes(ctx, cubes, cam, { ...fit, cy: fit.cy + 4, size: 0.8 });
-      const count = 8 + Math.round(18 * rise);
-      const text = u < 2 ? 'In 2D, a cell (orange) has 8 neighbours'
-        : rise < 1 ? (u < 4.5 ? 'Turn the grid into space…' : `…and add a layer above and below: ${count} neighbours`)
-          : 'In 3D, a cell has 26 neighbours';
-      label(ctx, text, w / 2, h - 16, { align: 'center', color: COLORS.text, size: 13 });
+      const gen = Math.min(LAST, Math.floor((u - NEIGHBOURS) * RATE));
+      const world = glider3d(gen);
+      const { view, slice: rect } = splitStage(w, h);
+      // x runs right and z down, as in the flat grid beside it
+      const cam = camera(-0.3, 0.62);
+      const fit = fitBox(path, cam, view.w, view.h, 0.86);
+      const at = (x, y, z) => {
+        const [px, py] = cam.project(x, y, z);
+        return [view.x + fit.cx + px * fit.scale, view.y + fit.cy + py * fit.scale];
+      };
+      // The floor the glider crosses, cell by cell
+      ctx.strokeStyle = COLORS.grid;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let k = path.min[0] - 0.5; k <= path.max[0] + 0.5; k++) {
+        ctx.moveTo(...at(k, -0.5, path.min[2] - 0.5));
+        ctx.lineTo(...at(k, -0.5, path.max[2] + 0.5));
+        ctx.moveTo(...at(path.min[0] - 0.5, -0.5, k));
+        ctx.lineTo(...at(path.max[0] + 0.5, -0.5, k));
+      }
+      ctx.stroke();
+      drawCubes(ctx, surfaceCubes(world, COLORS.liveRGB), cam, { ...fit, cx: fit.cx + view.x, cy: fit.cy + view.y, size: 0.9 });
+      lifePanel(ctx, rect, glider2d(gen).cells(), { minX: path.min[0], maxX: path.max[0], minY: path.min[2], maxY: path.max[2] });
+      label(ctx, rect.w < 220 ? '2D, B3/S23' : 'The same glider in 2D, B3/S23', rect.x + 8, rect.y + 15, { size: 11, color: COLORS.text });
+      label(ctx, w < 520 ? `B6/S5–7 · gen ${gen} · ${n(world.liveCells)} cells`
+        : `Conway’s glider in two layers · B6/S5–7 · generation ${gen} · ${n(world.liveCells)} cells`,
+      w / 2, h - 14, { align: 'center', color: COLORS.text });
     },
   };
 }

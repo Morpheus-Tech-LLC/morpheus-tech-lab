@@ -206,6 +206,21 @@ export const PATTERNS = {
     10bo5bo7bo$11bo3bo$12b2o!`,
 };
 
+// ---- Life in three dimensions (Bays, 1987) ----
+
+/** Bays' Life 5766 in the lab's notation: born with 6 live neighbours of 26, survives with 5 to 7. */
+export const BAYS_5766 = { birth: [6], survival: [5, 6, 7] };
+
+/**
+ * A flat pattern copied into two layers, y = 0 and y = 1, the flat x and y becoming x and z. A
+ * live cell with n live neighbours in 2D has 2n + 1 in 3D, and an empty one with m has 2m, so
+ * under B6/S5–7 the copy is born and survives as Conway's pattern does under B3/S23, as long as
+ * no cell beside the two layers sees 6: Bays' 3D glider is Conway's, doubled.
+ */
+export function twoLayers(cells) {
+  return cells.flatMap(([x, y]) => [[x, 0, y], [x, 1, y]]);
+}
+
 // ---- The HPP lattice gas (Hardy, Pomeau and de Pazzis, 1973) ----
 
 /** A cell's four particles, one bit each, by the way it is moving. */

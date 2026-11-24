@@ -7,8 +7,11 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   seededRandom, ruleCases, elementaryStep, Life, parseRle, PATTERNS, torusLifeStep, hppStep, particles,
-  EAST, WEST, NORTH, SOUTH, trafficStep, placeCars, Sandpile, hexNeighbours, scalesStep,
+  EAST, WEST, NORTH, SOUTH, trafficStep, placeCars, Sandpile, hexNeighbours, scalesStep, BAYS_5766, twoLayers,
 } from '../../src/guide/automata.js';
+import { World } from '../../src/unbounded/world.js';
+import { step as worldStep } from '../../src/unbounded/step.js';
+import { STEPS } from '../../src/guide/steps.js';
 
 const sorted = (cells) => cells.map(([x, y]) => `${x},${y}`).sort();
 const shifted = (cells, dx, dy) => cells.map(([x, y]) => [x + dx, y + dy]);
@@ -81,6 +84,38 @@ test('Life: Gosper’s gun repeats every 30 generations, firing a glider each ti
   assert.deepEqual(sorted(inGun), sorted(gun), 'the gun is back as it was');
   run(life, 30);
   assert.equal(life.population, 46);
+});
+
+test('step 6’s counts: 2^18 = 262,144 rules on a flat grid, 2^54 (about 18 quadrillion) on a cubic one', () => {
+  // Birth and survival are each any set of the possible counts: 0 to 8 neighbours, or 0 to 26
+  const rules = (neighbours) => 2n ** BigInt(2 * (neighbours + 1));
+  assert.equal(rules(8), 262144n);
+  assert.equal(rules(26), 18014398509481984n);
+  const words = STEPS.find((s) => s.id === 'three').body.join(' ');
+  assert.ok(words.includes('262,144') && words.includes('about 18 quadrillion'));
+  assert.ok(!/Life \d{4}/.test(words), 'no four-number rule names');
+  assert.ok(words.includes('B5/S4,5') && words.includes('B6/S5–7'), 'Bays’ Life 4555 and 5766, in the lab’s notation');
+});
+
+test('Bays’ glider: Conway’s glider in two layers flies under B6/S5–7 on the lab’s engine, as it does in 2D', () => {
+  assert.deepEqual(BAYS_5766, { birth: [6], survival: [5, 6, 7] }, 'Life 5766: survives with 5 to 7, born with 6');
+  const glider = parseRle(PATTERNS.glider);
+  const world = new World({ rules: BAYS_5766, slabBytes: 1 << 20 });
+  world.setCells(twoLayers(glider));
+  const flat = new Life(glider);
+  for (let g = 1; g <= 40; g++) {
+    worldStep(world);
+    flat.step();
+    const cells = world.cells();
+    const layers = [[], []];
+    for (let i = 0; i < cells.length; i += 3) {
+      assert.ok(cells[i + 1] === 0 || cells[i + 1] === 1, `generation ${g}: nothing outside the two layers`);
+      layers[cells[i + 1]].push([cells[i], cells[i + 2]]);
+    }
+    assert.deepEqual(sorted(layers[0]), sorted(flat.cells()), `generation ${g}: layer 0 is Conway’s glider`);
+    assert.deepEqual(sorted(layers[1]), sorted(flat.cells()), `generation ${g}: and so is layer 1`);
+  }
+  assert.deepEqual(sorted(flat.cells()), sorted(shifted(glider, 10, 10)), 'one cell diagonally every 4 generations');
 });
 
 test('parseRle reads counts and row ends, and refuses anything else', () => {

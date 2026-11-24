@@ -312,11 +312,11 @@ export const STEPS = [
     id: 'three',
     title: 'Add a dimension',
     body: [
-      'On a cubic grid each cell has 26 neighbours instead of 8, and Conway’s balance doesn’t carry over. Game of Life 3D is a family of rules, each written as the neighbour counts for birth and survival.',
-      'Carter Bays explored them in 1987, naming each rule by four numbers. Life 4555 survives with 4 to 5 neighbours and is born with 5; Life 5766 survives with 5 to 7 and is born with 6, and contains Conway’s 2D Life within it.',
+      'On a cubic grid each cell has 26 neighbours instead of 8, so a rule has far more to choose from. Counting every way to choose the neighbour counts for birth and for survival, the flat grid allows 262,144 rules; the cubic grid allows about 18 quadrillion.',
+      'Most of the rules Carter Bays tried in 1987 made patterns that exploded or died out. He set out what a rule must do to deserve Conway’s name: gliders must arise on their own from random soup, and no random soup may grow without end. Only two passed, B5/S4,5 and B6/S5–7, and under B6/S5–7 Conway’s glider, copied into two layers, flies on in 3D.',
     ],
     scene: 'neighbourhood3d',
-    alt: 'A flat 3 by 3 neighbourhood tilts into 3D and gains a layer above and below: 8 neighbours become 26.',
+    alt: 'A flat 3 by 3 neighbourhood tilts into 3D and gains a layer above and below: 8 neighbours become 26. Then Conway’s glider, copied into two layers, flies across a cubic grid under B6/S5–7, run by the lab’s engine, beside the same glider on a flat grid under Conway’s rule.',
     sources: ['bays1987'],
   },
   {
