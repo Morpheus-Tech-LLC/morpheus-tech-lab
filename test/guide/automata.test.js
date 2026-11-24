@@ -7,10 +7,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   seededRandom, ruleCases, elementaryStep, Life, parseRle, PATTERNS, torusLifeStep, hppStep, particles,
-  EAST, WEST, NORTH, SOUTH, trafficStep, placeCars, Sandpile, hexNeighbours, scalesStep, BAYS_5766, twoLayers,
+  EAST, WEST, NORTH, SOUTH, trafficStep, placeCars, Sandpile, hexNeighbours, scalesStep, BAYS_5766, CASES_3D,
 } from '../../src/guide/automata.js';
-import { World } from '../../src/unbounded/world.js';
-import { step as worldStep } from '../../src/unbounded/step.js';
 import { STEPS } from '../../src/guide/steps.js';
 
 const sorted = (cells) => cells.map(([x, y]) => `${x},${y}`).sort();
@@ -97,25 +95,22 @@ test('step 6’s counts: 2^18 = 262,144 rules on a flat grid, 2^54 (about 18 qua
   assert.ok(words.includes('B5/S4,5') && words.includes('B6/S5–7'), 'Bays’ Life 4555 and 5766, in the lab’s notation');
 });
 
-test('Bays’ glider: Conway’s glider in two layers flies under B6/S5–7 on the lab’s engine, as it does in 2D', () => {
-  assert.deepEqual(BAYS_5766, { birth: [6], survival: [5, 6, 7] }, 'Life 5766: survives with 5 to 7, born with 6');
-  const glider = parseRle(PATTERNS.glider);
-  const world = new World({ rules: BAYS_5766, slabBytes: 1 << 20 });
-  world.setCells(twoLayers(glider));
-  const flat = new Life(glider);
-  for (let g = 1; g <= 40; g++) {
-    worldStep(world);
-    flat.step();
-    const cells = world.cells();
-    const layers = [[], []];
-    for (let i = 0; i < cells.length; i += 3) {
-      assert.ok(cells[i + 1] === 0 || cells[i + 1] === 1, `generation ${g}: nothing outside the two layers`);
-      layers[cells[i + 1]].push([cells[i], cells[i + 2]]);
-    }
-    assert.deepEqual(sorted(layers[0]), sorted(flat.cells()), `generation ${g}: layer 0 is Conway’s glider`);
-    assert.deepEqual(sorted(layers[1]), sorted(flat.cells()), `generation ${g}: and so is layer 1`);
+test('step 6’s cases follow B6/S5–7: each count, in every layer of the 26, decides as the words say', () => {
+  assert.deepEqual(BAYS_5766, { birth: [6], survival: [5, 6, 7] }, 'Bays’ Life 5766: survives with 5 to 7, born with 6');
+  for (const c of CASES_3D) {
+    const keys = c.live.map((p) => p.join());
+    assert.equal(new Set(keys).size, keys.length, `${c.text}: each neighbour once`);
+    assert.ok(c.live.every((p) => p.every((v) => v >= -1 && v <= 1) && p.some((v) => v !== 0)), `${c.text}: neighbours, not the cell`);
+    assert.ok(c.live.some(([, y]) => y === 1) && c.live.some(([, y]) => y === -1), `${c.text}: some above and some below`);
+    const count = c.live.length;
+    assert.ok(c.text.startsWith(String(count)) || c.text.startsWith(`Exactly ${count}`), `${c.text}: says its count`);
+    const next = c.alive ? BAYS_5766.survival.includes(count) : BAYS_5766.birth.includes(count);
+    assert.equal(next, /survives|is born/.test(c.text), `${c.text}: as the rule decides`);
   }
-  assert.deepEqual(sorted(flat.cells()), sorted(shifted(glider, 10, 10)), 'one cell diagonally every 4 generations');
+  const outcomes = CASES_3D.map((c) => c.text.split(': ')[1]);
+  assert.deepEqual(outcomes, ['it survives', 'a cell is born', 'it dies of loneliness', 'it dies of overcrowding'], 'the four cases of step 3, in 3D');
+  const words = STEPS.find((s) => s.id === 'three').body.join(' ');
+  assert.ok(words.includes('born with exactly 6 live neighbours and survives with 5 to 7'), 'the words state the rule the cases show');
 });
 
 test('parseRle reads counts and row ends, and refuses anything else', () => {

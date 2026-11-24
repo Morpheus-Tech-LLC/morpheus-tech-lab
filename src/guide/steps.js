@@ -313,10 +313,10 @@ export const STEPS = [
     title: 'Add a dimension',
     body: [
       'On a cubic grid each cell has 26 neighbours instead of 8, so a rule has far more to choose from. Counting every way to choose the neighbour counts for birth and for survival, the flat grid allows 262,144 rules; the cubic grid allows about 18 quadrillion.',
-      'Most of the rules Carter Bays tried in 1987 made patterns that exploded or died out. He set out what a rule must do to deserve Conway’s name: gliders must arise on their own from random soup, and no random soup may grow without end. Only two passed, B5/S4,5 and B6/S5–7, and under B6/S5–7 Conway’s glider, copied into two layers, flies on in 3D.',
+      'Most of the rules Carter Bays tried in 1987 made patterns that exploded or died out. He set out what a rule must do to deserve Conway’s name: gliders must arise on their own from random soup, and no random soup may grow without end. Only two passed, B5/S4,5 and B6/S5–7. Under B6/S5–7, a cell is born with exactly 6 live neighbours and survives with 5 to 7.',
     ],
     scene: 'neighbourhood3d',
-    alt: 'A flat 3 by 3 neighbourhood tilts into 3D and gains a layer above and below: 8 neighbours become 26. Then Conway’s glider, copied into two layers, flies across a cubic grid under B6/S5–7, run by the lab’s engine, beside the same glider on a flat grid under Conway’s rule.',
+    alt: 'A flat 3 by 3 neighbourhood tilts into 3D and gains a layer above and below: 8 neighbours become 26. Then B6/S5–7 at work in a 3 by 3 by 3 neighbourhood: live neighbours are counted, and the cell survives with 5, is born with 6, and dies with 3 or with 9.',
     sources: ['bays1987'],
   },
   {

@@ -18,9 +18,9 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
   motion, each step shows a still frame (#159). Beside its 3D cube and ship, the step on this
   lab's rules shows a 2D cross-section, the layer y = 0, marked in the 3D view (#162). The step
   on adding a dimension tells how many more rules 26 neighbours allow, and what Carter Bays found
-  in 1987 instead of his four-number rule names: only two rules met his test for a 3D Life, and
-  under one of them, B6/S5–7, Conway's glider copied into two layers flies on in 3D, as its
-  animation shows on the lab's engine beside the flat glider (#182).
+  in 1987 instead of his four-number rule names: only two rules met his test for a 3D Life. Its
+  animation then shows one of them, B6/S5–7, at work as the step on Conway's rules does: a cell's
+  live neighbours among 26 counted, and whether it survives, is born or dies (#182).
 
 ### Changed
 - The readouts above the control bar each take one line, a small label beside each value,

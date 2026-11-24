@@ -8,7 +8,7 @@
 
 import {
   seededRandom, ruleCases, elementaryStep, Life, parseRle, PATTERNS, torusLifeStep, torusNeighbours,
-  hppStep, particles, trafficStep, placeCars, Sandpile, scalesStep, BAYS_5766, twoLayers,
+  hppStep, particles, trafficStep, placeCars, Sandpile, scalesStep, BAYS_5766, CASES_3D,
 } from './automata.js';
 import { camera, drawCubes, fitBox } from './iso.js';
 import { World } from '../unbounded/world.js';
@@ -333,7 +333,7 @@ function gun() {
   };
 }
 
-// ---- 6. From 8 neighbours to 26, then Bays' glider ----
+// ---- 6. From 8 neighbours to 26, then a 3D rule at work ----
 
 function drawNeighbourhood(ctx, w, h, u) {
   const tilt = ease((u - 2) / 2);
@@ -364,58 +364,83 @@ function drawNeighbourhood(ctx, w, h, u) {
   label(ctx, text, w / 2, h - 16, { align: 'center', color: COLORS.text, size: 13 });
 }
 
+/**
+ * One of CASES_3D, as step 3 shows Conway's rule: the cell and its 26 neighbours spread apart,
+ * so every layer shows, its live neighbours counted one by one, then the next generation.
+ */
+function drawRuleCase(ctx, w, h, which, u) {
+  const COUNT = 0.3, REVEAL = 3.3;
+  const counted = Math.min(which.live.length, Math.floor(u / COUNT));
+  const reveal = u >= REVEAL;
+  const count = which.live.length;
+  const next = which.alive ? BAYS_5766.survival.includes(count) : BAYS_5766.birth.includes(count);
+  const cam = camera(0.7 + u * 0.12, 0.5);
+  const GAP = 1.55;
+  const isLive = (x, y, z) => which.live.some(([a, b, c]) => a === x && b === y && c === z);
+  const half = w / 2;
+  const blocks = [{ x: 0, now: true }, { x: half, now: false }];
+  for (const block of blocks) {
+    const fit = fitBox({ min: [-GAP - 0.5, -GAP - 0.5, -GAP - 0.5], max: [GAP + 0.5, GAP + 0.5, GAP + 0.5] }, cam, half, h - 66, 0.78);
+    const at = { ...fit, cx: fit.cx + block.x, cy: fit.cy + 28 };
+    const cubes = [];
+    for (let y = -1; y <= 1; y++) {
+      for (let z = -1; z <= 1; z++) {
+        for (let x = -1; x <= 1; x++) {
+          const centre = !x && !y && !z;
+          const pos = { x: x * GAP, y: y * GAP, z: z * GAP };
+          if (centre) {
+            const alive = block.now ? which.alive : reveal && next;
+            cubes.push({ ...pos, color: COLORS.accentRGB, alpha: alive ? 1 : 0.16 });
+          } else if (isLive(x, y, z)) {
+            cubes.push({ ...pos, color: COLORS.liveRGB, alpha: block.now ? 1 : 0.3 });
+          } else {
+            cubes.push({ ...pos, color: COLORS.liveRGB, alpha: 0.06 });
+          }
+        }
+      }
+    }
+    drawCubes(ctx, cubes, cam, { ...at, size: 0.82 });
+    if (block.now) {
+      // Each live neighbour, numbered as it is counted
+      which.live.slice(0, counted).forEach(([x, y, z], k) => {
+        const [px, py] = cam.project(x * GAP, y * GAP, z * GAP);
+        label(ctx, String(k + 1), at.cx + px * at.scale, at.cy + py * at.scale + 5,
+          { align: 'center', color: '#0b0e13', size: Math.max(11, Math.round(at.scale * 0.42)), weight: 700 });
+      });
+    } else if (!reveal) {
+      const [px, py] = cam.project(0, 0, 0);
+      label(ctx, '?', at.cx + px * at.scale, at.cy + py * at.scale + 7,
+        { align: 'center', color: COLORS.accent, size: Math.max(14, Math.round(at.scale * 0.7)), weight: 700 });
+    }
+    label(ctx, block.now ? 'Now' : 'Next generation', block.x + half / 2, 18, { align: 'center', color: COLORS.text });
+  }
+  // The arrow from now to next
+  ctx.strokeStyle = COLORS.dim;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(half - 18, h / 2);
+  ctx.lineTo(half + 18, h / 2);
+  ctx.lineTo(half + 11, h / 2 - 6);
+  ctx.moveTo(half + 18, h / 2);
+  ctx.lineTo(half + 11, h / 2 + 6);
+  ctx.stroke();
+  const text = reveal ? `${which.text}${w < 520 ? '' : ' · B6/S5–7'}` : `Counting live neighbours: ${counted} of 26`;
+  label(ctx, text, w / 2, h - 16, { align: 'center', color: reveal ? COLORS.text : COLORS.dim, size: 13 });
+}
+
 function neighbourhood3d() {
-  // The neighbourhood grows for NEIGHBOURS seconds; then Conway's glider, doubled into two
-  // layers, flies LAST generations under B6/S5–7 on the lab's engine, beside the flat glider
-  const NEIGHBOURS = 9, LAST = 24, RATE = 3, HOLD = 1.5;
-  const GLIDE = LAST / RATE + HOLD;
-  const flat = parseRle(PATTERNS.glider);
-  const glider3d = stepper(() => {
-    const world = new World({ rules: BAYS_5766, slabBytes: 1 << 20 });
-    world.setCells(twoLayers(flat));
-    return world;
-  }, (world) => worldStep(world));
-  const glider2d = stepper(() => new Life(flat), (life) => life.step());
-  const reach = LAST / 4 + 3;
-  const path = { min: [-1, 0, -1], max: [reach, 1, reach] };
+  // The neighbourhood grows for NEIGHBOURS seconds; then B6/S5–7 decides four cells, PER seconds each
+  const NEIGHBOURS = 9, PER = 5;
+  const RULES = PER * CASES_3D.length;
   return {
     still: 8,
     /** Its two parts, in its own time, so the video can show each while its words are on screen. */
-    parts: [{ name: 'neighbours', start: 0, span: NEIGHBOURS }, { name: 'glider', start: NEIGHBOURS, span: GLIDE }],
+    parts: [{ name: 'neighbours', start: 0, span: NEIGHBOURS }, { name: 'rule', start: NEIGHBOURS, span: RULES }],
     draw(ctx, w, h, t) {
       clear(ctx, w, h);
-      const u = t % (NEIGHBOURS + GLIDE);
-      if (u < NEIGHBOURS) {
-        drawNeighbourhood(ctx, w, h, u);
-        return;
-      }
-      const gen = Math.min(LAST, Math.floor((u - NEIGHBOURS) * RATE));
-      const world = glider3d(gen);
-      const { view, slice: rect } = splitStage(w, h);
-      // x runs right and z down, as in the flat grid beside it
-      const cam = camera(-0.3, 0.62);
-      const fit = fitBox(path, cam, view.w, view.h, 0.86);
-      const at = (x, y, z) => {
-        const [px, py] = cam.project(x, y, z);
-        return [view.x + fit.cx + px * fit.scale, view.y + fit.cy + py * fit.scale];
-      };
-      // The floor the glider crosses, cell by cell
-      ctx.strokeStyle = COLORS.grid;
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      for (let k = path.min[0] - 0.5; k <= path.max[0] + 0.5; k++) {
-        ctx.moveTo(...at(k, -0.5, path.min[2] - 0.5));
-        ctx.lineTo(...at(k, -0.5, path.max[2] + 0.5));
-        ctx.moveTo(...at(path.min[0] - 0.5, -0.5, k));
-        ctx.lineTo(...at(path.max[0] + 0.5, -0.5, k));
-      }
-      ctx.stroke();
-      drawCubes(ctx, surfaceCubes(world, COLORS.liveRGB), cam, { ...fit, cx: fit.cx + view.x, cy: fit.cy + view.y, size: 0.9 });
-      lifePanel(ctx, rect, glider2d(gen).cells(), { minX: path.min[0], maxX: path.max[0], minY: path.min[2], maxY: path.max[2] });
-      label(ctx, rect.w < 220 ? '2D, B3/S23' : 'The same glider in 2D, B3/S23', rect.x + 8, rect.y + 15, { size: 11, color: COLORS.text });
-      label(ctx, w < 520 ? `B6/S5–7 · gen ${gen} · ${n(world.liveCells)} cells`
-        : `Conway’s glider in two layers · B6/S5–7 · generation ${gen} · ${n(world.liveCells)} cells`,
-      w / 2, h - 14, { align: 'center', color: COLORS.text });
+      const u = t % (NEIGHBOURS + RULES);
+      if (u < NEIGHBOURS) drawNeighbourhood(ctx, w, h, u);
+      else drawRuleCase(ctx, w, h, CASES_3D[Math.floor((u - NEIGHBOURS) / PER)], (u - NEIGHBOURS) % PER);
     },
   };
 }
