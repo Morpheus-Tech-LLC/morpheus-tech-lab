@@ -95,6 +95,15 @@
   margin-right: 8px;
 }
 
+/* The Morpheus Tech mark is tall and narrow (about 1:3), so it stands taller than the GitHub icon
+   beside it to be read, and its negative margins keep the two buttons the same height */
+.company-modal-links .company-modal-link .company-modal-mark {
+  width: auto;
+  height: 34px;
+  margin-block: -5px;
+  flex: none;
+}
+
 .company-modal-links-alert {
   color: var(--color-info-display-text);
   margin: 0;
