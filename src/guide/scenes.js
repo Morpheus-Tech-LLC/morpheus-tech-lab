@@ -395,6 +395,78 @@ function surfaceCubes(world, color) {
   return cubes;
 }
 
+/** The layer the cross-section shows: y = 0, the middle of Cube10 and of the ship. */
+const LAYER = 0;
+
+/** Room kept clear at the stage's bottom right for its Pause button, in CSS pixels. */
+const PAUSE = { w: 72, h: 30 };
+
+/**
+ * Splits a stage into the 3D view and the cross-section: side by side when it is wide, the
+ * cross-section below when it is tall, or, with `strip`, always below, as a band `cols` ×
+ * `stripRows` cells with a ruler under it. The cross-section stays clear of the Pause button.
+ */
+function splitStage(w, h, { strip = false, cols = 1, stripRows = 1 } = {}) {
+  const area = h - 30;
+  if (strip) {
+    const width = w - 8 - PAUSE.w;
+    const below = Math.round(Math.min(area * 0.4, 28 + ((width - 12) / cols) * stripRows) + 16);
+    return { view: { x: 0, y: 0, w, h: area - below }, slice: { x: 8, y: area - below, w: width, h: below - 16 } };
+  }
+  if (w >= area * 1.25) {
+    const side = Math.round(Math.min(w * 0.42, area + 28));
+    return { view: { x: 0, y: 0, w: w - side, h: area }, slice: { x: w - side, y: 8, w: side - 12, h: area - 8 - PAUSE.h } };
+  }
+  const below = Math.round(area * 0.46);
+  return { view: { x: 0, y: 0, w, h: area - below }, slice: { x: 8, y: area - below, w: w - 16 - PAUSE.w, h: below } };
+}
+
+/**
+ * Draws a world's cells as cubes with the layer y = LAYER marked: the cells below it, then a
+ * translucent plane under the layer, then the layer's cells (coloured `mark`) and those above.
+ * Looking down, a horizontal plane hides what is below it and is hidden by what is above, so
+ * painting in that order is right.
+ */
+function drawLayered(ctx, world, cam, fit, box, color, mark) {
+  const cubes = surfaceCubes(world, color);
+  const below = cubes.filter((c) => c.y < LAYER);
+  const above = cubes.filter((c) => c.y >= LAYER).map((c) => (c.y === LAYER ? { ...c, color: mark } : c));
+  drawCubes(ctx, below, cam, { ...fit, size: 0.9 });
+  const y = LAYER - 0.5;
+  const corners = [[box.min[0] - 1.5, box.min[2] - 1.5], [box.max[0] + 1.5, box.min[2] - 1.5],
+    [box.max[0] + 1.5, box.max[2] + 1.5], [box.min[0] - 1.5, box.max[2] + 1.5]];
+  ctx.beginPath();
+  corners.forEach(([x, z], i) => {
+    const [px, py] = cam.project(x, y, z);
+    if (i) ctx.lineTo(fit.cx + px * fit.scale, fit.cy + py * fit.scale);
+    else ctx.moveTo(fit.cx + px * fit.scale, fit.cy + py * fit.scale);
+  });
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(255, 162, 0, 0.12)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255, 162, 0, 0.55)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  drawCubes(ctx, above, cam, { ...fit, size: 0.9 });
+}
+
+/**
+ * The cross-section: the world's layer y = LAYER as a flat grid, x across and z down.
+ * @returns the grid's layout, as gridLayout gives it
+ */
+function drawSlice(ctx, rect, world, view) {
+  const flat = world.cellsInPlane(1, LAYER);
+  const cells = [];
+  for (let i = 0; i < flat.length; i += 3) cells.push([flat[i], flat[i + 2]]);
+  lifePanel(ctx, rect, cells, view, COLORS.accent);
+  const count = `${n(cells.length)} ${cells.length === 1 ? 'cell' : 'cells'}`;
+  const title = rect.w < 220 ? `y = ${LAYER} · ${count}` : `Cross-section at y = ${LAYER} · ${count}`;
+  label(ctx, title, rect.x + 8, rect.y + 15, { size: 11, color: COLORS.text });
+  // As lifePanel lays it out
+  const cols = view.maxX - view.minX + 1, rows = view.maxY - view.minY + 1;
+  return gridLayout({ x: rect.x + 6, y: rect.y + 22, w: rect.w - 12, h: rect.h - 28 }, cols, rows);
+}
+
 function cubeScene({ last = 24, rate = 3, hold = 2.5, spin = 0.3 } = {}) {
   const preset = presetById('cube10');
   const at = stepper(() => worldOf(preset), (world) => worldStep(world));
@@ -402,15 +474,26 @@ function cubeScene({ last = 24, rate = 3, hold = 2.5, spin = 0.3 } = {}) {
   const box = end.extent();
   return {
     span: last / rate + hold,
-    draw(ctx, w, h, t, caption = true) {
+    /** With `slice`, the layer y = 0 is marked in the cubes and drawn flat beside them. */
+    draw(ctx, w, h, t, { caption = true, slice = false } = {}) {
       const gen = Math.min(last, Math.floor(t * rate));
       const world = at(gen);
       const cam = camera(0.6 + t * spin, 0.55);
-      const fit = fitBox(box, cam, w, h - 30, 0.8);
-      drawCubes(ctx, surfaceCubes(world, COLORS.liveRGB), cam, { ...fit, size: 0.9 });
+      if (!slice) {
+        const fit = fitBox(box, cam, w, h - 30, 0.8);
+        drawCubes(ctx, surfaceCubes(world, COLORS.liveRGB), cam, { ...fit, size: 0.9 });
+      } else {
+        const { view, slice: rect } = splitStage(w, h);
+        const fit = fitBox(box, cam, view.w, view.h, 0.84);
+        drawLayered(ctx, world, cam, { ...fit, cx: fit.cx + view.x, cy: fit.cy + view.y }, box,
+          COLORS.liveRGB, COLORS.accentRGB);
+        drawSlice(ctx, rect, world, { minX: box.min[0], maxX: box.max[0], minY: box.min[2], maxY: box.max[2] });
+      }
       if (caption) {
-        label(ctx, `Cube10 · the lab’s default rules, B9,10/S5–15 · generation ${gen} · ${n(world.liveCells)} cells`,
-          w / 2, h - 14, { align: 'center', color: COLORS.text });
+        const text = w < 520
+          ? `Cube10 · B9,10/S5–15 · gen ${gen} · ${n(world.liveCells)} cells`
+          : `Cube10 · the lab’s default rules, B9,10/S5–15 · generation ${gen} · ${n(world.liveCells)} cells`;
+        label(ctx, text, w / 2, h - 14, { align: 'center', color: COLORS.text });
       }
     },
   };
@@ -422,19 +505,23 @@ function lab3d() {
   const shipAt = stepper(() => worldOf(ship), (world) => worldStep(world));
   const LAST = 60, RATE = 6, HOLD = 2;
   const shipSpan = LAST / RATE + HOLD;
+  // The ship's path, in cells: x from -2 to LAST + 2, z from -2 to 3
+  const path = { min: [-2, -2, -2], max: [LAST + 2, 3, 3] };
+  const cols = path.max[0] - path.min[0] + 1, rows = path.max[2] - path.min[2] + 1;
   return {
     still: 9,
     draw(ctx, w, h, t) {
       clear(ctx, w, h);
       const u = t % (cube.span + shipSpan);
       if (u < cube.span) {
-        cube.draw(ctx, w, h, u);
+        cube.draw(ctx, w, h, u, { slice: true });
         return;
       }
       const gen = Math.min(LAST, Math.floor((u - cube.span) * RATE));
       const world = shipAt(gen);
+      const { view, slice: rect } = splitStage(w, h, { strip: true, cols, stripRows: rows });
       const cam = camera(-0.45, 0.5);
-      const fit = fitBox({ min: [-2, -2, -2], max: [LAST + 2, 3, 3] }, cam, w, h - 40, 0.9);
+      const fit = fitBox(path, cam, view.w, view.h, 0.9);
       // A ruler along the ship's path, every 10 cells
       for (let x = 0; x <= LAST; x += 10) {
         const [px, py] = cam.project(x, -2.5, 0);
@@ -442,10 +529,18 @@ function lab3d() {
         ctx.fillStyle = COLORS.dim;
         ctx.fillRect(fit.cx + px * fit.scale - 1, fit.cy + py * fit.scale - 2, 2, 6);
       }
-      drawCubes(ctx, surfaceCubes(world, COLORS.accentRGB), cam, { ...fit, size: 0.9 });
+      drawLayered(ctx, world, cam, fit, path, COLORS.liveRGB, COLORS.accentRGB);
+      const grid = drawSlice(ctx, rect, world, { minX: path.min[0], maxX: path.max[0], minY: path.min[2], maxY: path.max[2] });
+      // The same ruler under the strip
+      for (let x = 0; x <= LAST; x += 10) {
+        const sx = grid.x0 + (x - path.min[0] + 0.5) * grid.size;
+        label(ctx, String(x), sx, grid.y0 + rows * grid.size + 13, { align: 'center', size: 10 });
+      }
       const where = world.extent();
-      label(ctx, `A ship · B4/S6 · generation ${gen} · its front at x = ${where ? where.max[0] : '–'}: one cell a generation, speed c`,
-        w / 2, h - 14, { align: 'center', color: COLORS.text });
+      const front = where ? where.max[0] : '–';
+      label(ctx, w < 520 ? `A ship · B4/S6 · gen ${gen} · front at x = ${front}`
+        : `A ship · B4/S6 · generation ${gen} · its front at x = ${front}: one cell a generation, speed c`,
+      w / 2, h - 14, { align: 'center', color: COLORS.text });
     },
   };
 }
