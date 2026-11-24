@@ -475,7 +475,7 @@
       ok(above.includes('Name to show: ') && above.includes('Picture (optional): ') && above.includes('Operating system (optional): ') && above.includes('Hardware (optional): ') && !above.includes('Browser and version'), 'Above the rule, only what to fill in: the browser is in the file');
       ok(above.split('\n').includes('Hall of Fame: yes, show my name, picture, score, browser and date.'), 'It has the Hall of Fame line, on its own line, to keep or delete');
       ok(!/Score:|Hash:|Result file:/.test(body), "It doesn't repeat what the file holds");
-      ok(/must be yours to use/.test(bottom) && /repo is public/.test(bottom) && /email address is used only to reply/.test(bottom) && /Speed's timing is self-reported/.test(bottom), 'Below the rule, the picture conditions, that the repo is public, how the address is used, and that Speed is self-reported');
+      ok(/must be yours to use/.test(bottom) && /repo is public/.test(bottom) && /shares your email address with Morpheus Tech LLC/.test(bottom) && /used only to reply/.test(bottom) && /with your written consent or as the law requires/.test(bottom) && /Speed's timing is self-reported/.test(bottom), 'Below the rule, the picture conditions, that the repo is public, how the address is used, and that Speed is self-reported');
       ok(text('contests-submit-subject') === subject && visible('contests-submit-subject-copy'), 'The webmail fallback has the subject, with Copy');
       ok(visible('contests-submit-body') && el('contests-submit-body').value === body && el('contests-submit-body').readOnly && visible('contests-submit-body-copy'), 'and the text, the same as the link\'s, with Copy');
 
