@@ -1,0 +1,200 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!--
+  Not bundled: a dev page (/src/guide/guide-check.html under `npm run dev`) that checks the Info
+  guide (#159) on its own, without the lab: it takes the guide's markup and styles from
+  index.html, wires guide.js to stand-ins for the lab, clicks through every step and Sources and
+  credits, and marks each check ✔ or ✖. The guide draws on a 2D canvas, so it runs where the
+  lab's WebGL can't. ?step=N&wait opens step N (1 to 10, or 11 for the sources) after the checks
+  and leaves it open, for a look or a screenshot.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Info guide check</title>
+  <link rel="stylesheet" href="/src/color.css">
+  <link rel="stylesheet" href="/src/style.css">
+  <link rel="stylesheet" href="/src/guide/guide.css">
+  <style>
+    #report { position: fixed; left: 16px; bottom: 16px; z-index: 5; max-height: 40vh; overflow: auto; width: 520px;
+      padding: 10px 14px; background: #14181fee; border: 1px solid #33404f; border-radius: 6px; color: #d8e2ee;
+      font: 13px/1.4 system-ui, sans-serif; }
+    #report ol { margin: 0; padding: 0; list-style: none; }
+    li.pass { color: #b9e8c6; }
+    li.fail { color: #ffb4ad; font-weight: 600; }
+    li.section { margin: 8px 0 2px; font-weight: 600; color: #9fc6ff; }
+    #summary { font-weight: 600; margin-bottom: 6px; }
+    .company-stand-in { position: fixed; top: 18px; right: 18px; width: 56px; height: 40px; border-radius: 8px; background: #333a; }
+  </style>
+</head>
+<body>
+  <div class="company-stand-in" id="company-brand"></div>
+  <div id="lab-stand-in" style="position: fixed; inset: 0; z-index: 0; background: radial-gradient(#1c2a3d, #0d1117);">
+    <button type="button" id="playPauseButton" style="position: absolute; left: 20px; top: 20px;">play</button>
+  </div>
+  <div id="report"><div id="summary">Running…</div><ol id="results"></ol></div>
+  <script type="module">
+    const list = document.getElementById('results');
+    const summary = document.getElementById('summary');
+    let passed = 0, failed = 0;
+    const row = (text, cls) => {
+      const li = document.createElement('li');
+      li.className = cls;
+      li.textContent = text;
+      list.append(li);
+    };
+    const ok = (cond, text) => {
+      cond ? passed++ : failed++;
+      row(`${cond ? '✔' : '✖'} ${text}`, cond ? 'pass' : 'fail');
+    };
+    const section = (text) => row(text, 'section');
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const $ = (id) => document.getElementById(id);
+    const visible = (id) => { const el = $(id); return !!el && el.getClientRects().length > 0 && getComputedStyle(el).visibility !== 'hidden'; };
+    const key = (k) => document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
+
+    // The guide's markup and the lab's inline styles, from index.html itself
+    const html = await (await fetch('/index.html')).text();
+    const page = new DOMParser().parseFromString(html, 'text/html');
+    for (const style of page.querySelectorAll('style')) document.head.append(style);
+    for (const id of ['guide-backdrop', 'guide', 'top-actions']) document.body.append(page.getElementById(id));
+
+    const { initGuide, isGuideOpen } = await import('/src/guide/guide.js');
+    const { STEPS, SOURCES, sourcesInOrder } = await import('/src/guide/steps.js');
+    const calls = [];
+    let playing = true;
+    $('playPauseButton').onclick = () => { playing = !playing; calls.push(playing ? 'play' : 'pause'); };
+    initGuide({
+      pauseLab: () => { if (!playing) return false; $('playPauseButton').click(); return true; },
+      resumeLab: () => { if (!playing) $('playPauseButton').click(); },
+      openModes: () => calls.push('modes'),
+      openContests: () => calls.push('contests'),
+    });
+    const canvasDrawn = () => {
+      const c = $('guide-canvas');
+      if (!c.width || !c.height) return false;
+      const data = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+      const colours = new Set();
+      for (let i = 0; i < data.length; i += 4 * 97) colours.add(`${data[i]},${data[i + 1]},${data[i + 2]}`);
+      return colours.size > 3;
+    };
+
+    try {
+      section('The Info button');
+      const info = $('info-button'), banner = $('contests-banner');
+      ok(visible('info-button') && visible('contests-banner'), 'Info and the Contests banner are on the top bar');
+      const a = info.getBoundingClientRect(), b = banner.getBoundingClientRect();
+      ok(a.right <= b.left && b.left - a.right <= 14, `Info sits just left of Contests (${Math.round(b.left - a.right)} px apart)`);
+      ok(Math.abs((a.top + a.bottom) / 2 - (b.top + b.bottom) / 2) <= 3, 'level with it');
+      ok(info.getAttribute('aria-pressed') === 'false' && !visible('guide'), 'The guide is closed, Info not pressed');
+
+      section('Opening');
+      info.click();
+      await sleep(400);
+      ok(isGuideOpen() && visible('guide') && visible('guide-backdrop'), 'Info opens the guide');
+      ok(info.getAttribute('aria-pressed') === 'true' && info.getAttribute('aria-expanded') === 'true', 'Info shows as pressed');
+      ok(calls.join() === 'pause', `A playing simulation pauses (${calls.join() || 'nothing'})`);
+      ok($('lab-stand-in').inert && !$('top-actions').inert && !$('guide').inert, 'The lab behind is out of reach, the top bar is not');
+      ok(document.activeElement === $('guide-next'), 'Focus goes to Next');
+      ok($('guide-count').textContent === `1 / ${STEPS.length}` && $('guide-title').textContent === STEPS[0].title, 'It opens at step 1');
+      ok($('guide-back').disabled, 'Back is off at the first step');
+      ok($('guide-dots').children.length === STEPS.length + 1, `A dot for each step and the sources (${$('guide-dots').children.length})`);
+      const centre = document.elementFromPoint((a.left + a.right) / 2, (a.top + a.bottom) / 2);
+      ok(centre?.closest('#info-button'), 'Info stays above the guide, where it can be clicked');
+
+      section('Each step');
+      for (let i = 0; i < STEPS.length; i++) {
+        const step = STEPS[i];
+        await sleep(700);
+        ok($('guide-title').textContent === step.title, `${i + 1}. ${step.title}`);
+        ok($('guide-body').children.length === step.body.length, '   its words');
+        ok(canvasDrawn(), '   its animation draws');
+        ok($('guide-canvas').getAttribute('aria-label') === step.alt, '   which a screen reader hears described');
+        const links = [...$('guide-cites').querySelectorAll('a')].map((l) => l.href);
+        const expected = step.sources.filter((k) => SOURCES[k].url).map((k) => new URL(SOURCES[k].url).href);
+        ok(JSON.stringify(links) === JSON.stringify(expected), `   its sources, linked (${step.sources.map((k) => SOURCES[k].short).join(', ')})`);
+        ok([...$('guide-cites').querySelectorAll('a')].every((l) => l.target === '_blank' && l.rel.includes('noopener')), '   opening in a new tab');
+        ok(!$('guide-finale').hidden === !!step.finale, step.finale ? '   with Pick a mode and Open the Contests' : '   no finale buttons');
+        if (i < STEPS.length - 1) $('guide-next').click();
+      }
+      ok($('guide-next').textContent === 'Sources', 'The last step’s Next says Sources');
+
+      section('Pause');
+      const pause = $('guide-pause');
+      pause.click();
+      ok(pause.getAttribute('aria-pressed') === 'true' && pause.textContent === 'Play', 'Pause stops the animation');
+      pause.click();
+      ok(pause.getAttribute('aria-pressed') === 'false', 'and Play starts it again');
+
+      section('Sources and credits');
+      $('guide-next').click();
+      await sleep(200);
+      ok(visible('guide-sources') && !visible('guide-stage') && !visible('guide-text'), 'Next on the last step shows the sources');
+      const items = $('guide-sources-list').children;
+      ok(items.length === sourcesInOrder().length && items.length === Object.keys(SOURCES).length, `Every source is listed (${items.length})`);
+      ok([...items].every((li) => li.querySelector('cite')?.textContent), 'each with its title');
+      ok([...items].filter((li) => li.querySelector('a')).length === Object.values(SOURCES).filter((s) => s.url).length, 'and its link, where it has one');
+      ok($('guide-next').disabled && $('guide-back').textContent === `Back to step ${STEPS.length}`, 'Next is off; Back returns to the step before');
+      $('guide-back').click();
+      await sleep(100);
+      ok($('guide-title').textContent === STEPS.at(-1).title, 'Back goes there');
+
+      section('Keys, dots and the sources button');
+      $('guide-next').focus();
+      key('ArrowLeft');
+      ok($('guide-count').textContent === `${STEPS.length - 1} / ${STEPS.length}`, '← goes back a step');
+      key('ArrowRight');
+      ok($('guide-count').textContent === `${STEPS.length} / ${STEPS.length}`, '→ goes forward');
+      $('guide-dots').children[2].click();
+      ok($('guide-title').textContent === STEPS[2].title && $('guide-dots').children[2].getAttribute('aria-current') === 'step', 'A dot goes to its step');
+      $('guide-sources-button').click();
+      ok(visible('guide-sources') && $('guide-back').textContent === 'Back to step 3', 'Sources, in the header, opens the sources from any step');
+      $('guide-back').click();
+      ok($('guide-title').textContent === STEPS[2].title, 'and Back returns to that step');
+      $('guide-cites').querySelector('button').click();
+      ok(visible('guide-sources'), 'All sources, under a step, opens them too');
+      $('guide-back').click();
+
+      section('Closing');
+      key('Escape');
+      await sleep(100);
+      ok(!isGuideOpen() && !visible('guide') && !visible('guide-backdrop'), 'Esc closes the guide');
+      ok(calls.join() === 'pause,play', `and the simulation plays again (${calls.join()})`);
+      ok(!$('lab-stand-in').inert && document.activeElement === info, 'The lab is back in reach, focus on Info');
+      info.click();
+      await sleep(100);
+      ok(isGuideOpen() && $('guide-count').textContent === `1 / ${STEPS.length}`, 'Info opens it again, at step 1');
+      info.click();
+      ok(!isGuideOpen(), 'and Info closes it');
+      info.click();
+      $('guide-close').click();
+      ok(!isGuideOpen(), 'Close closes it');
+      info.click();
+      $('guide-backdrop').click();
+      ok(!isGuideOpen(), 'So does a click beside it');
+      calls.length = 0;
+      playing = false;
+      info.click();
+      $('guide-dots').children[STEPS.length - 1].click();
+      $('guide-open-contests').click();
+      ok(!isGuideOpen() && calls.join() === 'contests', `Open the Contests closes the guide and opens them, a paused lab left paused (${calls.join()})`);
+      info.click();
+      $('guide-dots').children[STEPS.length - 1].click();
+      $('guide-open-modes').click();
+      ok(!isGuideOpen() && calls.join() === 'contests,modes', 'Pick a mode closes it and opens the Mode popover');
+    } catch (err) {
+      ok(false, `The check stopped: ${err.stack || err}`);
+    }
+    summary.textContent = failed ? `${failed} failed, ${passed} passed` : `All ${passed} passed`;
+    const params = new URLSearchParams(location.search);
+    if (params.has('step')) {
+      $('report').hidden = true;
+      $('info-button').click();
+      const n = Number(params.get('step'));
+      $('guide-dots').children[n - 1]?.click();
+    }
+    document.body.dataset.done = 'true';
+  </script>
+</body>
+</html>

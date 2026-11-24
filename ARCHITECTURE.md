@@ -39,6 +39,8 @@ local storage: whether GPU compute is on.
  │     contestsFrame() ─► watchFrame() ──► explore/view.js                      │
  │   submit.js: the mailto: link; hallOfFame.js ◄── hall-of-fame.json, whose    │
  │     result files (public/hall-of-fame/results/) Watch fetches and replays    │
+ │ Info: guide/guide.js ─► steps.js, scenes.js on its own 2D canvas; animate()  │
+ │   draws nothing behind it; the 3D steps run unbounded/ World + step          │
  └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -390,6 +392,14 @@ generation's `active` cells into the geometry buffers. Orbiting, slicing and aut
 only the camera or the visible set.
 
 ## Architectural decisions
+
+**The guide draws on its own 2D canvas (#159).** Its animations are small, and a 2D canvas with
+a dozen lines of projection (`guide/iso.js`) draws cubes well enough, so the guide never touches
+the lab's renderer, scene or camera: opening it only stops `animate()` from drawing behind it,
+and closing it leaves the lab exactly as it was. It also runs where WebGL can't, so its check
+page runs headless. Each animation runs the rule its words describe, and the 3D ones run the
+lab's own unbounded engine, so what the guide shows is what the lab does. Its claims are data,
+with their sources, in `guide/steps.js`, and a test checks that every one is cited.
 
 **Precompute the whole history.** It costs memory (`size³ × generations`, all at once) and a
 wait up front. In return, scrubbing and reverse playback are instant and the render loop never

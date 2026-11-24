@@ -10,7 +10,8 @@ pull requests, DCO sign-off, changelog) is in [CONTRIBUTING.md](CONTRIBUTING.md)
 .github/workflows/ci.yml The `build` (npm ci, npm run build, npm test) and `DCO` (sign-off) checks, required on main
 .github/ISSUE_TEMPLATE/  Issue forms: bug_report.yml (type Bug), idea.yml (type Feature; what and why only), both labelled `idea`; config.yml turns off blank issues and links Discussions (GitHub adds the security-report entry itself)
 .github/pull_request_template.md  The pull-request template: each issue and its relation, what changed, how it was tested, screenshots, and the checklist
-index.html               All markup: HUD and its popovers, control bar, company panel, info panels
+index.html               All markup: HUD and its popovers, control bar, company panel, info panels, the top bar's
+                         buttons (Info and the Contests banner, in #top-actions) and the Info guide
 public/CNAME             lab.morpheustech.net, copied into every build. Never delete
 public/favicon.svg       Brand pin (see brand.lock). Never hand-edit
 public/hall-of-fame/     The Hall of Fame's pictures (128×128, metadata stripped) and, in results/, each entry's
@@ -58,7 +59,9 @@ test/                    `npm test` (Node's built-in node:test, no dependency): 
                          The unbounded mode's seeds, presets, seed files, saves, settings (setup.test.js), Ships leave at
                          the edge (ships.test.js), an arena that wraps (wrap.test.js) or has walls
                          (walls.test.js), camera framing
-                         and the seed editor's model (editorModel.test.js)
+                         and the seed editor's model (editorModel.test.js); guide/ checks the Info guide's automata
+                         against published facts (automata.test.js), and its steps, its sources, its 3D camera
+                         and that every animation draws (steps.test.js)
 src/
   main.js                Boot: Game of Life 3D (unbounded) (startExplore()) by default, or initSimulation(); then animate()
   browser.js             detectBrowser(): the browser's name and version, from navigator.userAgentData or the
@@ -172,6 +175,22 @@ src/
   contests/race-bench.html Not bundled: a dev page (/src/contests/race-bench.html under `npm run dev`) that measures
                          what racing #1 costs a Speed run (#149): runs with and without the race in turn, then
                          their means, spread and Welch's t
+  guide/                 The Info guide (#159): a short tour of cellular automata, with every source it cites
+  guide/steps.js         The ten steps' words, each one's animation and sources, and SOURCES: every cited work's
+                         authors, year, title, venue and link (no DOM; tested in Node)
+  guide/automata.js      The small automata the animations run, written for the lab: elementary rules (Rule 30,
+                         Rule 110), Life on the plane and on a torus, RLE patterns, the HPP lattice gas,
+                         Nagel–Schreckenberg traffic, the sandpile, and the scales' illustration (no DOM; tested)
+  guide/iso.js           An orthographic camera that draws shaded cubes on a 2D canvas (no DOM; tested)
+  guide/scenes.js        Each step's animation, drawn on the guide's own 2D canvas; a frame depends only on its
+                         time. The 3D steps run the lab's unbounded engine (World, step, presets), never its WebGL
+  guide/guide.js         The guide on the page: Info opens and closes it, Back, Next, the dots, the arrow keys
+                         and Esc, Sources and credits, pausing the lab behind it (isGuideOpen(), which
+                         animate() checks), and a still frame with reduced motion. Sets only textContent
+  guide/guide.css        The top bar's buttons and the guide's layout, a phone's included
+  guide/guide-check.html Not bundled: a dev page (/src/guide/guide-check.html under `npm run dev`) that checks the
+                         guide on its own, with its markup and styles from index.html and stand-ins for the lab, so
+                         it runs without WebGL; ?step=N&wait leaves step N open, for a look or a screenshot
   explore/               The Game of Life 3D (unbounded) mode, called Explore until #116 (the code keeps `explore`): the unbounded engine on the page (#37)
   explore/explore.js     Starts and drives the run, the control bar's commands in Game of Life 3D (unbounded), the HUD box and notices
                          (ships leaving, #103), and the save popover
