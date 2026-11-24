@@ -1918,18 +1918,25 @@
 
 /* Enable pointer events only on links/buttons */
 
+/* The company logo, at full strength beside the Info button and the Contests banner (#164).
+   Hovered or focused, it glows blue, its own colour; with the company panel open, orange */
 .footer-icon {
   width: 36px;
   height: 36px;
   color: var(--color-info-display-text);
-  opacity: 0.7;
-  transition: opacity 0.3s ease, transform 0.2s ease;
-}
-
-.footer-icon:hover {
   opacity: 1;
   transform: scale(1.08);
-  color: var(--color-control-font);
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.footer-icon:hover,
+#company-logo-button-top:focus-visible .footer-icon {
+  transform: scale(1.14);
+  filter: drop-shadow(0 0 6px rgba(80, 180, 255, 0.85)) drop-shadow(0 0 14px rgba(80, 180, 255, 0.45));
+}
+
+#company-logo-button-top:focus-visible {
+  outline: none;
 }
 
 /* Company branding */
