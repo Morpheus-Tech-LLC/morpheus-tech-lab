@@ -7,6 +7,8 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
 
 ## [Unreleased]
 
+## [1.9.0] — 2026-11-25
+
 ### Added
 - **Guide**, left of the Contests banner in every mode, opens a short guide to cellular automata:
   what they are, Rule 30, Conway's Game of Life and what lives in it, Game of Life 3D and this
