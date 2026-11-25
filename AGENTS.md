@@ -11,7 +11,7 @@ pull requests, DCO sign-off, changelog) is in [CONTRIBUTING.md](CONTRIBUTING.md)
 .github/ISSUE_TEMPLATE/  Issue forms: bug_report.yml (type Bug), idea.yml (type Feature; what and why only), both labelled `idea`; config.yml turns off blank issues and links Discussions (GitHub adds the security-report entry itself)
 .github/pull_request_template.md  The pull-request template: each issue and its relation, what changed, how it was tested, screenshots, and the checklist
 index.html               All markup: HUD and its popovers, control bar, company panel, info panels, the top bar's
-                         buttons (Guide and the Contests banner, in #top-actions) and the guide
+                         buttons (Guide, Atlas and the Contests banner, in #top-actions), the guide and the Atlas
 public/CNAME             lab.morpheustech.net, copied into every build. Never delete
 public/favicon.svg       Brand pin (see brand.lock). Never hand-edit
 public/hall-of-fame/     The Hall of Fame's pictures (128×128, metadata stripped) and, in results/, each entry's
@@ -64,7 +64,9 @@ test/                    `npm test` (Node's built-in node:test, no dependency): 
                          (walls.test.js), camera framing
                          and the seed editor's model (editorModel.test.js); guide/ checks the guide's automata
                          against published facts (automata.test.js), and its steps, its sources, its 3D camera
-                         and that every animation draws (steps.test.js)
+                         and that every animation draws (steps.test.js); atlas/ checks the Atlas's counts by brute
+                         force, against Packard and Wolfram's table and an independent computation (counts.test.js),
+                         and its paper's markup, citations, links and printed numbers (paper.test.js)
 src/
   main.js                Boot: Game of Life 3D (unbounded) (startExplore()) by default, or initSimulation(); then animate()
   browser.js             detectBrowser(): the browser's name and version, from navigator.userAgentData or the
@@ -197,6 +199,21 @@ src/
   guide/guide-check.html Not bundled: a dev page (/src/guide/guide-check.html under `npm run dev`) that checks the
                          guide on its own, with its markup and styles from index.html and stand-ins for the lab, so
                          it runs without WebGL; ?step=N&wait leaves step N open, for a look or a screenshot
+  atlas/                 The Atlas (#185): the lab's working paper on rule space, and later its Lexicon (#107)
+  atlas/counts.js        The paper's numbers, computed: the neighbourhoods, the square's and cube's symmetries,
+                         isotropic classes by Burnside's lemma, each class's count as an exponent of 2 (BigInt),
+                         digits of 2^e, and the dual of a rule (no DOM; tested)
+  atlas/markup.js        The paper's inline markup (^{} _{} *…* [cite:…] [§…]) parsed into a tree (no DOM; tested)
+  atlas/paper.js         The paper as data: its sections and their blocks, its revision and how to cite it, and the
+                         sources it cites beyond the guide's SOURCES; every count comes from counts.js (no DOM; tested)
+  atlas/atlas.js         The Atlas on the page: the Atlas button opens and closes it, its contents, Back, Next, the
+                         arrow keys and Esc, the Sources page, pausing the lab behind it (isAtlasOpen(), which
+                         animate() checks); Info and Contests close it first. Builds formulas with the DOM; sets
+                         only textContent
+  atlas/atlas.css        The Atlas's layout, a phone's included; its button takes the Info button's look
+  atlas/atlas-check.html Not bundled: a dev page (/src/atlas/atlas-check.html under `npm run dev`) that checks the
+                         Atlas on its own, with the top bar, the guide and the Atlas from index.html and stand-ins for
+                         the lab; ?page=<id>&wait leaves a page open, for a look or a screenshot
   explore/               The Game of Life 3D (unbounded) mode, called Explore until #116 (the code keeps `explore`): the unbounded engine on the page (#37)
   explore/explore.js     Starts and drives the run, the control bar's commands in Game of Life 3D (unbounded), the HUD box and notices
                          (ships leaving, #103), and the save popover

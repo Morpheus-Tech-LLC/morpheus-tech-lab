@@ -2,8 +2,9 @@
 //
 // The guide (#159): a short tour of cellular automata, opened by the Guide button left of
 // the Contests banner. Each step's words (steps.js) come with an animation (scenes.js) on the
-// guide's own 2D canvas; the lab's WebGL view waits behind it, paused. The last page lists every
-// source the tour cites. The Guide button stays above the guide, pressed, and closes it, as do
+// guide's own 2D canvas; the lab's WebGL view waits behind it, paused. A step can link to the
+// section of the Atlas (src/atlas/) that explains it further. The last page lists every source the
+// tour cites. The Guide button stays above the guide, pressed, and closes it, as do
 // Close and Esc. Sets only textContent.
 
 import { STEPS, SOURCES, sourcesInOrder, citation } from './steps.js';
@@ -35,6 +36,7 @@ export function isGuideOpen() {
  * @param {() => void} options.resumeLab - plays it again
  * @param {() => void} options.openModes - the finale's Pick a mode
  * @param {() => void} options.openContests - the finale's Open the Contests
+ * @param {(section: string) => void} [options.openAtlas] - a step's link to the Atlas
  */
 export function initGuide(options) {
   hooks = options;
@@ -50,6 +52,7 @@ export function initGuide(options) {
     text: $('guide-text'),
     title: $('guide-title'),
     body: $('guide-body'),
+    more: $('guide-more'),
     cites: $('guide-cites'),
     finale: $('guide-finale'),
     sources: $('guide-sources'),
@@ -241,6 +244,19 @@ function showStep(step) {
   all.addEventListener('click', () => go(SOURCES_PAGE));
   cites.push(document.createTextNode(' · '), all);
   els.cites.replaceChildren(...cites);
+  if (els.more) {
+    els.more.hidden = !(step.atlas && hooks.openAtlas);
+    els.more.replaceChildren();
+    if (!els.more.hidden) {
+      const link = document.createElement('button');
+      link.type = 'button';
+      link.className = 'guide-link';
+      link.textContent = `${step.atlas.text} →`;
+      link.title = 'Opens the Atlas, the lab’s working paper on rule space';
+      link.addEventListener('click', () => closeGuide(() => hooks.openAtlas(step.atlas.section)));
+      els.more.append(link);
+    }
+  }
   els.finale.hidden = !step.finale;
   els.text.scrollTop = 0;
   els.canvas.setAttribute('aria-label', step.alt);

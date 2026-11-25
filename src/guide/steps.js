@@ -249,6 +249,8 @@ export const SOURCES = {
  * @property {string} alt - what the animation shows, for a screen reader
  * @property {string[]} sources - keys of SOURCES
  * @property {boolean} [finale] - the last step, with its ways into the lab
+ * @property {{ text: string, section: string }} [atlas] - a link under the words to a section of
+ *   the Atlas's paper (src/atlas/paper.js), for a step it explains further
  */
 
 /** @type {Step[]} */
@@ -316,6 +318,7 @@ export const STEPS = [
       'The lab writes them in the same shorthand as Conway’s B3/S23: B lists the neighbour counts that bring a cell to life, S the counts that keep it alive, now from 0 to 26. The lab’s default, B9,10/S5–15, brings a cell to life with 9 or 10 live neighbours and keeps it alive with 5 to 15.',
     ],
     scene: 'neighbourhood3d',
+    atlas: { text: 'How these numbers are counted', section: 'counting' },
     alt: 'A flat 3 by 3 neighbourhood tilts into 3D and gains a layer above and below: 8 neighbours become 26. Then the lab’s default rule, B9,10/S5–15, at work in a 3 by 3 by 3 neighbourhood: live neighbours are counted, and the cell survives with 8, is born with 9, and dies with 4 or with 17.',
     sources: ['bays1987'],
   },

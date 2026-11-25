@@ -85,8 +85,9 @@
       const info = $('info-button'), banner = $('contests-banner');
       ok(visible('info-button') && visible('contests-banner'), 'Guide and the Contests banner are on the top bar');
       ok(info.textContent.trim() === 'Guide' && info.querySelector('svg circle') && info.querySelectorAll('svg path').length === 2, 'labelled Guide, with its compass (#191)');
-      const a = info.getBoundingClientRect(), b = banner.getBoundingClientRect();
-      ok(a.right <= b.left && b.left - a.right <= 14, `Guide sits just left of Contests (${Math.round(b.left - a.right)} px apart)`);
+      // The Atlas (#186) sits between Guide and the Contests banner
+      const a = info.getBoundingClientRect(), b = $('atlas-button').getBoundingClientRect();
+      ok(a.right <= b.left && b.left - a.right <= 14, `Guide sits just left of the Atlas button, then Contests (${Math.round(b.left - a.right)} px apart)`);
       ok(Math.abs((a.top + a.bottom) / 2 - (b.top + b.bottom) / 2) <= 3, 'level with it');
       ok(info.getAttribute('aria-pressed') === 'false' && !visible('guide'), 'The guide is closed, Guide not pressed');
 

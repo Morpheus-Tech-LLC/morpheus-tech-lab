@@ -1,0 +1,213 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!--
+  Not bundled: a dev page (/src/atlas/atlas-check.html under `npm run dev`) that checks the Atlas
+  (#186) on its own, without the lab: it takes the top bar, the guide and the Atlas from
+  index.html, wires guide.js and atlas.js to stand-ins for the lab, clicks through the contents,
+  every section and the sources, and marks each check ✔ or ✖. It needs no WebGL, so it runs
+  where the lab can't. ?page=<id>&wait opens a page (contents, a section's id, or sources) after
+  the checks and leaves it open, for a look or a screenshot.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Atlas check</title>
+  <link rel="stylesheet" href="/src/color.css">
+  <link rel="stylesheet" href="/src/style.css">
+  <link rel="stylesheet" href="/src/guide/guide.css">
+  <link rel="stylesheet" href="/src/atlas/atlas.css">
+  <style>
+    #report { position: fixed; left: 16px; bottom: 16px; z-index: 5; max-height: 40vh; overflow: auto; width: min(520px, calc(100vw - 32px));
+      padding: 10px 14px; background: #14181fee; border: 1px solid #33404f; border-radius: 6px; color: #d8e2ee;
+      font: 13px/1.4 system-ui, sans-serif; box-sizing: border-box; }
+    #report ol { margin: 0; padding: 0; list-style: none; }
+    li.pass { color: #b9e8c6; }
+    li.fail { color: #ffb4ad; font-weight: 600; }
+    li.section { margin: 8px 0 2px; font-weight: 600; color: #9fc6ff; }
+    #summary { font-weight: 600; margin-bottom: 6px; }
+    .company-stand-in { position: fixed; top: 18px; right: 18px; width: 56px; height: 40px; border-radius: 8px; background: #333a; }
+  </style>
+</head>
+<body>
+  <div class="company-stand-in" id="company-brand"></div>
+  <div id="lab-stand-in" style="position: fixed; inset: 0; z-index: 0; background: radial-gradient(#1c2a3d, #0d1117);">
+    <button type="button" id="playPauseButton" style="position: absolute; left: 20px; top: 20px;">play</button>
+  </div>
+  <div id="report"><div id="summary">Running…</div><ol id="results"></ol></div>
+  <script type="module">
+    const list = document.getElementById('results');
+    const summary = document.getElementById('summary');
+    let passed = 0, failed = 0;
+    const row = (text, cls) => {
+      const li = document.createElement('li');
+      li.className = cls;
+      li.textContent = text;
+      list.append(li);
+    };
+    const ok = (cond, text) => {
+      cond ? passed++ : failed++;
+      row(`${cond ? '✔' : '✖'} ${text}`, cond ? 'pass' : 'fail');
+    };
+    const section = (text) => row(text, 'section');
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const $ = (id) => document.getElementById(id);
+    const visible = (id) => { const el = $(id); return !!el && el.getClientRects().length > 0 && getComputedStyle(el).visibility !== 'hidden'; };
+    const key = (k) => document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
+    const page = () => $('atlas-page');
+    const title = () => page().querySelector('h3')?.textContent;
+    const noSideScroll = () => page().scrollWidth <= page().clientWidth + 1;
+
+    // The top bar, the guide and the Atlas, with the lab's inline styles, from index.html itself
+    const html = await (await fetch('/index.html')).text();
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    for (const style of doc.querySelectorAll('style')) document.head.append(style);
+    for (const id of ['guide-backdrop', 'guide', 'atlas-backdrop', 'atlas', 'top-actions']) document.body.append(doc.getElementById(id));
+
+    const { initGuide, isGuideOpen, openGuide } = await import('/src/guide/guide.js');
+    const { initAtlas, isAtlasOpen, openAtlas } = await import('/src/atlas/atlas.js');
+    const { SECTIONS, READABLE, sourcesInOrder } = await import('/src/atlas/paper.js');
+    const { STEPS } = await import('/src/guide/steps.js');
+    const calls = [];
+    let playing = true;
+    $('playPauseButton').onclick = () => { playing = !playing; calls.push(playing ? 'play' : 'pause'); };
+    const pauseLab = () => { if (!playing) return false; $('playPauseButton').click(); return true; };
+    const resumeLab = () => { if (!playing) $('playPauseButton').click(); };
+    // As controls.js wires them; the Contests banner's own handler is a stand-in
+    $('contests-banner').addEventListener('click', () => calls.push('contests'));
+    initGuide({ pauseLab, resumeLab, openModes: () => calls.push('modes'), openContests: () => calls.push('contests'), openAtlas: (s) => openAtlas(s) });
+    initAtlas({ pauseLab, resumeLab, beforeOpen: () => isGuideOpen() && $('guide-close').click() });
+    const TOTAL = SECTIONS.length + 1;
+
+    try {
+      section('The Atlas button');
+      const atlas = $('atlas-button'), info = $('info-button'), banner = $('contests-banner');
+      ok(visible('atlas-button') && visible('info-button') && visible('contests-banner'), 'Info, Atlas and Contests are on the top bar');
+      const a = info.getBoundingClientRect(), b = atlas.getBoundingClientRect(), c = banner.getBoundingClientRect();
+      ok(a.right <= b.left && b.right <= c.left, `Atlas sits between Info and Contests (${Math.round(b.left - a.right)} px, ${Math.round(c.left - b.right)} px)`);
+      ok(Math.abs((a.top + a.bottom) / 2 - (b.top + b.bottom) / 2) <= 3 && Math.abs((b.top + b.bottom) / 2 - (c.top + c.bottom) / 2) <= 3, 'level with them');
+      ok(atlas.textContent.trim() === 'Atlas' && atlas.querySelector('svg'), 'labelled Atlas, with its icon');
+      ok(atlas.getAttribute('aria-pressed') === 'false' && !visible('atlas'), 'The Atlas is closed, its button not pressed');
+
+      section('Opening, on the contents');
+      atlas.click();
+      await sleep(200);
+      ok(isAtlasOpen() && visible('atlas') && visible('atlas-backdrop'), 'The button opens the Atlas');
+      ok(atlas.getAttribute('aria-pressed') === 'true' && atlas.getAttribute('aria-expanded') === 'true', 'and shows as pressed');
+      ok(calls.join() === 'pause', `A playing simulation pauses (${calls.join() || 'nothing'})`);
+      ok($('lab-stand-in').inert && !$('top-actions').inert && !$('atlas').inert, 'The lab behind is out of reach, the top bar is not');
+      ok(document.activeElement === $('atlas-next') && $('atlas-next').textContent === 'Start reading', 'Focus goes to Start reading');
+      ok($('atlas-count').textContent === 'Contents' && title() === 'An atlas of rule space', 'It opens on the contents, with the paper’s title');
+      ok(page().textContent.includes('Revision 1'), 'which gives the revision');
+      ok($('atlas-back').disabled, 'Back is off on the contents');
+      const toc = page().querySelectorAll('.atlas-toc > li');
+      ok(toc.length === TOTAL, `The contents list every section and the sources (${toc.length})`);
+      ok([...toc].filter((li) => li.querySelector('.atlas-soon')).length === 1 && toc[4].textContent.includes('Coming with the Lexicon'), 'section 5 waits for the Lexicon');
+      ok(page().textContent.includes('Part II · The Lexicon') && page().textContent.includes('How to cite this paper'), 'then the Lexicon, coming soon, and how to cite it');
+      const bb = atlas.getBoundingClientRect();
+      ok(document.elementFromPoint((bb.left + bb.right) / 2, (bb.top + bb.bottom) / 2)?.closest('#atlas-button') || innerWidth <= 640, 'The button stays above the Atlas, where it can be clicked (on a phone, Close takes its place)');
+
+      section('Each section');
+      for (const s of READABLE) {
+        $('atlas-next').click();
+        await sleep(50);
+        ok(title() === `${s.number}. ${s.title}` && $('atlas-count').textContent === `${s.number} / ${TOTAL}`, `${s.number}. ${s.title}`);
+        ok(page().children.length === s.blocks.length + 1, `   its ${s.blocks.length} blocks`);
+        const links = [...page().querySelectorAll('.atlas-cite a')];
+        ok(links.length > 0 && links.every((l) => l.target === '_blank' && l.rel.includes('noopener') && l.href.startsWith('https://')), `   its citations, linked, opening in a new tab (${links.length})`);
+        const maths = s.blocks.filter((x) => x.type === 'math').length;
+        ok(page().querySelectorAll('.atlas-math').length === maths, `   its formulas (${maths})`);
+        ok(noSideScroll(), '   no sideways scroll');
+      }
+
+      section('Sources');
+      $('atlas-next').click();
+      await sleep(50);
+      ok(title() === `${TOTAL}. Sources` && $('atlas-count').textContent === `${TOTAL} / ${TOTAL}`, 'Next after the last section shows the sources');
+      const items = page().querySelectorAll('.atlas-sources-list > li');
+      ok(items.length === sourcesInOrder().length, `Every source cited is listed (${items.length})`);
+      ok([...items].every((li) => li.querySelector('cite') && li.querySelector('.atlas-source-where button')), 'each with its title and the sections citing it');
+      ok($('atlas-next').disabled && document.activeElement === $('atlas-back'), 'Next is off; focus moves to Back');
+      items[0].querySelector('.atlas-source-where button').click();
+      ok(title() === `${SECTIONS[0].number}. ${SECTIONS[0].title}`, 'A section number goes to that section');
+
+      section('Links, contents and keys');
+      page().querySelector('.atlas-xref').click();
+      ok(title() === '3. Counting rules', 'Section 1’s link to section 3 goes there');
+      const sups = page().querySelectorAll('sup');
+      ok(sups.length > 10 && page().querySelector('sup sup'), `Exponents are superscripts, nesting for 2^(2^(n+1)) (${sups.length})`);
+      ok(page().querySelectorAll('table').length === 1 && page().querySelectorAll('tbody tr').length === 8, 'The table of counts, with its 8 neighbourhoods');
+      ok(page().querySelector('.atlas-proof') && page().querySelector('.atlas-note'), 'A proof, and the note on Packard and Wolfram’s table');
+      $('atlas-next').focus();
+      key('ArrowRight');
+      ok(title() === '4. Making the space smaller', '→ goes forward');
+      key('ArrowRight');
+      ok(title() === '6. Why this lab', 'past section 5, which waits for the Lexicon');
+      key('ArrowLeft');
+      ok(title() === '4. Making the space smaller', '← goes back');
+      $('atlas-contents-button').click();
+      ok($('atlas-count').textContent === 'Contents', 'Contents, in the header, opens the contents from any page');
+      page().querySelectorAll('.atlas-toc .atlas-xref')[1].click();
+      ok(title() === '2. Neighbourhoods', 'A line of the contents opens its section');
+      key('ArrowLeft');
+      key('ArrowLeft');
+      ok($('atlas-count').textContent === 'Contents', '← from section 1 goes back to the contents');
+      ok(noSideScroll(), 'The contents have no sideways scroll');
+
+      section('Closing');
+      key('Escape');
+      await sleep(50);
+      ok(!isAtlasOpen() && !visible('atlas') && !visible('atlas-backdrop'), 'Esc closes the Atlas');
+      ok(calls.join() === 'pause,play', `and the simulation plays again (${calls.join()})`);
+      ok(!$('lab-stand-in').inert && document.activeElement === atlas, 'The lab is back in reach, focus on the Atlas button');
+      atlas.click();
+      ok(isAtlasOpen() && $('atlas-count').textContent === 'Contents', 'The button opens it again, on the contents');
+      atlas.click();
+      ok(!isAtlasOpen(), 'and closes it');
+      atlas.click();
+      $('atlas-close').click();
+      ok(!isAtlasOpen(), 'Close closes it');
+      atlas.click();
+      $('atlas-backdrop').click();
+      ok(!isAtlasOpen(), 'So does a click beside it');
+
+      section('With the guide and the Contests');
+      calls.length = 0;
+      atlas.click();
+      info.click();
+      await sleep(100);
+      ok(!isAtlasOpen() && isGuideOpen(), 'Info, with the Atlas open, closes it and opens the guide');
+      ok($('lab-stand-in').inert, 'the guide holds the lab out of reach');
+      atlas.click();
+      await sleep(100);
+      ok(isAtlasOpen() && !isGuideOpen(), 'The Atlas button, with the guide open, closes it and opens the Atlas');
+      ok($('lab-stand-in').inert, 'and the lab stays out of reach');
+      banner.click();
+      ok(!isAtlasOpen() && calls.at(-1) === 'contests', 'The Contests banner closes the Atlas and opens the Contests');
+      ok(playing && calls.join() === 'pause,play,pause,play,pause,play,contests', `The lab paused only while covered, and plays again (${calls.join()})`);
+
+      section('Step 6 of the guide');
+      openGuide(STEPS.findIndex((s) => s.id === 'three'));
+      await sleep(100);
+      ok(visible('guide-more') && $('guide-more').textContent === 'How these numbers are counted →', 'Step 6 links to the Atlas');
+      ok($('guide-body').children.length === STEPS.find((s) => s.id === 'three').body.length, 'below its words, which are unchanged');
+      $('guide-more').querySelector('button').click();
+      await sleep(100);
+      ok(!isGuideOpen() && isAtlasOpen() && title() === '3. Counting rules', 'The link closes the guide and opens the Atlas at section 3');
+      $('atlas-close').click();
+      openGuide(0);
+      ok(!visible('guide-more'), 'Other steps have no such link');
+      $('guide-close').click();
+    } catch (err) {
+      ok(false, `The check stopped: ${err.stack || err}`);
+    }
+    summary.textContent = failed ? `${failed} failed, ${passed} passed` : `All ${passed} passed`;
+    const params = new URLSearchParams(location.search);
+    if (params.has('page')) {
+      $('report').hidden = true;
+      openAtlas(params.get('page'));
+    }
+    document.body.dataset.done = 'true';
+  </script>
+</body>
+</html>

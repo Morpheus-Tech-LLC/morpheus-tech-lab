@@ -183,6 +183,13 @@ body.guide-open .top-actions {
   font-size: 13.5px;
   line-height: 1.6;
 }
+.guide-more {
+  margin: 4px 0 0;
+  font-size: 13px;
+}
+.guide-more[hidden] {
+  display: none;
+}
 .guide-cites {
   margin: 16px 0 0;
   padding-top: 10px;

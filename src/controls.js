@@ -11,6 +11,7 @@ import { isContests, startContests, stopContests, isWatching, closeWatch, watchT
 import { CONTESTS, SEASON } from "./unbounded/contests.js";
 import { closingText } from "./contests/format.js";
 import { initGuide, isGuideOpen, closeGuide } from "./guide/guide.js";
+import { initAtlas, openAtlas } from "./atlas/atlas.js";
 import { holdWidth, countWidth } from "./readouts.js";
 
 
@@ -91,16 +92,19 @@ export function initControls() {
     }
     leaveContests();
   });
-  // Guide, left of the Contests banner, opens the guide (#159); a playing simulation waits behind it
+  // Guide, left of the Contests banner, opens the guide (#159), and Atlas, between them, the lab's
+  // working paper (#185); a playing simulation waits behind either
+  const pauseLab = () => {
+    if (isContests() || !state.isPlaying) return false; // a contest's run is left alone
+    document.getElementById('playPauseButton')?.click();
+    return true;
+  };
+  const resumeLab = () => {
+    if (!state.isPlaying) document.getElementById('playPauseButton')?.click();
+  };
   initGuide({
-    pauseLab: () => {
-      if (isContests() || !state.isPlaying) return false; // a contest's run is left alone
-      document.getElementById('playPauseButton')?.click();
-      return true;
-    },
-    resumeLab: () => {
-      if (!state.isPlaying) document.getElementById('playPauseButton')?.click();
-    },
+    pauseLab,
+    resumeLab,
     openModes: () => {
       if (state.showHUD === false) document.getElementById('hudToggleButton')?.click();
       openModePopover();
@@ -108,6 +112,13 @@ export function initControls() {
     openContests: () => {
       if (!isContests()) enterContests();
     },
+    openAtlas: (section) => openAtlas(section),
+  });
+  initAtlas({
+    pauseLab,
+    resumeLab,
+    // The Atlas button stays clickable above the guide, and takes its place
+    beforeOpen: () => isGuideOpen() && closeGuide(() => {}),
   });
   // GPU compute toggle and indicator
   initComputeControl();

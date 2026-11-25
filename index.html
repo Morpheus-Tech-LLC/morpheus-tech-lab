@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="src/color.css">
   <link rel="stylesheet" href="src/style.css">
   <link rel="stylesheet" href="src/guide/guide.css">
+  <link rel="stylesheet" href="src/atlas/atlas.css">
 </head>
 <body>
   <!-- Explore's notices (src/explore/explore.js): what the view draws, and why a run stopped -->
@@ -476,7 +477,7 @@
       </div>
     </section>
   </div>
-  <!-- The top bar's buttons, left of the company logo in every mode: Guide and Contests -->
+  <!-- The top bar's buttons, left of the company logo in every mode: Guide, Atlas and Contests -->
   <div id="top-actions" class="top-actions">
   <!-- Guide (src/guide/, #159): opens the guide, a short tour of cellular automata with its
        sources; shown as pressed while it is open, when one click (or Esc) closes it. Named Info
@@ -488,6 +489,16 @@
       <path d="M15.3 8.7 L10.8 10.8 L13.2 13.2 Z" fill="currentColor"></path>
     </svg>
     <span class="info-button-name">Guide</span>
+  </button>
+  <!-- Atlas (src/atlas/, #185): opens the lab's working paper on rule space, and later its
+       Lexicon; shown as pressed while it is open, when one click (or Esc) closes it. It takes the
+       Info button's look -->
+  <button type="button" id="atlas-button" class="info-button atlas-button" aria-controls="atlas" aria-expanded="false" aria-pressed="false" title="An atlas of rule space: a working paper on Life in 2D and 3D">
+    <svg class="info-button-icon" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M3 6.5 L9 4 L15 6.5 L21 4 V17.5 L15 20 L9 17.5 L3 20 Z"></path>
+      <path d="M9 4 V17.5 M15 6.5 V20"></path>
+    </svg>
+    <span class="info-button-name">Atlas</span>
   </button>
   <!-- The Contests banner (#77): one click opens the Contests mode, and in it, shown as pressed,
        one click (or Esc) goes back. controls.js fills in the date entries close, from
@@ -805,6 +816,7 @@
     <div id="guide-text" class="guide-text">
       <h3 id="guide-title" class="guide-title"></h3>
       <div id="guide-body" class="guide-body"></div>
+      <p id="guide-more" class="guide-more" hidden></p>
       <div id="guide-finale" class="guide-finale" hidden>
         <button type="button" id="guide-open-modes" class="glass-button guide-action">Pick a mode</button>
         <button type="button" id="guide-open-contests" class="glass-button guide-action guide-action--contests">Open the Contests</button>
@@ -820,6 +832,23 @@
       <button type="button" id="guide-back" class="glass-button guide-step">Back</button>
       <div id="guide-dots" class="guide-dots" role="group" aria-label="Steps"></div>
       <button type="button" id="guide-next" class="glass-button guide-step guide-step--next">Next</button>
+    </footer>
+  </section>
+  <!-- The Atlas (src/atlas/atlas.js, #185): the lab's working paper on rule space, a page per
+       section with its contents first and its sources last. atlas.js fills it from
+       src/atlas/paper.js -->
+  <div id="atlas-backdrop" class="atlas-backdrop" hidden></div>
+  <section id="atlas" class="atlas" role="dialog" aria-modal="true" aria-labelledby="atlas-heading" hidden>
+    <header class="atlas-head">
+      <h2 id="atlas-heading" class="atlas-heading">An atlas of rule space</h2>
+      <span id="atlas-count" class="atlas-count" aria-live="polite">Contents</span>
+      <button type="button" id="atlas-contents-button" class="atlas-xref">Contents</button>
+      <button type="button" id="atlas-close" class="glass-button atlas-close" title="Close the Atlas (Esc)">Close</button>
+    </header>
+    <div id="atlas-page" class="atlas-page"></div>
+    <footer class="atlas-nav">
+      <button type="button" id="atlas-back" class="glass-button atlas-step">Back</button>
+      <button type="button" id="atlas-next" class="glass-button atlas-step atlas-step--next">Next</button>
     </footer>
   </section>
   <script type="module" src="src/main.js"></script>
@@ -3261,8 +3290,8 @@
     font-weight: 600;
     white-space: nowrap;
   }
-  /* On a phone there is no room beside the logo: the banner goes under it (with Guide, in
-     src/guide/guide.css), without the date */
+  /* On a phone there is no room beside the logo: the banner goes under it (with Guide and Atlas,
+     in src/guide/guide.css), without the date */
   @media (max-width: 640px) {
     .contests-banner-closes {
       display: none;

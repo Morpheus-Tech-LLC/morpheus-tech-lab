@@ -1,0 +1,363 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* The Atlas (src/atlas/, #186): its button takes the Info button's look (guide.css); this is the
+   paper's dialog, a phone's included */
+
+/* Above the backdrop while it is open, so the Atlas button (pressed) can close it */
+body.atlas-open .top-actions {
+  z-index: 1120;
+}
+
+.atlas-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  background: rgba(5, 8, 12, 0.72);
+  backdrop-filter: blur(3px);
+}
+.atlas {
+  position: fixed;
+  z-index: 1110;
+  top: 72px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(880px, calc(100vw - 32px));
+  height: min(760px, calc(100vh - 92px));
+  height: min(760px, calc(100dvh - 92px));
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  border: 1px solid rgba(120, 160, 220, 0.3);
+  border-radius: 12px;
+  background: rgba(18, 21, 27, 0.97);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.6);
+  color: var(--color-info-display-text, #d8e2f0);
+  font-family: "Roboto Mono", monospace;
+  overflow: hidden;
+  color-scheme: dark;
+}
+.atlas[hidden],
+.atlas-backdrop[hidden] {
+  display: none;
+}
+
+.atlas-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px 10px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+.atlas-heading {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-title, rgba(255, 162, 0, 0.7));
+  letter-spacing: 0.3px;
+}
+.atlas-count {
+  margin-right: auto;
+  font-size: 12px;
+  color: #8492a8;
+}
+.atlas-close {
+  padding: 6px 14px;
+}
+.atlas-head .atlas-xref {
+  font-size: 12px;
+}
+/* On the contents, a link to them is no use */
+.atlas[data-page="contents"] .atlas-head .atlas-xref {
+  visibility: hidden;
+}
+
+/* The page: one column at a reading width, centred; a table may take the page's whole width */
+.atlas-page {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 22px 24px 28px;
+  font-size: 13.5px;
+  line-height: 1.65;
+}
+.atlas .atlas-page > * {
+  box-sizing: border-box;
+  max-width: 600px; /* about 72 characters of the body text; in px, so every block lines up */
+  margin-left: auto;
+  margin-right: auto;
+}
+.atlas .atlas-page > .atlas-table-wrap {
+  max-width: 100%;
+}
+.atlas-page p {
+  margin-top: 0;
+  margin-bottom: 12px;
+}
+.atlas-title {
+  margin-top: 0;
+  margin-bottom: 14px;
+  font-size: 19px;
+  font-weight: 600;
+  color: #fff;
+  line-height: 1.3;
+}
+.atlas-page .atlas-subtitle {
+  margin-top: -8px;
+  font-size: 14px;
+  color: #b7d4f5;
+}
+.atlas-revision {
+  font-size: 12px;
+  color: #8492a8;
+}
+.atlas-abstract {
+  color: #c4cfde;
+}
+.atlas-subhead {
+  margin-top: 22px;
+  margin-bottom: 8px;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: #fff;
+}
+.atlas-part {
+  margin-top: 24px;
+  margin-bottom: 10px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--color-title, rgba(255, 162, 0, 0.7));
+}
+
+/* Formulas: set apart, centred, and free to scroll on their own if too wide */
+.atlas-page .atlas-math {
+  margin-top: 4px;
+  margin-bottom: 14px;
+  padding: 8px 12px;
+  overflow-x: auto;
+  border-left: 2px solid rgba(120, 180, 255, 0.45);
+  background: rgba(77, 163, 255, 0.06);
+  color: #fff;
+  font-size: 16px;
+  text-align: center;
+  white-space: nowrap;
+}
+/* An exponent of an exponent stays readable */
+.atlas-page sup sup {
+  font-size: 0.85em;
+}
+.atlas-page em {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.08em;
+}
+.atlas-page sup,
+.atlas-page sub {
+  font-size: 0.72em;
+  line-height: 0;
+}
+.atlas-proof {
+  margin-top: 0;
+  margin-bottom: 14px;
+  padding: 10px 14px 2px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.025);
+  color: #c4cfde;
+}
+.atlas-page .atlas-proof-label {
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 600;
+  color: #fff;
+}
+.atlas-note {
+  padding: 8px 12px;
+  border-left: 2px solid rgba(255, 205, 90, 0.55);
+  background: rgba(255, 205, 90, 0.06);
+  color: #d9cfb4;
+  font-size: 12.5px;
+}
+.atlas-note strong {
+  color: #f6dc9a;
+}
+
+.atlas-table-wrap {
+  width: fit-content;
+  margin-top: 6px;
+  margin-bottom: 16px;
+  overflow-x: auto;
+}
+.atlas-table-wrap:focus-visible {
+  outline: 2px solid rgba(120, 180, 255, 0.9);
+  outline-offset: 2px;
+}
+.atlas-table {
+  border-collapse: collapse;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.atlas-table caption {
+  padding-bottom: 6px;
+  text-align: left;
+  font-weight: 600;
+  color: #b7d4f5;
+}
+.atlas-table th,
+.atlas-table td {
+  padding: 5px 12px 5px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  text-align: left;
+  vertical-align: top;
+}
+.atlas-table thead th {
+  color: #8492a8;
+  font-weight: 600;
+}
+.atlas-table tbody th {
+  color: #fff;
+  font-weight: 400;
+}
+
+.atlas a,
+.atlas-xref {
+  color: #8cc6ff;
+  text-decoration: underline;
+  text-decoration-color: rgba(140, 198, 255, 0.4);
+  text-underline-offset: 2px;
+}
+.atlas a:hover,
+.atlas-xref:hover {
+  text-decoration-color: currentColor;
+}
+.atlas-xref {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+.atlas-cite {
+  color: #8492a8;
+  font-size: 0.92em;
+}
+
+/* The contents */
+.atlas-toc {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.atlas-toc-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 12px;
+  margin: 0 0 10px;
+}
+.atlas-toc-item .atlas-xref,
+.atlas-toc-name {
+  font-weight: 600;
+}
+.atlas-toc-item--soon .atlas-toc-name {
+  color: #8492a8;
+}
+.atlas-toc-summary {
+  flex-basis: 100%;
+  font-size: 12.5px;
+  color: #8492a8;
+}
+.atlas-soon {
+  padding: 1px 8px;
+  border: 1px solid rgba(255, 205, 90, 0.45);
+  border-radius: 999px;
+  color: #f6dc9a;
+  font-size: 11px;
+}
+.atlas-cite-as {
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  font-size: 12.5px;
+  color: #c4cfde;
+  overflow-wrap: anywhere;
+}
+
+/* Sources */
+.atlas-sources-list {
+  margin: 0;
+  padding-left: 2.2em;
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+.atlas-sources-list li {
+  margin-bottom: 10px;
+}
+.atlas-sources-list cite {
+  font-style: italic;
+  color: #fff;
+}
+.atlas-sources-list a {
+  word-break: break-all;
+}
+.atlas-source-where {
+  color: #8492a8;
+}
+
+.atlas-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+.atlas-step {
+  padding: 8px 18px;
+}
+.atlas-step:disabled {
+  opacity: 0.35;
+  cursor: default;
+  pointer-events: none;
+}
+.atlas-step--next {
+  border-color: rgba(120, 180, 255, 0.6);
+}
+.atlas button:focus-visible,
+.atlas a:focus-visible {
+  outline: 2px solid rgba(120, 180, 255, 0.9);
+  outline-offset: 2px;
+}
+
+/* A phone: the Atlas takes the whole screen, and Close takes the button's place */
+@media (max-width: 640px) {
+  .atlas {
+    top: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    border-radius: 0;
+    border: 0;
+  }
+  body.atlas-open .top-actions {
+    display: none;
+  }
+  .atlas-head {
+    gap: 10px;
+    padding: 8px 10px 8px 14px;
+  }
+  .atlas-heading {
+    display: none;
+  }
+  .atlas-page {
+    padding: 16px 16px 20px;
+  }
+  .atlas-title {
+    font-size: 17px;
+  }
+  .atlas-math {
+    font-size: 14.5px;
+  }
+  .atlas-nav {
+    padding: 8px 10px;
+  }
+}

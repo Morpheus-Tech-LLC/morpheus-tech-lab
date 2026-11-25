@@ -41,6 +41,8 @@ local storage: whether GPU compute is on.
  │     result files (public/hall-of-fame/results/) Watch fetches and replays    │
  │ Guide: guide/guide.js ─► steps.js, scenes.js on its own 2D canvas; animate() │
  │   draws nothing behind it; the 3D steps run unbounded/ World + step          │
+ │ Atlas: atlas/atlas.js ─► paper.js ─► counts.js; markup.js to the DOM; step 6 │
+ │   of the guide links in; animate() draws nothing behind it                   │
  └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -400,6 +402,13 @@ and closing it leaves the lab exactly as it was. It also runs where WebGL can't,
 page runs headless. Each animation runs the rule its words describe, and the 3D ones run the
 lab's own unbounded engine, so what the guide shows is what the lab does. Its claims are data,
 with their sources, in `guide/steps.js`, and a test checks that every one is cited.
+
+**The Atlas's numbers are computed, not typed (#186).** Every count the paper prints comes from
+`atlas/counts.js` as the paper loads, so its words and its numbers can't drift apart, and the
+tests check counts.js three ways: by brute force where the space is small, against Packard and
+Wolfram's published table, and against an independent computation for space. Its formulas are a
+small inline markup built with the DOM, not a math library, so the lab takes no new dependency
+and sets no innerHTML.
 
 **Precompute the whole history.** It costs memory (`size³ × generations`, all at once) and a
 wait up front. In return, scrubbing and reverse playback are instant and the render loop never
