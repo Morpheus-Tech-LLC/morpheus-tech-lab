@@ -91,7 +91,7 @@ export function initControls() {
     }
     leaveContests();
   });
-  // Info, left of the Contests banner, opens the guide (#159); a playing simulation waits behind it
+  // Guide, left of the Contests banner, opens the guide (#159); a playing simulation waits behind it
   initGuide({
     pauseLab: () => {
       if (isContests() || !state.isPlaying) return false; // a contest's run is left alone

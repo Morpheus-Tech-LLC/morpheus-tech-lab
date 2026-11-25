@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: Apache-2.0 */
-/* The top bar's buttons and the Info guide (src/guide/, #159) */
+/* The top bar's buttons and the guide (src/guide/, #159) */
 
-/* ==== The top bar: Info and Contests, left of the company logo ==== */
+/* ==== The top bar: Guide and Contests, left of the company logo ==== */
 .top-actions {
   position: fixed;
   top: 21px;
@@ -15,7 +15,7 @@ body.company-modal-open .top-actions,
 body.seed-editor-open .top-actions {
   display: none;
 }
-/* Above the guide's backdrop while it is open, so Info (pressed) can close it */
+/* Above the guide's backdrop while it is open, so Guide (pressed) can close it */
 body.guide-open .top-actions {
   z-index: 1120;
 }
@@ -349,7 +349,7 @@ body.guide-open .top-actions {
     grid-row: 2 / 4;
   }
 }
-/* A phone: the guide takes the whole screen, and Close takes Info's place */
+/* A phone: the guide takes the whole screen, and Close takes Guide's place */
 @media (max-width: 640px) {
   .guide {
     top: 0;

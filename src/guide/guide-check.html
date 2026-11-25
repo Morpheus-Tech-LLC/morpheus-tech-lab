@@ -1,7 +1,7 @@
 <!doctype html>
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!--
-  Not bundled: a dev page (/src/guide/guide-check.html under `npm run dev`) that checks the Info
+  Not bundled: a dev page (/src/guide/guide-check.html under `npm run dev`) that checks the
   guide (#159) on its own, without the lab: it takes the guide's markup and styles from
   index.html, wires guide.js to stand-ins for the lab, clicks through every step and Sources and
   credits, and marks each check ✔ or ✖. The guide draws on a 2D canvas, so it runs where the
@@ -12,7 +12,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Info guide check</title>
+  <title>Guide check</title>
   <link rel="stylesheet" href="/src/color.css">
   <link rel="stylesheet" href="/src/style.css">
   <link rel="stylesheet" href="/src/guide/guide.css">
@@ -81,19 +81,20 @@
     };
 
     try {
-      section('The Info button');
+      section('The Guide button');
       const info = $('info-button'), banner = $('contests-banner');
-      ok(visible('info-button') && visible('contests-banner'), 'Info and the Contests banner are on the top bar');
+      ok(visible('info-button') && visible('contests-banner'), 'Guide and the Contests banner are on the top bar');
+      ok(info.textContent.trim() === 'Guide' && info.querySelector('svg circle') && info.querySelectorAll('svg path').length === 2, 'labelled Guide, with its compass (#191)');
       const a = info.getBoundingClientRect(), b = banner.getBoundingClientRect();
-      ok(a.right <= b.left && b.left - a.right <= 14, `Info sits just left of Contests (${Math.round(b.left - a.right)} px apart)`);
+      ok(a.right <= b.left && b.left - a.right <= 14, `Guide sits just left of Contests (${Math.round(b.left - a.right)} px apart)`);
       ok(Math.abs((a.top + a.bottom) / 2 - (b.top + b.bottom) / 2) <= 3, 'level with it');
-      ok(info.getAttribute('aria-pressed') === 'false' && !visible('guide'), 'The guide is closed, Info not pressed');
+      ok(info.getAttribute('aria-pressed') === 'false' && !visible('guide'), 'The guide is closed, Guide not pressed');
 
       section('Opening');
       info.click();
       await sleep(400);
-      ok(isGuideOpen() && visible('guide') && visible('guide-backdrop'), 'Info opens the guide');
-      ok(info.getAttribute('aria-pressed') === 'true' && info.getAttribute('aria-expanded') === 'true', 'Info shows as pressed');
+      ok(isGuideOpen() && visible('guide') && visible('guide-backdrop'), 'Guide opens the guide');
+      ok(info.getAttribute('aria-pressed') === 'true' && info.getAttribute('aria-expanded') === 'true', 'Guide shows as pressed');
       ok(calls.join() === 'pause', `A playing simulation pauses (${calls.join() || 'nothing'})`);
       ok($('lab-stand-in').inert && !$('top-actions').inert && !$('guide').inert, 'The lab behind is out of reach, the top bar is not');
       ok(document.activeElement === $('guide-next'), 'Focus goes to Next');
@@ -101,7 +102,7 @@
       ok($('guide-back').disabled, 'Back is off at the first step');
       ok($('guide-dots').children.length === STEPS.length + 1, `A dot for each step and the sources (${$('guide-dots').children.length})`);
       const centre = document.elementFromPoint((a.left + a.right) / 2, (a.top + a.bottom) / 2);
-      ok(centre?.closest('#info-button'), 'Info stays above the guide, where it can be clicked');
+      ok(centre?.closest('#info-button'), 'Guide stays above the guide, where it can be clicked');
 
       section('Each step');
       for (let i = 0; i < STEPS.length; i++) {
@@ -161,12 +162,12 @@
       await sleep(100);
       ok(!isGuideOpen() && !visible('guide') && !visible('guide-backdrop'), 'Esc closes the guide');
       ok(calls.join() === 'pause,play', `and the simulation plays again (${calls.join()})`);
-      ok(!$('lab-stand-in').inert && document.activeElement === info, 'The lab is back in reach, focus on Info');
+      ok(!$('lab-stand-in').inert && document.activeElement === info, 'The lab is back in reach, focus on Guide');
       info.click();
       await sleep(100);
-      ok(isGuideOpen() && $('guide-count').textContent === `1 / ${STEPS.length}`, 'Info opens it again, at step 1');
+      ok(isGuideOpen() && $('guide-count').textContent === `1 / ${STEPS.length}`, 'Guide opens it again, at step 1');
       info.click();
-      ok(!isGuideOpen(), 'and Info closes it');
+      ok(!isGuideOpen(), 'and Guide closes it');
       info.click();
       $('guide-close').click();
       ok(!isGuideOpen(), 'Close closes it');

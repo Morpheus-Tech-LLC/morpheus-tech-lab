@@ -8,7 +8,7 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
 ## [Unreleased]
 
 ### Added
-- **Info**, left of the Contests banner in every mode, opens a short guide to cellular automata:
+- **Guide**, left of the Contests banner in every mode, opens a short guide to cellular automata:
   what they are, Rule 30, Conway's Game of Life and what lives in it, Game of Life 3D and this
   lab's own rules, and what cellular automata have shown in biology, physics, engineering and
   mathematics. Each of its ten steps comes with an animation running the rule it describes
@@ -33,7 +33,7 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
 - The reverse and flip-orientation buttons show bold arrows with solid heads, the direction in use
   lit; the orientation icon loses the line that outweighed its arrows (#176).
 - The Morpheus Tech logo at the top right shows at full strength, no longer dimmed until
-  hovered, so the Info button and the Contests banner don't outshine it. Hovered or focused, it
+  hovered, so the Guide button and the Contests banner don't outshine it. Hovered or focused, it
   glows blue (#164).
 - **Submit by email** says, before the email opens and again in its text, that sending an entry
   shares your email address with Morpheus Tech LLC, which uses it only to reply about the entry
