@@ -128,8 +128,10 @@ test('step 6’s cases follow the lab’s default rule: each count, in every lay
   }
   const outcomes = CASES_3D.map((c) => c.text.split(': ')[1]);
   assert.deepEqual(outcomes, ['it survives', 'a cell is born', 'it dies of loneliness', 'it dies of overcrowding'], 'the four cases of step 3, in 3D');
-  const lab = STEPS.find((s) => s.id === 'lab').body.join(' ');
-  assert.ok(lab.startsWith('The lab opens on B9,10/S5–15.'), 'step 7 names the rule step 6 explains');
+  const [opens, box] = STEPS.find((s) => s.id === 'lab').body;
+  assert.ok(opens.startsWith('The lab opens on B9,10/S5–15 in Game of Life 3D (unbounded)'),
+    'step 7 names the rule step 6 explains, in the simulation the lab opens on');
+  assert.ok(box.startsWith('Game of Life 3D (bounded)'), 'step 7 comes to the bounded simulation second');
 });
 
 test('parseRle reads counts and row ends, and refuses anything else', () => {
