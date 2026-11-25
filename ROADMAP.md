@@ -31,8 +31,9 @@ same engine.
 
 ## The Atlas
 
-*An atlas of rule space* is the lab's working paper on Life in 2D and 3D: how many rules there
-are and why, what has been found living in them, and why the lab exists to explore them. It
+*An atlas of Life in 3D* is the lab's working paper on Game of Life 3D: its rules and how many
+there are, what has been found living in them, what is still unknown, and why the lab exists to
+explore them. It
 records what is found in the **Lexicon**, which the paper cites. The plan is
 [#185](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/issues/185); each item below is one
 of its pieces.

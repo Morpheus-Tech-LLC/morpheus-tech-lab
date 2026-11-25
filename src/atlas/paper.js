@@ -28,19 +28,20 @@ export const ATLAS_SOURCES = {
 /** Every work the paper may cite, by key. */
 export const SOURCES = { ...GUIDE_SOURCES, ...ATLAS_SOURCES };
 
-export const TITLE = 'An atlas of rule space';
-export const SUBTITLE = 'Life in 2D and 3D, a working paper';
+export const TITLE = 'An atlas of Life in 3D';
+export const SUBTITLE = 'A working paper on Game of Life 3D: its rules, what lives in them, and what is still unknown';
 export const REVISION = { number: 1, date: 'November 2026' };
 export const SITE = 'https://lab.morpheustech.net';
 export const REPO = 'https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab';
 
 /** How to cite the paper, as its index gives it. */
 export const HOW_TO_CITE =
-  `Morpheus Tech Lab and contributors. ${TITLE}: ${SUBTITLE}. Revision ${REVISION.number}, ${REVISION.date}. ${SITE}`;
+  `Morpheus Tech Lab and contributors. ${TITLE}. ${SUBTITLE}. Revision ${REVISION.number}, ${REVISION.date}. ${SITE}`;
 
 export const ABSTRACT = [
-  'How many rules can a Life-like cellular automaton have? This paper counts them, in the plane and in space, for the common neighbourhoods and for the classes of rule people study, from every possible rule down to the totalistic ones, with a proof of each count. It shows how constraints shrink the space, and why even the smallest useful slice of it is too large to search one rule at a time.',
-  'It is a working paper: it is revised as the lab learns more, and anyone can question or improve it. The Lexicon, which records what has been found living in these rules, joins it in a later revision.',
+  'Conway’s Game of Life is one rule on a flat grid, and decades of exploring it have found still lifes, oscillators of every period and ships of many speeds. Game of Life 3D moves the game into space, where each cell has 26 neighbours and rules of the same kind number about 18 quadrillion, far more than anyone could run one by one. This atlas maps that space and records what has been found in it.',
+  'It begins with the map: what a rule is, the neighbourhoods a cell can see, how many rules each class holds and how constraints narrow them, with every count proved. It goes on to what lives there, citing the Lexicon, the lab’s record of creations and who found them, and to why the lab exists: to explore this space in the open, with anyone who wants to.',
+  'It is a working paper: it is revised as the lab and its community find more, and anyone can question or improve it. The Lexicon joins it in a later revision.',
 ];
 
 // ---- The numbers, computed ----
@@ -99,6 +100,7 @@ export const NUMBERS = {
  * @typedef {object} Section
  * @property {string} id
  * @property {number} number
+ * @property {number} part - which part of the contents it is in, a key of PARTS
  * @property {string} title
  * @property {string} summary - its line in the index
  * @property {Block[]} blocks
@@ -111,11 +113,18 @@ const h = (text) => ({ type: 'h', text });
 const note = (text) => ({ type: 'note', text });
 const proof = (...text) => ({ type: 'proof', text });
 
+/**
+ * The contents' parts, as the paper's opening describes it: the map, what lives there, and why
+ * explore it. The Lexicon is listed in part 2, after its section; the sources come last.
+ */
+export const PARTS = { 1: 'The map', 2: 'What lives there', 3: 'Why explore it' };
+
 /** @type {Section[]} */
 export const SECTIONS = [
   {
     id: 'rule',
     number: 1,
+    part: 1,
     title: 'What a rule is',
     summary: 'Cells, neighbourhoods, and a rule as a function.',
     blocks: [
@@ -129,6 +138,7 @@ export const SECTIONS = [
   {
     id: 'neighbourhoods',
     number: 2,
+    part: 1,
     title: 'Neighbourhoods',
     summary: 'Von Neumann and Moore, at range 1 and 2, in the plane and in space.',
     blocks: [
@@ -155,6 +165,7 @@ export const SECTIONS = [
   {
     id: 'counting',
     number: 3,
+    part: 1,
     title: 'Counting rules',
     summary: 'General, isotropic, outer-totalistic and totalistic rules, each counted and proved.',
     blocks: [
@@ -205,6 +216,7 @@ export const SECTIONS = [
   {
     id: 'constraints',
     number: 4,
+    part: 1,
     title: 'Making the space smaller',
     summary: 'Quiescence, duality, behaviour, walls, and why the rest is still too big to search.',
     blocks: [
@@ -228,6 +240,7 @@ export const SECTIONS = [
   {
     id: 'lives',
     number: 5,
+    part: 2,
     title: 'What lives in the space',
     summary: 'Still lifes, oscillators, ships and methuselahs, citing the Lexicon.',
     comingSoon: 'Coming with the Lexicon',
@@ -236,6 +249,7 @@ export const SECTIONS = [
   {
     id: 'why',
     number: 6,
+    part: 3,
     title: 'Why this lab',
     summary: 'An instrument for exploring the space, open to everyone.',
     blocks: [

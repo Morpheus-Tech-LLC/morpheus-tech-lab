@@ -141,11 +141,12 @@ while it was open, plays on.
 
 ### Atlas
 
-**Atlas**, between Info and the Contests banner, opens *An atlas of rule space*, the lab's
-working paper on Life in 2D and 3D. It counts the rules a Life-like automaton can have: the
-von Neumann and Moore neighbourhoods at range 1 and 2, and every rule, the isotropic, the
-outer-totalistic and the totalistic ones, each with a short proof. Then it shows how
-constraints shrink the space, and why the lab exists to explore it. It opens on its contents;
+**Atlas**, between Info and the Contests banner, opens *An atlas of Life in 3D*, the lab's
+working paper on Game of Life 3D: its rules, what lives in them, and what is still unknown. It
+begins with the map: the von Neumann and Moore neighbourhoods at range 1 and 2, and how many rules
+each class holds (every rule, the isotropic, the outer-totalistic and the totalistic ones), each
+count proved. Then it shows how constraints narrow the space, and why the lab exists to explore
+it. It opens on its contents;
 Back, Next, the arrow keys and the contents move through its sections, and **Sources** lists every
 work it cites. Step 6 of the guide links to its counting. It is revised as the lab learns more,
 and the Lexicon of what has been found in these rules joins it later.

@@ -66,7 +66,7 @@
 
     const { initGuide, isGuideOpen, openGuide } = await import('/src/guide/guide.js');
     const { initAtlas, isAtlasOpen, openAtlas } = await import('/src/atlas/atlas.js');
-    const { SECTIONS, READABLE, sourcesInOrder } = await import('/src/atlas/paper.js');
+    const { SECTIONS, READABLE, TITLE, sourcesInOrder } = await import('/src/atlas/paper.js');
     const { STEPS } = await import('/src/guide/steps.js');
     const calls = [];
     let playing = true;
@@ -97,13 +97,17 @@
       ok(calls.join() === 'pause', `A playing simulation pauses (${calls.join() || 'nothing'})`);
       ok($('lab-stand-in').inert && !$('top-actions').inert && !$('atlas').inert, 'The lab behind is out of reach, the top bar is not');
       ok(document.activeElement === $('atlas-next') && $('atlas-next').textContent === 'Start reading', 'Focus goes to Start reading');
-      ok($('atlas-count').textContent === 'Contents' && title() === 'An atlas of rule space', 'It opens on the contents, with the paper’s title');
+      ok($('atlas-count').textContent === 'Contents' && title() === TITLE && $('atlas-heading').textContent === TITLE, `It opens on the contents, with the paper’s title, ${TITLE}`);
       ok(page().textContent.includes('Revision 1'), 'which gives the revision');
       ok($('atlas-back').disabled, 'Back is off on the contents');
-      const toc = page().querySelectorAll('.atlas-toc > li');
+      const toc = page().querySelectorAll('.atlas-toc > li[data-section]');
       ok(toc.length === TOTAL, `The contents list every section and the sources (${toc.length})`);
-      ok([...toc].filter((li) => li.querySelector('.atlas-soon')).length === 1 && toc[4].textContent.includes('Coming with the Lexicon'), 'section 5 waits for the Lexicon');
-      ok(page().textContent.includes('Part II · The Lexicon') && page().textContent.includes('How to cite this paper'), 'then the Lexicon, coming soon, and how to cite it');
+      const parts = [...page().querySelectorAll('.atlas-part')].map((h) => h.textContent);
+      ok(JSON.stringify(parts.slice(0, 3)) === JSON.stringify(['Part I · The map', 'Part II · What lives there', 'Part III · Why explore it']), `in three parts: ${parts.slice(0, 3).join(', ')}`);
+      const inPart = (n) => [...page().querySelectorAll('.atlas-toc')[n].children].map((li) => li.dataset.section ?? 'lexicon').join();
+      ok(inPart(0) === 'rule,neighbourhoods,counting,constraints' && inPart(1) === 'lives,lexicon' && inPart(2) === 'why,sources', 'the map is sections 1–4; what lives there, 5 and the Lexicon; then 6 and the sources');
+      ok(page().querySelector('[data-section="lives"]').textContent.includes('Coming with the Lexicon') && page().querySelector('.atlas-toc-item--lexicon').textContent.includes('Coming soon'), 'Section 5 and the Lexicon are coming');
+      ok(page().textContent.includes('How to cite this paper'), 'then how to cite it');
       const bb = atlas.getBoundingClientRect();
       ok(document.elementFromPoint((bb.left + bb.right) / 2, (bb.top + bb.bottom) / 2)?.closest('#atlas-button') || innerWidth <= 640, 'The button stays above the Atlas, where it can be clicked (on a phone, Close takes its place)');
 

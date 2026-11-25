@@ -199,7 +199,7 @@ src/
   guide/guide-check.html Not bundled: a dev page (/src/guide/guide-check.html under `npm run dev`) that checks the
                          guide on its own, with its markup and styles from index.html and stand-ins for the lab, so
                          it runs without WebGL; ?step=N&wait leaves step N open, for a look or a screenshot
-  atlas/                 The Atlas (#185): the lab's working paper on rule space, and later its Lexicon (#107)
+  atlas/                 The Atlas (#185): the lab's working paper on Game of Life 3D, and later its Lexicon (#107)
   atlas/counts.js        The paper's numbers, computed: the neighbourhoods, the square's and cube's symmetries,
                          isotropic classes by Burnside's lemma, each class's count as an exponent of 2 (BigInt),
                          digits of 2^e, and the dual of a rule (no DOM; tested)

@@ -252,7 +252,7 @@ function showStep(step) {
       link.type = 'button';
       link.className = 'guide-link';
       link.textContent = `${step.atlas.text} →`;
-      link.title = 'Opens the Atlas, the lab’s working paper on rule space';
+      link.title = 'Opens the Atlas, the lab’s working paper on Game of Life 3D';
       link.addEventListener('click', () => closeGuide(() => hooks.openAtlas(step.atlas.section)));
       els.more.append(link);
     }

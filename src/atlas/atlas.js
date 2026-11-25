@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// The Atlas (#185, #186): the lab's working paper on rule space, opened by the Atlas button
+// The Atlas (#185, #186): the lab's working paper on Game of Life 3D, opened by the Atlas button
 // between Info and the Contests banner. It opens on its contents; each section is a page of its
 // own, with Back and Next between them, and the last page lists every source the paper cites. The
 // Lexicon joins it later (#108). Like the guide, it covers the lab, which waits behind it paused;
@@ -8,7 +8,7 @@
 // paper.js's, built with the DOM from markup.js's tree: it sets only textContent.
 
 import {
-  SECTIONS, READABLE, SOURCES, TITLE, SUBTITLE, REVISION, ABSTRACT, HOW_TO_CITE, SITE, REPO,
+  SECTIONS, PARTS, READABLE, SOURCES, TITLE, SUBTITLE, REVISION, ABSTRACT, HOW_TO_CITE, SITE, REPO,
   sourcesInOrder, citation,
 } from './paper.js';
 import { parseInline } from './markup.js';
@@ -276,28 +276,37 @@ function contentsPage() {
   const rev = make('p', 'atlas-revision', `Revision ${REVISION.number} · ${REVISION.date}`);
   out.push(title, sub, rev, ...ABSTRACT.map((text) => paragraph(text, 'atlas-abstract')));
 
-  out.push(make('h4', 'atlas-part', 'Part I · The paper'));
-  const list = make('ol', 'atlas-toc');
-  for (const section of SECTIONS) {
-    const li = make('li', section.comingSoon ? 'atlas-toc-item atlas-toc-item--soon' : 'atlas-toc-item');
-    if (section.comingSoon) {
-      li.append(make('span', 'atlas-toc-name', `${section.number}. ${section.title}`), make('span', 'atlas-soon', section.comingSoon));
-    } else {
-      li.append(pageLink(section.id, `${section.number}. ${section.title}`));
+  const numerals = ['I', 'II', 'III', 'IV', 'V'];
+  Object.entries(PARTS).forEach(([part, name], i) => {
+    out.push(make('h4', 'atlas-part', `Part ${numerals[i]} · ${name}`));
+    const list = make('ol', 'atlas-toc');
+    for (const section of SECTIONS.filter((s) => s.part === Number(part))) {
+      const li = make('li', section.comingSoon ? 'atlas-toc-item atlas-toc-item--soon' : 'atlas-toc-item');
+      li.dataset.section = section.id;
+      if (section.comingSoon) {
+        li.append(make('span', 'atlas-toc-name', `${section.number}. ${section.title}`), make('span', 'atlas-soon', section.comingSoon));
+      } else {
+        li.append(pageLink(section.id, `${section.number}. ${section.title}`));
+      }
+      li.append(make('span', 'atlas-toc-summary', section.summary));
+      list.append(li);
     }
-    li.append(make('span', 'atlas-toc-summary', section.summary));
-    list.append(li);
-  }
-  const sources = make('li', 'atlas-toc-item');
-  sources.append(pageLink(SOURCES_PAGE, `${SOURCES_NUMBER}. Sources`), make('span', 'atlas-toc-summary', 'Every work the paper cites.'));
-  list.append(sources);
-  out.push(list);
-
-  out.push(make('h4', 'atlas-part', 'Part II · The Lexicon'));
-  const lexicon = make('p', 'atlas-toc-item atlas-toc-item--soon');
-  lexicon.append(make('span', 'atlas-soon', 'Coming soon'), make('span', 'atlas-toc-summary',
-    'The creations found in the lab’s rules: who found each one and when, each ready to open in the simulator.'));
-  out.push(lexicon);
+    // The Lexicon, after the section that will cite it
+    if (Number(part) === 2) {
+      const lexicon = make('li', 'atlas-toc-item atlas-toc-item--soon atlas-toc-item--lexicon');
+      lexicon.append(make('span', 'atlas-toc-name', 'The Lexicon'), make('span', 'atlas-soon', 'Coming soon'),
+        make('span', 'atlas-toc-summary', 'The creations found in the lab’s rules: who found each one and when, each ready to open in the simulator.'));
+      list.append(lexicon);
+    }
+    // The sources close the last part
+    if (i === Object.keys(PARTS).length - 1) {
+      const sources = make('li', 'atlas-toc-item');
+      sources.dataset.section = SOURCES_PAGE;
+      sources.append(pageLink(SOURCES_PAGE, `${SOURCES_NUMBER}. Sources`), make('span', 'atlas-toc-summary', 'Every work the paper cites.'));
+      list.append(sources);
+    }
+    out.push(list);
+  });
 
   out.push(make('h4', 'atlas-part', 'How to cite this paper'));
   const cite = make('p', 'atlas-cite-as');

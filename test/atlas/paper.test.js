@@ -7,7 +7,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  SECTIONS, READABLE, SOURCES, ATLAS_SOURCES, NUMBERS, HOW_TO_CITE, REVISION, sourcesInOrder, citedKeys,
+  SECTIONS, PARTS, READABLE, SOURCES, TITLE, SUBTITLE, ABSTRACT, ATLAS_SOURCES, NUMBERS, HOW_TO_CITE, REVISION, sourcesInOrder, citedKeys,
   sectionLinks, blockTexts, countCell,
 } from '../../src/atlas/paper.js';
 import { parseInline, plainText, nodesOfType } from '../../src/atlas/markup.js';
@@ -39,6 +39,24 @@ test('six numbered sections, section 5 waiting for the Lexicon', () => {
   for (const s of SECTIONS) {
     assert.ok(s.title && s.summary, `${s.id} has a title and a summary`);
     assert.equal(s.blocks.length === 0, !!s.comingSoon, `${s.id}: written, or waiting`);
+  }
+});
+
+test('the contents in three parts, as the opening tells it: the map, what lives there, why explore it', () => {
+  assert.deepEqual(Object.values(PARTS), ['The map', 'What lives there', 'Why explore it']);
+  const ids = (part) => SECTIONS.filter((s) => s.part === part).map((s) => s.id);
+  assert.deepEqual(ids(1), ['rule', 'neighbourhoods', 'counting', 'constraints']);
+  assert.deepEqual(ids(2), ['lives']);
+  assert.deepEqual(ids(3), ['why']);
+});
+
+test('the title and opening are about exploring Game of Life 3D, not only counting', () => {
+  assert.equal(TITLE, 'An atlas of Life in 3D');
+  assert.match(SUBTITLE, /^A working paper on Game of Life 3D/);
+  const opening = ABSTRACT.join(' ');
+  for (const words of ['still lifes, oscillators of every period and ships of many speeds', 'about 18 quadrillion',
+    'maps that space and records what has been found in it', 'It begins with the map', 'citing the Lexicon', 'working paper']) {
+    assert.ok(opening.includes(words), words);
   }
 });
 

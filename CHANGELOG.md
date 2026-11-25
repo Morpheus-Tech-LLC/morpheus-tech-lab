@@ -25,9 +25,10 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
   rules does: a cell's live neighbours among 26 counted, and whether it survives, is born or
   dies (#182). The step on rules that compute shows Rule 110 in a smaller, slower panel, beside
   seven of Life's oscillators running in place, each labelled with its period, from 2 to 15 (#180).
-- **Atlas**, between Info and the Contests banner, opens *An atlas of rule space*, the lab's
-  working paper on Life in 2D and 3D, revision 1. It counts the rules a Life-like automaton can
-  have, for the von Neumann and Moore neighbourhoods at range 1 and 2 in the plane and in space:
+- **Atlas**, between Info and the Contests banner, opens *An atlas of Life in 3D*, the lab's
+  working paper on Game of Life 3D, revision 1: its rules, what lives in them, and what is still
+  unknown. It begins with the map, counting the rules a Life-like automaton can have, for the von
+  Neumann and Moore neighbourhoods at range 1 and 2 in the plane and in space:
   every rule, the isotropic ones (by Burnside's lemma), the outer-totalistic ones (262,144 in the
   plane, 2⁵⁴ in space) and the totalistic ones, each with a short proof. It shows how quiescence,
   duality, behaviour and walls shrink the space, and why the lab exists to explore it and is open
