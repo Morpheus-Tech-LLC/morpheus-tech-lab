@@ -4,6 +4,8 @@ import { updatePoints } from './simulationModel.js';
 import { isExplore, exploreFrame, setSpeed } from './explore/explore.js';
 import { isEditorOpen, editorFrame } from './explore/editor.js';
 import { isContests, contestsFrame, watchSpeed } from './contests/contests.js';
+import { isGuideOpen } from './guide/guide.js';
+import { isAtlasOpen } from './atlas/atlas.js';
 
 let lastFrameTime = 0;
 let lastUpdateTime = 0;
@@ -160,6 +162,12 @@ export function animate(currentTime) {
     // panel's countdown moves
     if (isContests()) {
       contestsFrame(currentTime);
+      return;
+    }
+
+    // The guide (#159) and the Atlas (#185) cover the view: nothing moves or draws behind them
+    if (isGuideOpen() || isAtlasOpen()) {
+      lastUpdateTime = currentTime;
       return;
     }
 

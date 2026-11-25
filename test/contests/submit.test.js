@@ -7,7 +7,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { contestById } from '../../src/unbounded/contests.js';
 import {
-  SUBMIT_ADDRESS, HALL_OF_FAME_LINE, RULE, attachLine, emailSubject, emailBody, mailtoLink,
+  SUBMIT_ADDRESS, ADDRESS_PROMISE, HALL_OF_FAME_LINE, RULE, attachLine, emailSubject, emailBody, mailtoLink,
 } from '../../src/contests/submit.js';
 
 const SPEED = contestById('speed-1');
@@ -82,7 +82,13 @@ test('below the rule: the picture conditions, that the repo is public, how the a
   assert.match(bottom, /The lab's repo is public: once committed, your name and picture are in its history and in every copy of it\./);
   assert.match(bottom, /Removal on request .* can't erase every copy\./);
   // The email address
-  assert.match(bottom, /Your email address is used only to reply about this entry\. It is never published, committed or put in a result file\./);
+  assert.ok(bottom.includes(ADDRESS_PROMISE));
+  assert.match(ADDRESS_PROMISE, /shares your email address with Morpheus Tech LLC/);
+  assert.match(ADDRESS_PROMISE, /used only to reply about it/);
+  assert.match(ADDRESS_PROMISE, /never published/);
+  assert.match(ADDRESS_PROMISE, /shared only with your written consent or as the law requires/);
+  // Plain ASCII: every other character costs nine in the mailto: link
+  assert.match(ADDRESS_PROMISE, /^[\x20-\x7e]+$/);
   // Speed's timing
   assert.match(bottom, /Speed's timing is self-reported: a replay proves the generation, not how long it took\./);
   assert.match(bottom, /screen recording of a run on lab\.morpheustech\.net/);
@@ -137,7 +143,7 @@ test("a Methuselah entry's subject states its score as it settled; the result fi
   assert.match(bottom, /Methuselah's Hall of Fame also shows the entry's rules and its seed's cell count/);
   assert.doesNotMatch(emailBody(lasting()), /Rules:|Seed:/);
   // The promises are the same as for Speed
-  assert.match(bottom, /Your email address is used only to reply about this entry\./);
+  assert.ok(bottom.includes(ADDRESS_PROMISE));
   assert.match(bottom, /The lab's repo is public/);
   const body = emailBody(lasting());
   assert.ok(mailtoLink(emailSubject(METHUSELAH, lasting().score, 'repeat'), body).length <= 2000);

@@ -1,5 +1,9 @@
 // main.js
 
+// Roboto Mono, served with the site from npm (@fontsource), never from Google's servers: a font
+// fetched from a third party hands it every visitor's IP address
+import '@fontsource/roboto-mono/400.css';
+import '@fontsource/roboto-mono/600.css';
 import { state } from './state.js';
 import { initSimulation } from './simulationModel.js';
 import { initControls } from './controls.js';

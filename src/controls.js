@@ -10,6 +10,9 @@ import { SeedError } from "./explore/seed.js";
 import { isContests, startContests, stopContests, isWatching, closeWatch, watchTogglePlay, watchStep, watchViewChanged } from "./contests/contests.js";
 import { CONTESTS, SEASON } from "./unbounded/contests.js";
 import { closingText } from "./contests/format.js";
+import { initGuide, isGuideOpen, closeGuide } from "./guide/guide.js";
+import { initAtlas, openAtlas } from "./atlas/atlas.js";
+import { holdWidth, countWidth } from "./readouts.js";
 
 
 // Helper functions for updating displays (must be outside initControls to be accessible from resetControlsUI)
@@ -70,7 +73,13 @@ export function initControls() {
   // The Contests banner by the company logo opens the mode in one click, and says when entries
   // close; in Contests, a click on it or Esc goes back to the mode before
   const contestsBanner = document.getElementById('contests-banner');
-  if (contestsBanner) contestsBanner.onclick = () => (isContests() ? leaveContests() : enterContests());
+  if (contestsBanner) {
+    contestsBanner.onclick = () => {
+      if (isGuideOpen()) closeGuide(); // the banner stays clickable above the guide
+      if (isContests()) leaveContests();
+      else enterContests();
+    };
+  }
   const contestsCloses = document.getElementById('contests-banner-closes');
   if (contestsCloses) contestsCloses.textContent = closingText(CONTESTS, { short: true });
   document.addEventListener('keydown', (event) => {
@@ -82,6 +91,34 @@ export function initControls() {
       return;
     }
     leaveContests();
+  });
+  // Guide, left of the Contests banner, opens the guide (#159), and Atlas, between them, the lab's
+  // working paper (#185); a playing simulation waits behind either
+  const pauseLab = () => {
+    if (isContests() || !state.isPlaying) return false; // a contest's run is left alone
+    document.getElementById('playPauseButton')?.click();
+    return true;
+  };
+  const resumeLab = () => {
+    if (!state.isPlaying) document.getElementById('playPauseButton')?.click();
+  };
+  initGuide({
+    pauseLab,
+    resumeLab,
+    openModes: () => {
+      if (state.showHUD === false) document.getElementById('hudToggleButton')?.click();
+      openModePopover();
+    },
+    openContests: () => {
+      if (!isContests()) enterContests();
+    },
+    openAtlas: (section) => openAtlas(section),
+  });
+  initAtlas({
+    pauseLab,
+    resumeLab,
+    // The Atlas button stays clickable above the guide, and takes its place
+    beforeOpen: () => isGuideOpen() && closeGuide(() => {}),
   });
   // GPU compute toggle and indicator
   initComputeControl();
@@ -154,8 +191,10 @@ export function initControls() {
         const index = state.sliceIndex !== null ? state.sliceIndex : 0;
         const maxIndex = sliceSlider ? (parseInt(sliceSlider.max) || state.sim_size - 1) : (state.sim_size - 1);
         displayText.textContent = `${index} / ${maxIndex}`;
+        holdWidth(displayText, countWidth(maxIndex));
       } else {
         displayText.textContent = '-';
+        holdWidth(displayText, '-');
       }
     }
   }
@@ -299,6 +338,7 @@ export function initControls() {
     if (bottomGen) {
       const maxGen = state.simulationData && state.simulationData.length > 0 ? state.simulationData.length - 1 : 0;
       bottomGen.textContent = `${state.currentGen} / ${maxGen}`;
+      holdWidth(bottomGen, countWidth(maxGen));
     }
   });
 
@@ -515,8 +555,8 @@ export function initControls() {
     document.getElementById('company-logo-button-top')?.setAttribute('aria-expanded', 'false');
     if (footerIcons) footerIcons.style.display = '';
     if (glassDisplayContainer && state.showHUD) glassDisplayContainer.style.display = 'flex';
-    if (bottomControlsDisplay && state.showHUD) bottomControlsDisplay.style.display = 'grid';
-    if (additionalControlsDisplay && state.showHUD) additionalControlsDisplay.style.display = 'grid';
+    if (bottomControlsDisplay && state.showHUD) bottomControlsDisplay.style.display = '';
+    if (additionalControlsDisplay && state.showHUD) additionalControlsDisplay.style.display = '';
     if (controlsWrapper) controlsWrapper.style.display = '';
   }
   
@@ -580,10 +620,10 @@ export function initControls() {
       
       // Toggle control panel info displays
       if (bottomControlsDisplay) {
-        bottomControlsDisplay.style.display = state.showHUD ? 'grid' : 'none';
+        bottomControlsDisplay.style.display = state.showHUD ? '' : 'none';
       }
       if (additionalControlsDisplay) {
-        additionalControlsDisplay.style.display = state.showHUD ? 'grid' : 'none';
+        additionalControlsDisplay.style.display = state.showHUD ? '' : 'none';
       }
       
       // Update icon color - blue when visible, white/gray when hidden
@@ -599,12 +639,12 @@ export function initControls() {
       hudIcon.style.stroke = '#4da3ff'; // Blue when visible
     }
     
-    // Initialize display state to match CSS (grid layout)
+    // Initialize display state: shown, the stylesheet lays the readouts out on one line (#175)
     if (bottomControlsDisplay) {
-      bottomControlsDisplay.style.display = state.showHUD ? 'grid' : 'none';
+      bottomControlsDisplay.style.display = state.showHUD ? '' : 'none';
     }
     if (additionalControlsDisplay) {
-      additionalControlsDisplay.style.display = state.showHUD ? 'grid' : 'none';
+      additionalControlsDisplay.style.display = state.showHUD ? '' : 'none';
     }
   }
 
@@ -800,6 +840,7 @@ function resetControlsUI() {
   if (bottomGen) {
     const maxGen = state.simulationData && state.simulationData.length > 0 ? state.simulationData.length - 1 : 0;
     bottomGen.textContent = `0 / ${maxGen}`;
+    holdWidth(bottomGen, countWidth(maxGen));
   }
 
   // Update tristate button visibility based on view mode

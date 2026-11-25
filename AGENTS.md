@@ -10,7 +10,8 @@ pull requests, DCO sign-off, changelog) is in [CONTRIBUTING.md](CONTRIBUTING.md)
 .github/workflows/ci.yml The `build` (npm ci, npm run build, npm test) and `DCO` (sign-off) checks, required on main
 .github/ISSUE_TEMPLATE/  Issue forms: bug_report.yml (type Bug), idea.yml (type Feature; what and why only), both labelled `idea`; config.yml turns off blank issues and links Discussions (GitHub adds the security-report entry itself)
 .github/pull_request_template.md  The pull-request template: each issue and its relation, what changed, how it was tested, screenshots, and the checklist
-index.html               All markup: HUD and its popovers, control bar, company panel, info panels
+index.html               All markup: HUD and its popovers, control bar, company panel, info panels, the top bar's
+                         buttons (Guide, Atlas and the Contests banner, in #top-actions), the guide and the Atlas
 public/CNAME             lab.morpheustech.net, copied into every build. Never delete
 public/favicon.svg       Brand pin (see brand.lock). Never hand-edit
 public/hall-of-fame/     The Hall of Fame's pictures (128×128, metadata stripped) and, in results/, each entry's
@@ -47,9 +48,12 @@ test/                    `npm test` (Node's built-in node:test, no dependency): 
                          against convolve3D() (dense.test.js); an arena that wraps, against the reference
                          and convolve3D() with wrapping on, and the worlds refused (wrap.test.js); an arena
                          with walls, against the reference and by hand (walls.test.js);
-                         browser.test.js checks telling the browser; shapeGenerators.test.js the bounded
+                         browser.test.js checks telling the browser; selfHosted.test.js that the page loads no
+                         font from Google's servers (fonts come from npm, served with the site); readouts.test.js that a
+                         readout's slot fits every value it counts through; shapeGenerators.test.js the bounded
                          mode's seed shapes (#49); memoryAdvice.test.js checks the precomputed modes'
-                         memory estimate against real runs, and that the old caps' runs don't ask; contests/ checks a Speed run and Verify a
+                         memory estimate against real runs, and that the old caps' runs don't ask; brandMark.test.js that the company
+                         panel's inline mark keeps the pinned favicon's paths and gilt; contests/ checks a Speed run and Verify a
                          result… on worker_threads (verifyNodeWorker.js stands in for verify.worker.js) and
                          Methuselah and Classic Methuselah runs on worker_threads (discovery.test.js),
                          the panel's text (format.test.js), Watch's, Methuselah's and the ships' included, the email's text (submit.test.js)
@@ -58,13 +62,19 @@ test/                    `npm test` (Node's built-in node:test, no dependency): 
                          The unbounded mode's seeds, presets, seed files, saves, settings (setup.test.js), Ships leave at
                          the edge (ships.test.js), an arena that wraps (wrap.test.js) or has walls
                          (walls.test.js), camera framing
-                         and the seed editor's model (editorModel.test.js)
+                         and the seed editor's model (editorModel.test.js); guide/ checks the guide's automata
+                         against published facts (automata.test.js), and its steps, its sources, its 3D camera
+                         and that every animation draws (steps.test.js); atlas/ checks the Atlas's counts by brute
+                         force, against Packard and Wolfram's table and an independent computation (counts.test.js),
+                         and its paper's markup, citations, links and printed numbers (paper.test.js)
 src/
   main.js                Boot: Game of Life 3D (unbounded) (startExplore()) by default, or initSimulation(); then animate()
   browser.js             detectBrowser(): the browser's name and version, from navigator.userAgentData or the
                          user-agent string, for a result's details (no DOM; tested in Node)
   brand/tokens.css       Brand pin: the Morpheus Tech brand tokens. Not imported yet. Never hand-edit
   state.js               The one shared, mutable `state` object: settings, rules, scene handles, history
+  readouts.js            holdWidth(): keeps a readout above the control bar as wide as the longest value it
+                         will show while a run plays, so it doesn't shift as it counts (#175) (tested in Node)
   simulationModel.js     Builds the Three.js Points geometry from the history; updatePoints() per frame
   matrixFunctions.js     The automata: generateSimulation() and each mode's evolve step (the CPU reference);
                          convolve3D() here passes `state`'s settings to denseStep.js
@@ -172,6 +182,38 @@ src/
   contests/race-bench.html Not bundled: a dev page (/src/contests/race-bench.html under `npm run dev`) that measures
                          what racing #1 costs a Speed run (#149): runs with and without the race in turn, then
                          their means, spread and Welch's t
+  guide/                 The guide (#159): a short tour of cellular automata, with every source it cites
+  guide/steps.js         The ten steps' words, each one's animation and sources, and SOURCES: every cited work's
+                         authors, year, title, venue and link (no DOM; tested in Node)
+  guide/automata.js      The small automata the animations run, written for the lab: elementary rules (Rule 30,
+                         Rule 110), Life on the plane and on a torus, RLE patterns, the lab's default rule and the four
+                         cases step 6 shows it deciding (CASES_3D), the HPP lattice gas,
+                         Nagel–Schreckenberg traffic, the sandpile, and the scales' illustration (no DOM; tested)
+  guide/iso.js           An orthographic camera that draws shaded cubes on a 2D canvas (no DOM; tested)
+  guide/scenes.js        Each step's animation, drawn on the guide's own 2D canvas; a frame depends only on its
+                         time. The 3D steps run the lab's unbounded engine (World, step, presets), never its WebGL
+  guide/guide.js         The guide on the page: Guide (#info-button) opens and closes it, Back, Next, the dots, the arrow keys
+                         and Esc, Sources and credits, pausing the lab behind it (isGuideOpen(), which
+                         animate() checks), and a still frame with reduced motion. Sets only textContent
+  guide/guide.css        The top bar's buttons and the guide's layout, a phone's included
+  guide/guide-check.html Not bundled: a dev page (/src/guide/guide-check.html under `npm run dev`) that checks the
+                         guide on its own, with its markup and styles from index.html and stand-ins for the lab, so
+                         it runs without WebGL; ?step=N&wait leaves step N open, for a look or a screenshot
+  atlas/                 The Atlas (#185): the lab's working paper on Game of Life 3D, and later its Lexicon (#107)
+  atlas/counts.js        The paper's numbers, computed: the neighbourhoods, the square's and cube's symmetries,
+                         isotropic classes by Burnside's lemma, each class's count as an exponent of 2 (BigInt),
+                         digits of 2^e, and the dual of a rule (no DOM; tested)
+  atlas/markup.js        The paper's inline markup (^{} _{} *…* [cite:…] [§…]) parsed into a tree (no DOM; tested)
+  atlas/paper.js         The paper as data: its sections and their blocks, its revision and how to cite it, and the
+                         sources it cites beyond the guide's SOURCES; every count comes from counts.js (no DOM; tested)
+  atlas/atlas.js         The Atlas on the page: the Atlas button opens and closes it, its contents, Back, Next, the
+                         arrow keys and Esc, the Sources page, pausing the lab behind it (isAtlasOpen(), which
+                         animate() checks); Guide and Contests close it first. Builds formulas with the DOM; sets
+                         only textContent
+  atlas/atlas.css        The Atlas's layout, a phone's included; its button takes the Guide button's look
+  atlas/atlas-check.html Not bundled: a dev page (/src/atlas/atlas-check.html under `npm run dev`) that checks the
+                         Atlas on its own, with the top bar, the guide and the Atlas from index.html and stand-ins for
+                         the lab; ?page=<id>&wait leaves a page open, for a look or a screenshot
   explore/               The Game of Life 3D (unbounded) mode, called Explore until #116 (the code keeps `explore`): the unbounded engine on the page (#37)
   explore/explore.js     Starts and drives the run, the control bar's commands in Game of Life 3D (unbounded), the HUD box and notices
                          (ships leaving, #103), and the save popover
@@ -431,6 +473,10 @@ src/
   path is optional and must match it exactly. Libraries come in as npm dependencies, not copies.
 - No secrets, tokens, internal hostnames, or paths outside this repo. The repo and the site are
   public.
+- Don't load anything the page needs from a third party's servers (fonts, scripts, styles): each
+  request hands that party the visitor's IP address. Fonts come in as npm packages
+  (`@fontsource/*`), imported in `main.js`, and are served with the site; `test/selfHosted.test.js`
+  fails on a Google Fonts link.
 - Don't commit `dist/` (ignored); `gh-pages` holds the build.
 - Don't add brand files beyond the two pinned in `brand.lock`: the brand's design documents and
   the full-size logo stay private.

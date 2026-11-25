@@ -7,6 +7,56 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
 
 ## [Unreleased]
 
+## [1.9.0] — 2026-11-25
+
+### Added
+- **Guide**, left of the Contests banner in every mode, opens a short guide to cellular automata:
+  what they are, Rule 30, Conway's Game of Life and what lives in it, Game of Life 3D and this
+  lab's own rules, and what cellular automata have shown in biology, physics, engineering and
+  mathematics. Each of its ten steps comes with an animation running the rule it describes
+  (Rule 30 and Rule 110, Life, the lab's own 3D engine, a lattice gas, traffic and the
+  sandpile), and names its sources; **Sources and credits** lists every work the guide cites,
+  with its authors, year and a link. A playing simulation pauses while it is open. With reduced
+  motion, each step shows a still frame (#159). Beside its 3D cube and ship, the step on this
+  lab's rules shows a 2D cross-section, the layer y = 0, marked in the 3D view (#162). That step
+  now starts with Game of Life 3D (unbounded), where the lab opens, and comes to Game of Life 3D
+  (bounded) second (#190). The step
+  on adding a dimension tells how many more rules 26 neighbours allow and how they are written,
+  B for birth and S for survival as in Conway's B3/S23, instead of Carter Bays' four-number names.
+  Its animation then shows the lab's default rule, B9,10/S5–15, at work as the step on Conway's
+  rules does: a cell's live neighbours among 26 counted, and whether it survives, is born or
+  dies (#182). The step on rules that compute shows Rule 110 in a smaller, slower panel, beside
+  seven of Life's oscillators running in place, each labelled with its period, from 2 to 15 (#180).
+- **Atlas**, between Guide and the Contests banner, opens *An atlas of Life in 3D*, the lab's
+  working paper on Game of Life 3D, revision 1: its rules, what lives in them, and what is still
+  unknown. It begins with the map, counting the rules a Life-like automaton can have, for the von
+  Neumann and Moore neighbourhoods at range 1 and 2 in the plane and in space:
+  every rule, the isotropic ones (by Burnside's lemma), the outer-totalistic ones (262,144 in the
+  plane, 2⁵⁴ in space) and the totalistic ones, each with a short proof. It shows how quiescence,
+  duality, behaviour and walls shrink the space, and why the lab exists to explore it and is open
+  source. It opens on its contents, moves section by section, and lists every work it cites; step
+  6 of the guide links to its counting. A playing simulation pauses while it is open (#186).
+
+### Changed
+- The readouts above the control bar each take one line, a small label beside each value,
+  instead of two rows of labels over values, giving the simulation about 80px more height. They
+  keep their width while the values change, and Watch's bar sits just above them (#175).
+- The company panel's **morpheustech.net** link shows the Morpheus Tech mark in its gilt, as
+  morpheustech.net draws its logo, in place of a globe (#169).
+- The reverse and flip-orientation buttons show bold arrows with solid heads, the direction in use
+  lit; the orientation icon loses the line that outweighed its arrows (#176).
+- The Morpheus Tech logo at the top right shows at full strength, no longer dimmed until
+  hovered, so the Guide button and the Contests banner don't outshine it. Hovered or focused, it
+  glows blue (#164).
+- **Submit by email** says, before the email opens and again in its text, that sending an entry
+  shares your email address with Morpheus Tech LLC, which uses it only to reply about the entry
+  and keeps it with the entry as its record, and shares it only with your written consent or as
+  the law requires (#170).
+- Season 0 of the contests now closes at 11:59 PM Central Time on **31 March 2027**, not 31
+  December 2026; the Contests banner and pages say so (#166).
+- The lab's font, Roboto Mono, is served with the site, no longer from Google's font servers, so
+  visiting the lab no longer sends your IP address to Google (#171).
+
 ## [1.8.0] — 2026-11-23
 
 ### Added

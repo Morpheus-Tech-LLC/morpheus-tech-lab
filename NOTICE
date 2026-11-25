@@ -4,6 +4,9 @@ Copyright 2025-2026 Morpheus Tech LLC
 This product includes software developed by Morpheus Tech LLC and the Morpheus Tech Lab
 contributors, licensed under the Apache License, Version 2.0 (see LICENSE).
 
+The site bundles the Roboto Mono typeface, Copyright 2015 The Roboto Mono Project Authors,
+licensed under the SIL Open Font License, Version 1.1, from the @fontsource/roboto-mono package.
+
 The Apache License does not grant permission to use the Morpheus Tech brand (see also
 Section 6 of the License):
 

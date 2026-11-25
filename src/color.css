@@ -27,4 +27,8 @@
   --color-company-modal-texture: rgba(255, 255, 255, 0.02);
   --color-company-modal-texture-highlight: rgba(255, 255, 255, 0.03);
   --color-company-modal-ownership-background: rgba(25, 25, 30, 0.4);
+
+  /* The Morpheus Tech mark's gilt, as morpheustech.net draws its logo: the brand's
+     --color-gilt-500 (src/brand/tokens.css, which the lab doesn't import yet) */
+  --color-brand-gilt: #c9a227;
 }

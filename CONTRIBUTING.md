@@ -361,7 +361,12 @@ Submit by email. They come from strangers, so handle them like this:
   hyphens: `methuselah-1-ada-lovelace.json`, `methuselah-1-ada-lovelace.png`. Copy the score, the browser, and for Methuselah the
   rules and the seed's cells, from the result file: `npm test` checks the entry against it.
 - **Never commit or publish the entrant's email address**, or anything about them beyond their
-  chosen name, picture, score, browser and date. The address is used only to reply about the entry.
+  chosen name, picture, score, browser and date. The address is used only to reply about the entry,
+  kept with the entry's email as its record, and shared outside Morpheus Tech only with the
+  entrant's written consent or as the law requires (a valid court order, say), and then only what
+  it requires: the email's text and the results card promise them this (`ADDRESS_PROMISE` in
+  `src/contests/submit.js`). Anything else, a newsletter included, needs their own yes first,
+  asked for separately.
 - **Remove an entry on request**, with its result file and picture, by pull request. That takes it
   off the site and out of the current files; it stays in the repo's history.
 

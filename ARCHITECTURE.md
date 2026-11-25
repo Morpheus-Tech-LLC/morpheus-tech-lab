@@ -39,6 +39,10 @@ local storage: whether GPU compute is on.
  │     contestsFrame() ─► watchFrame() ──► explore/view.js                      │
  │   submit.js: the mailto: link; hallOfFame.js ◄── hall-of-fame.json, whose    │
  │     result files (public/hall-of-fame/results/) Watch fetches and replays    │
+ │ Guide: guide/guide.js ─► steps.js, scenes.js on its own 2D canvas; animate() │
+ │   draws nothing behind it; the 3D steps run unbounded/ World + step          │
+ │ Atlas: atlas/atlas.js ─► paper.js ─► counts.js; markup.js to the DOM; step 6 │
+ │   of the guide links in; animate() draws nothing behind it                   │
  └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -246,7 +250,7 @@ checked.
 three contests: Speed, Methuselah, and Classic Methuselah (#102, which took Contained chaos's
 place), each a contest in the code too (`contests.js`'s `CONTESTS`, an id such as `speed-1`, and
 a result file's `run.contest`, which is hashed). All three close at the same instant, 11:59 PM
-Central Time on 31 December 2026 (`closes`). It is a sixth mode, opened from a compact banner
+Central Time on 31 March 2027 (`closes`). It is a sixth mode, opened from a compact banner
 left of the company logo, which also gives the date entries close ("Closes TBD" while `closes` is
 null). It has nothing to set, so one click opens it (`enterContests()` in `controls.js`), and the
 Mode popover has no Contests option. In Contests the banner stays, pressed; a click on it,
@@ -339,7 +343,7 @@ the file, then has only what the entrant fills in; what the result file holds (s
 ships, hash) isn't repeated, and the conditions follow under a rule of dashes, in plain text, since
 a `mailto:` body can't carry formatting. Under the steps, folded away, the card shows the address, subject and text with Copy,
 for webmail. The text is the lab's promise to an
-entrant (the picture's conditions, the public repo, the email address used only to reply, Speed's
+entrant (the picture's conditions, the public repo, who gets the email address (Morpheus Tech, to reply only, shared only with written consent or as the law requires), Speed's
 self-reported timing); CONTRIBUTING.md's "Contest entries" is the maintainers' side of it. The
 **Hall of Fame** is data: `src/unbounded/hall-of-fame.json`, `{"entries": [...]}`, each entry
 with its contest, chosen name, picture (a path under `public/hall-of-fame/`, or null), score,
@@ -390,6 +394,21 @@ generation's `active` cells into the geometry buffers. Orbiting, slicing and aut
 only the camera or the visible set.
 
 ## Architectural decisions
+
+**The guide draws on its own 2D canvas (#159).** Its animations are small, and a 2D canvas with
+a dozen lines of projection (`guide/iso.js`) draws cubes well enough, so the guide never touches
+the lab's renderer, scene or camera: opening it only stops `animate()` from drawing behind it,
+and closing it leaves the lab exactly as it was. It also runs where WebGL can't, so its check
+page runs headless. Each animation runs the rule its words describe, and the 3D ones run the
+lab's own unbounded engine, so what the guide shows is what the lab does. Its claims are data,
+with their sources, in `guide/steps.js`, and a test checks that every one is cited.
+
+**The Atlas's numbers are computed, not typed (#186).** Every count the paper prints comes from
+`atlas/counts.js` as the paper loads, so its words and its numbers can't drift apart, and the
+tests check counts.js three ways: by brute force where the space is small, against Packard and
+Wolfram's published table, and against an independent computation for space. Its formulas are a
+small inline markup built with the DOM, not a math library, so the lab takes no new dependency
+and sets no innerHTML.
 
 **Precompute the whole history.** It costs memory (`size³ × generations`, all at once) and a
 wait up front. In return, scrubbing and reverse playback are instant and the render loop never
