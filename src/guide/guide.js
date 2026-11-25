@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// The Info guide (#159): a short tour of cellular automata, opened by the Info button left of
+// The guide (#159): a short tour of cellular automata, opened by the Guide button left of
 // the Contests banner. Each step's words (steps.js) come with an animation (scenes.js) on the
 // guide's own 2D canvas; the lab's WebGL view waits behind it, paused. The last page lists every
-// source the tour cites. The Info button stays above the guide, pressed, and closes it, as do
+// source the tour cites. The Guide button stays above the guide, pressed, and closes it, as do
 // Close and Esc. Sets only textContent.
 
 import { STEPS, SOURCES, sourcesInOrder, citation } from './steps.js';
@@ -29,7 +29,7 @@ export function isGuideOpen() {
 }
 
 /**
- * Wires the Info button and the guide.
+ * Wires the Guide button and the guide.
  * @param {object} options
  * @param {() => boolean} options.pauseLab - pauses a playing simulation; true if it was playing
  * @param {() => void} options.resumeLab - plays it again

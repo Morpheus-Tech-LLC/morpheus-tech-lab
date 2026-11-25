@@ -39,7 +39,7 @@ local storage: whether GPU compute is on.
  │     contestsFrame() ─► watchFrame() ──► explore/view.js                      │
  │   submit.js: the mailto: link; hallOfFame.js ◄── hall-of-fame.json, whose    │
  │     result files (public/hall-of-fame/results/) Watch fetches and replays    │
- │ Info: guide/guide.js ─► steps.js, scenes.js on its own 2D canvas; animate()  │
+ │ Guide: guide/guide.js ─► steps.js, scenes.js on its own 2D canvas; animate() │
  │   draws nothing behind it; the 3D steps run unbounded/ World + step          │
  └──────────────────────────────────────────────────────────────────────────────┘
 ```
