@@ -10,6 +10,7 @@ import { SeedError } from "./explore/seed.js";
 import { isContests, startContests, stopContests, isWatching, closeWatch, watchTogglePlay, watchStep, watchViewChanged } from "./contests/contests.js";
 import { CONTESTS, SEASON } from "./unbounded/contests.js";
 import { closingText } from "./contests/format.js";
+import { PRIVACY_POLICY } from "./contests/submit.js";
 import { initGuide, isGuideOpen, closeGuide } from "./guide/guide.js";
 import { initAtlas, openAtlas } from "./atlas/atlas.js";
 import { holdWidth, countWidth } from "./readouts.js";
@@ -519,6 +520,9 @@ export function initControls() {
   // Company logo buttons - open company modal (set up globally)
   const companyModal = document.getElementById('company-modal');
   const companyModalClose = document.getElementById('company-modal-close');
+  // Its Privacy policy link (#197) takes the address Submit by email's notice links to, so the two agree
+  const privacyLink = document.getElementById('company-privacy-link');
+  if (privacyLink) privacyLink.href = PRIVACY_POLICY;
   
   // The company logo at the top opens the company modal, which links to morpheustech.net (the
   // logos beside the dialog's range hints went in #123: the hints open their advice instead)

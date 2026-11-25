@@ -30,7 +30,7 @@ import {
   arenaText, budgetText, seedPicture, sentence, departuresText, paceOf, paceTop, paceLayout, raceText,
   placeText, stripLayout,
 } from './format.js';
-import { SUBMIT_ADDRESS, ADDRESS_PROMISE, emailSubject, emailBody, mailtoLink } from './submit.js';
+import { SUBMIT_ADDRESS, ADDRESS_PROMISE, PRIVACY_POLICY, AGE_LINE, emailSubject, emailBody, mailtoLink } from './submit.js';
 import { HALL_OF_FAME_TOP, readHallOfFame, rankEntries, placeFor, dayText } from './hallOfFame.js';
 import { LOOKS, logo, lookOf, verifyGlyph } from './looks.js';
 
@@ -234,7 +234,11 @@ function showList() {
   const tiles = h('div', { className: 'contests-tiles' }, ...CONTESTS.filter(onPage).map(tile));
   show('list', SEASON, [
     h('p', { text: 'Three contests on the engine of Game of Life 3D (unbounded). Each fixes its own rules, and all run on the CPU, so every entrant runs the same thing. Anyone can check any result by replaying it.', attrs: { id: 'contests-list-about' } }),
-    h('p', { className: 'contests-closes', text: closingText(CONTESTS), attrs: { id: 'contests-closes' } }),
+    // Who may enter, beside when entries close, as the privacy policy says (#197)
+    h('p', { className: 'contests-closes' },
+      h('span', { text: closingText(CONTESTS), attrs: { id: 'contests-closes' } }),
+      document.createTextNode(' · '),
+      h('span', { text: AGE_LINE, attrs: { id: 'contests-age' } })),
     tiles,
     // Verify a result judges every contest: a bar across the panel under its own heading, apart
     // from the contests' cards
@@ -1243,7 +1247,8 @@ async function copyText(text, what) {
  * by step 1 or by Export result. Saving and opening are separate clicks: done in one, a mailto:
  * link's hand-off to the mail app can lose the download (#140). The email opens in a new tab, so
  * a browser that sends mailto: to webmail doesn't navigate away from the results card. Above
- * them, who gets the visitor's email address and what is done with it (ADDRESS_PROMISE). Under them, folded away, the
+ * them, who gets the visitor's email address and what is done with it (ADDRESS_PROMISE), who may
+ * enter, and the privacy policy, in a new tab so the results card stays (#197). Under them, folded away, the
  * address, subject and text with Copy, for webmail.
  * @returns {{parts: Node[], saved: (said: string) => void}} the section's contents, and what
  *   Export result calls once it has saved the file
@@ -1313,7 +1318,8 @@ function submitParts({ contest, score, browser, text, ending }) {
     parts: [
       h('p', { className: 'contests-submit-lead', text: "Your entry is an email with your result file attached. Without the file, it can't be verified or listed." }),
       h('p', { className: 'contests-submit-privacy', attrs: { id: 'contests-submit-privacy' } },
-        h('strong', { text: 'Your email address. ' }), document.createTextNode(ADDRESS_PROMISE)),
+        h('strong', { text: 'Your email address. ' }), document.createTextNode(`${ADDRESS_PROMISE} ${AGE_LINE} `),
+        h('a', { text: 'Privacy policy', attrs: { id: 'contests-submit-policy', href: PRIVACY_POLICY, target: '_blank', rel: 'noopener noreferrer' } })),
       h('ol', { className: 'contests-submit-steps' },
         saveStep,
         emailStep,
