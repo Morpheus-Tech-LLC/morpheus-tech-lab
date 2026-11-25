@@ -5,9 +5,11 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { contestById } from '../../src/unbounded/contests.js';
 import {
-  SUBMIT_ADDRESS, ADDRESS_PROMISE, HALL_OF_FAME_LINE, RULE, attachLine, emailSubject, emailBody, mailtoLink,
+  SUBMIT_ADDRESS, ADDRESS_PROMISE, PRIVACY_POLICY, AGE_LINE, HALL_OF_FAME_LINE, RULE, attachLine, emailSubject, emailBody,
+  mailtoLink,
 } from '../../src/contests/submit.js';
 
 const SPEED = contestById('speed-1');
@@ -92,6 +94,22 @@ test('below the rule: the picture conditions, that the repo is public, how the a
   // Speed's timing
   assert.match(bottom, /Speed's timing is self-reported: a replay proves the generation, not how long it took\./);
   assert.match(bottom, /screen recording of a run on lab\.morpheustech\.net/);
+});
+
+test("the privacy policy and who may enter, as the policy says (#197)", () => {
+  assert.equal(PRIVACY_POLICY, 'https://morpheustech.net/privacy');
+  assert.equal(AGE_LINE, 'Entrants must be 13 or older.');
+  // The company panel's link takes its address from PRIVACY_POLICY, so index.html must not carry another
+  const html = readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+  const link = html.match(/<a id="company-privacy-link"[^>]*>/)?.[0];
+  assert.ok(link, 'index.html has the company panel\'s Privacy policy link');
+  assert.doesNotMatch(link, /href=/);
+  assert.match(link, /target="_blank"/);
+  // The email's text is unchanged: it has no room to spare, and the results card says both
+  for (const contest of ['speed-1', 'methuselah-1', 'classic-methuselah-1'].map(contestById)) {
+    const body = emailBody(entry({ contest }));
+    assert.ok(!body.includes('privacy') && !body.includes('13 or older'));
+  }
 });
 
 test("the rule is plain dashes, and never a signature's \"-- \"", () => {

@@ -165,7 +165,8 @@ src/
   contests/looks.js      Each kind of contest's colour and logo (a stopwatch, an hourglass, a scribble in a box),
                          and Verify a result's scales, drawn as SVG on the page
   contests/submit.js     Submit by email (#79): the address, the subject, the email's text (the lab's promise to an
-                         entrant) and the mailto: link (no DOM; tested in Node)
+                         entrant) and the mailto: link; the privacy policy's address, which the company panel
+                         links to too, and who may enter (#197) (no DOM; tested in Node)
   contests/hallOfFame.js The Hall of Fame (#79): readHallOfFame() (the data's shape; a Methuselah entry also has
                          rules and seedCells), rankEntries() (as the contest ranks, then date, then arrival), checkEntry()
                          (an entry against its result file) (no DOM; tested in Node)

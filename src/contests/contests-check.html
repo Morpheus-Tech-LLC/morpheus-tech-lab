@@ -65,6 +65,7 @@
     <li>Export a Methuselah result, then <code>node scripts/verify.mjs methuselah-1-N.json</code>: verified, "settled at generation N (period P)" or "died at generation N".</li>
     <li>Classic Methuselah, in Watch: a ship visibly leaves through the arena's wall at the generation the scrub bar's tick marks, and the departures line changes as it does, scrubbing back and forth too.</li>
     <li>Classic Methuselah's page reads well at full width and at phone width, its five endings and five facts included; its card on the list sits beside Methuselah's.</li>
+    <li>The company panel's three links, morpheustech.net, GitHub and Privacy policy, read well at full width and at phone width, where they may wrap; Privacy policy opens the policy in a new tab, and so does the link at the end of Submit by email's notice, with the results card still there (#197). The list's closing date and "Entrants must be 13 or older" read well on one line, or wrap cleanly at phone width.</li>
   </ul>
   <script type="module">
     const frame = document.getElementById('lab');
@@ -198,6 +199,14 @@
       ok(win.getComputedStyle(logo.querySelector('img')).filter.includes('drop-shadow'), 'lit');
       ok(doc.elementFromPoint((logoBox.left + logoBox.right) / 2, (logoBox.top + logoBox.bottom) / 2)?.closest('#company-logo-button-top'), 'and on top of the panel, so it can be clicked');
       ok(!visible('contests-banner'), 'The Contests banner hides meanwhile');
+      // The privacy policy, beside morpheustech.net and GitHub (#197)
+      const companyLinks = [...el('company-modal').querySelectorAll('.company-modal-links .company-modal-link')];
+      const policy = el('company-privacy-link');
+      ok(companyLinks.length === 3 && companyLinks[2] === policy && visible('company-privacy-link') && policy.textContent.trim() === 'Privacy policy',
+        `The panel's third link is Privacy policy (${companyLinks.map((a) => a.textContent.trim()).join(', ')})`);
+      ok(policy.href === 'https://morpheustech.net/privacy' && policy.target === '_blank' && policy.rel.includes('noopener'), `It opens https://morpheustech.net/privacy in a new tab ("${policy.href}")`);
+      const linkHeights = companyLinks.map((a) => Math.round(a.getBoundingClientRect().height));
+      ok(new Set(linkHeights).size === 1 && policy.classList.contains('glass-button'), `styled as the other two, the same height (${linkHeights.join(', ')} px)`);
       logo.click();
       await sleep(300);
       ok(!companyOpen() && logo.getAttribute('aria-expanded') === 'false', 'Clicking the logo again closes the panel');
@@ -245,6 +254,7 @@
       const nameTops = tiles.map((t) => Math.round(t.querySelector('.contests-tile-name').getBoundingClientRect().top));
       ok(new Set(nameTops).size === 1, `The cards' names line up, however long the line under them (${nameTops.join(', ')})`);
       ok(text('contests-closes') === 'Entries close 31 March 2027, 11:59 PM Central Time', `The list gives the closing date and time ("${text('contests-closes')}")`);
+      ok(text('contests-age') === 'Entrants must be 13 or older.' && el('contests-age').parentElement === el('contests-closes').parentElement, `and beside it, that entrants must be 13 or older (#197) ("${text('contests-age')}")`);
       ok(text('contests-list-about').startsWith('Three contests') && text('contests-list-about').includes('on the CPU'), 'It speaks of three contests, all on the CPU (#116)');
       ok(!/branch/i.test(panelText()) && (panelText().match(/same (engine|thing)/g) ?? []).length === 1, 'It never says branch, and says once that everyone runs the same thing');
       ok(el('contests-verify').classList.contains('contests-verify-button') && el('contests-verify').querySelector('svg.contests-verify-glyph path'), 'Verify a result has its own button, with the scales');
@@ -452,6 +462,11 @@
 
       section('Submit by email');
       ok(text('contests-submit').includes("Without the file, it can't be verified or listed"), 'It says the entry is an email with the result file attached');
+      const notice = el('contests-submit-privacy');
+      const noticePolicy = el('contests-submit-policy');
+      ok(text('contests-submit-privacy').includes('Entrants must be 13 or older.'), `Its notice on your email address says entrants must be 13 or older (#197)`);
+      ok(noticePolicy && notice.contains(noticePolicy) && noticePolicy.textContent === 'Privacy policy' && notice.lastChild === noticePolicy, 'and ends with a link, Privacy policy');
+      ok(noticePolicy?.href === 'https://morpheustech.net/privacy' && noticePolicy.target === '_blank' && noticePolicy.rel.includes('noopener'), `which opens https://morpheustech.net/privacy in a new tab, so the results card stays ("${noticePolicy?.href}")`);
       ok(el('contests-submit').querySelectorAll('.contests-submit-step').length === 3, 'as three numbered steps: save, open the email, attach');
       ok(visible('contests-submit-save'), 'Step 1 is Save result file');
       ok(text('contests-submit-attach').includes(`Attach ${fileName} to the email`) && text('contests-submit-attach').includes("can't attach it for you"), `Step 3 names the file to attach, by hand ("${text('contests-submit-attach')}")`);

@@ -367,6 +367,10 @@ Submit by email. They come from strangers, so handle them like this:
   it requires: the email's text and the results card promise them this (`ADDRESS_PROMISE` in
   `src/contests/submit.js`). Anything else, a newsletter included, needs their own yes first,
   asked for separately.
+- **Delete the entry's email 12 months after its season's results are final**, its original and
+  any copies, as Morpheus Tech's [privacy policy](https://morpheustech.net/privacy) says. The
+  result file and the resized picture that went into the Hall of Fame stay: they hold no email
+  address.
 - **Remove an entry on request**, with its result file and picture, by pull request. That takes it
   off the site and out of the current files; it stays in the repo's history.
 

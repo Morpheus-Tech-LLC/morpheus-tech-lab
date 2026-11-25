@@ -19,6 +19,18 @@ import { scoreText } from './format.js';
 export const SUBMIT_ADDRESS = 'lab@morpheustech.net';
 
 /**
+ * Morpheus Tech LLC's privacy policy, which covers the lab (#197): the company panel and Submit by
+ * email's notice both link to it. Not in the email's text, which has no room to spare.
+ */
+export const PRIVACY_POLICY = 'https://morpheustech.net/privacy';
+
+/**
+ * Who may enter, as the privacy policy says (#197): the contests' list page and Submit by email's
+ * notice both say it.
+ */
+export const AGE_LINE = 'Entrants must be 13 or older.';
+
+/**
  * Who gets an entrant's email address and what is done with it: the email's small print says it,
  * and so does the results card, before the visitor opens the email. CONTRIBUTING.md's "Contest
  * entries" keeps the maintainers to it. Using the address for anything else, marketing included,
