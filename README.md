@@ -139,6 +139,18 @@ sources; **Sources and credits** lists every work the guide cites. Back, Next, t
 arrow keys move through it; Close, Esc or Guide again closes it, and a playing simulation, paused
 while it was open, plays on.
 
+### Atlas
+
+**Atlas**, between Guide and the Contests banner, opens *An atlas of Life in 3D*, the lab's
+working paper on Game of Life 3D: its rules, what lives in them, and what is still unknown. It
+begins with the map: the von Neumann and Moore neighbourhoods at range 1 and 2, and how many rules
+each class holds (every rule, the isotropic, the outer-totalistic and the totalistic ones), each
+count proved. Then it shows how constraints narrow the space, and why the lab exists to explore
+it. It opens on its contents;
+Back, Next, the arrow keys and the contents move through its sections, and **Sources** lists every
+work it cites. Step 6 of the guide links to its counting. It is revised as the lab learns more,
+and the Lexicon of what has been found in these rules joins it later.
+
 ### Settings of Game of Life 3D (unbounded)
 
 In Game of Life 3D (unbounded), the **Simulation** box comes first. A simulation is a seed and

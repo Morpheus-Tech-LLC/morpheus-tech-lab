@@ -28,7 +28,22 @@ same engine.
 | # | Next | Description |
 |---|------|-------------|
 | [#42](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/issues/42) | **Contained chaos** | A Discovery contest for a later season |
-| [#107](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/issues/107) | **Lexicon** | The lab's book of creations: patterns people found, featured with credit for who discovered them, outside any contest (planning) |
+
+## The Atlas
+
+*An atlas of Life in 3D* is the lab's working paper on Game of Life 3D: its rules and how many
+there are, what has been found living in them, what is still unknown, and why the lab exists to
+explore them. It
+records what is found in the **Lexicon**, which the paper cites. The plan is
+[#185](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/issues/185); each item below is one
+of its pieces.
+
+| # | Item | Description |
+|---|------|-------------|
+| [#186](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/issues/186) | **The page, and the paper's math** | The Atlas button, the contents, and the paper's counting of neighbourhoods and rule classes, with proofs |
+| [#107](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/issues/107) | **Lexicon** | The lab's book of creations inside the Atlas: patterns people found, with credit for who discovered them and when, each ready to open in the simulator (planning) |
+| [#187](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/issues/187) | **Counting calculator** | Pick a dimension, neighbourhood and rule class, and see how many rules there are (ready) |
+| [#188](https://github.com/Morpheus-Tech-LLC/morpheus-tech-lab/issues/188) | **What lives in the space** | The paper's section on still lifes, oscillators, ships and methuselahs, citing the Lexicon (ready) |
 
 ## The engine
 
