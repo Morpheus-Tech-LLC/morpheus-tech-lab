@@ -208,9 +208,9 @@ src/
                          sources it cites beyond the guide's SOURCES; every count comes from counts.js (no DOM; tested)
   atlas/atlas.js         The Atlas on the page: the Atlas button opens and closes it, its contents, Back, Next, the
                          arrow keys and Esc, the Sources page, pausing the lab behind it (isAtlasOpen(), which
-                         animate() checks); Info and Contests close it first. Builds formulas with the DOM; sets
+                         animate() checks); Guide and Contests close it first. Builds formulas with the DOM; sets
                          only textContent
-  atlas/atlas.css        The Atlas's layout, a phone's included; its button takes the Info button's look
+  atlas/atlas.css        The Atlas's layout, a phone's included; its button takes the Guide button's look
   atlas/atlas-check.html Not bundled: a dev page (/src/atlas/atlas-check.html under `npm run dev`) that checks the
                          Atlas on its own, with the top bar, the guide and the Atlas from index.html and stand-ins for
                          the lab; ?page=<id>&wait leaves a page open, for a look or a screenshot

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 // The Atlas (#185, #186): the lab's working paper on Game of Life 3D, opened by the Atlas button
-// between Info and the Contests banner. It opens on its contents; each section is a page of its
+// between Guide and the Contests banner. It opens on its contents; each section is a page of its
 // own, with Back and Next between them, and the last page lists every source the paper cites. The
 // Lexicon joins it later (#108). Like the guide, it covers the lab, which waits behind it paused;
 // the Atlas button stays above it, pressed, and closes it, as do Close and Esc. The words are
@@ -58,7 +58,7 @@ export function initAtlas(options) {
   els.backdrop?.addEventListener('click', () => closeAtlas());
   els.back.addEventListener('click', () => go(PAGES[PAGES.indexOf(page) - 1]));
   els.next.addEventListener('click', () => go(PAGES[PAGES.indexOf(page) + 1]));
-  // The other top-bar buttons stay clickable above the Atlas: Info and Contests close it first.
+  // The other top-bar buttons stay clickable above the Atlas: Guide and Contests close it first.
   // In the capture phase, so it has closed before their own handlers run
   for (const id of ['info-button', 'contests-banner']) {
     $(id)?.addEventListener('click', () => open && closeAtlas(() => {}), true);

@@ -3,7 +3,7 @@
 // The Atlas's working paper (#185, #186), as data: its sections, each a list of blocks whose text
 // uses markup.js's inline markup, and the works it cites. Every count it prints is computed by
 // counts.js as the module loads, so the words and the numbers can't drift apart; a test checks
-// counts.js against computations of its own. Sources shared with the Info guide come from its
+// counts.js against computations of its own. Sources shared with the guide come from its
 // SOURCES, not copies. No DOM.
 
 import { SOURCES as GUIDE_SOURCES, citation } from '../guide/steps.js';
@@ -186,7 +186,7 @@ export const SECTIONS = [
       h('Outer-totalistic rules'),
       p('An outer-totalistic rule looks only at the cell’s own state and at how many of its neighbours are alive, from 0 to *n* [cite:packardWolfram1985]. It is a birth set *B*, the counts at which a dead cell comes to life, and a survival set *S*, the counts at which a live cell stays alive. Each is any subset of the *n* + 1 counts, so there are'),
       math('2^{*n*+1} × 2^{*n*+1} = 2^{2*n*+2}'),
-      p(`outer-totalistic rules: ${exact(MOORE_2D.outerTotalistic)} in the plane, as in Packard and Wolfram’s table, and ${exact(MOORE_3D.outerTotalistic)} in space, the 18 quadrillion of the Info guide’s step 6. Conway’s B3/S23 is one of the first; the lab’s default, B9,10/S5–15, is one of the second.`),
+      p(`outer-totalistic rules: ${exact(MOORE_2D.outerTotalistic)} in the plane, as in Packard and Wolfram’s table, and ${exact(MOORE_3D.outerTotalistic)} in space, the 18 quadrillion of the guide’s step 6. Conway’s B3/S23 is one of the first; the lab’s default, B9,10/S5–15, is one of the second.`),
       h('Totalistic rules'),
       p('A totalistic rule looks only at how many cells of the neighbourhood are alive, the cell itself included, from 0 to *n* + 1, and so forgets whether the cell was alive [cite:packardWolfram1985]. Each of the *n* + 2 totals can give 0 or 1, and every total occurs, so each choice is a different rule:'),
       math('2^{*n*+2}'),
@@ -255,7 +255,7 @@ export const SECTIONS = [
     blocks: [
       p('The lab is an instrument for exploring this space. Pick a rule, seed it, and watch what lives in it; then measure it: how it grows, what it leaves behind, how long it lasts.'),
       p(`Most of what is known about Life-like rules comes from the plane. Conway’s rule alone has yielded still lifes, oscillators of every period and ships of many speeds [cite:gardner1970,brown2023,gemini,sirRobin]. Yet it is one of ${grouped(2n ** MOORE_2D.outerTotalistic)} outer-totalistic rules in the plane, and those are a small corner beside the ${pow(MOORE_3D.outerTotalistic)} in space, of which little has been mapped.`),
-      p('Cellular automata have explained real things: the scales of a lizard, the flow of fluids, traffic jams, the avalanches of a sandpile (the Info guide’s step 8). The next finding may come from a rule no one has run yet. The lab exists, in part, to find such rules and record what lives in them, so that what is found here can add to science.'),
+      p('Cellular automata have explained real things: the scales of a lizard, the flow of fluids, traffic jams, the avalanches of a sandpile (the guide’s step 8). The next finding may come from a rule no one has run yet. The lab exists, in part, to find such rules and record what lives in them, so that what is found here can add to science.'),
       p('That is also why the lab is open source, under the Apache License 2.0. Anyone can read how it works and check its results, improve the software, add new simulations, and share what they find: in Discussions, through the contests and the Hall of Fame, and, once it arrives, in this atlas’s Lexicon.'),
     ],
   },

@@ -141,7 +141,7 @@ while it was open, plays on.
 
 ### Atlas
 
-**Atlas**, between Info and the Contests banner, opens *An atlas of Life in 3D*, the lab's
+**Atlas**, between Guide and the Contests banner, opens *An atlas of Life in 3D*, the lab's
 working paper on Game of Life 3D: its rules, what lives in them, and what is still unknown. It
 begins with the map: the von Neumann and Moore neighbourhoods at range 1 and 2, and how many rules
 each class holds (every rule, the isotropic, the outer-totalistic and the totalistic ones), each

@@ -82,9 +82,9 @@
     try {
       section('The Atlas button');
       const atlas = $('atlas-button'), info = $('info-button'), banner = $('contests-banner');
-      ok(visible('atlas-button') && visible('info-button') && visible('contests-banner'), 'Info, Atlas and Contests are on the top bar');
+      ok(visible('atlas-button') && visible('info-button') && visible('contests-banner'), 'Guide, Atlas and Contests are on the top bar');
       const a = info.getBoundingClientRect(), b = atlas.getBoundingClientRect(), c = banner.getBoundingClientRect();
-      ok(a.right <= b.left && b.right <= c.left, `Atlas sits between Info and Contests (${Math.round(b.left - a.right)} px, ${Math.round(c.left - b.right)} px)`);
+      ok(a.right <= b.left && b.right <= c.left, `Atlas sits between Guide and Contests (${Math.round(b.left - a.right)} px, ${Math.round(c.left - b.right)} px)`);
       ok(Math.abs((a.top + a.bottom) / 2 - (b.top + b.bottom) / 2) <= 3 && Math.abs((b.top + b.bottom) / 2 - (c.top + c.bottom) / 2) <= 3, 'level with them');
       ok(atlas.textContent.trim() === 'Atlas' && atlas.querySelector('svg'), 'labelled Atlas, with its icon');
       ok(atlas.getAttribute('aria-pressed') === 'false' && !visible('atlas'), 'The Atlas is closed, its button not pressed');
@@ -180,7 +180,7 @@
       atlas.click();
       info.click();
       await sleep(100);
-      ok(!isAtlasOpen() && isGuideOpen(), 'Info, with the Atlas open, closes it and opens the guide');
+      ok(!isAtlasOpen() && isGuideOpen(), 'Guide, with the Atlas open, closes the Atlas and opens the guide');
       ok($('lab-stand-in').inert, 'the guide holds the lab out of reach');
       atlas.click();
       await sleep(100);
