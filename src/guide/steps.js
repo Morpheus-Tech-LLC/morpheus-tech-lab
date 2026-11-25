@@ -323,8 +323,8 @@ export const STEPS = [
     id: 'lab',
     title: 'In this lab',
     body: [
-      'The lab opens on B9,10/S5–15. Game of Life 3D (bounded) runs it inside a box. At its walls a cell has fewer neighbours (17 on a face, 11 on an edge, 7 at a corner), so each has its own rules.',
-      'Game of Life 3D (unbounded) has no edges: the world grows wherever life goes. Under some rules a 3D ship travels at c, one cell per generation, twice the top speed of any spaceship in Conway’s Life.',
+      'The lab opens on B9,10/S5–15 in Game of Life 3D (unbounded), which has no edges: the world grows wherever life goes. Under some rules a 3D ship travels at c, one cell per generation, twice the top speed of any spaceship in Conway’s Life.',
+      'Game of Life 3D (bounded) runs the same rule inside a box. At its walls a cell has fewer neighbours (17 on a face, 11 on an edge, 7 at a corner), so each has its own rules.',
     ],
     scene: 'lab3d',
     alt: 'The lab’s 10 by 10 by 10 cube swelling under its default rules, then an 8-cell ship flying one cell per generation, both run by the lab’s own engine. Beside each, a flat grid shows the cross-section through its middle layer, marked by a plane in the 3D view.',
