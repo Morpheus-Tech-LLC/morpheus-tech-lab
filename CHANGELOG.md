@@ -7,6 +7,14 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
 
 ## [Unreleased]
 
+## [1.10.0] — 2026-11-25
+
+### Added
+- **Privacy policy**, a third link in the company panel beside morpheustech.net and GitHub, opens
+  Morpheus Tech's privacy policy, which covers the lab, in a new tab. Submit by email's notice on
+  your email address now ends with the same link, and says entrants must be 13 or older, as the
+  contests' list page does beside the closing date (#197).
+
 ## [1.9.0] — 2026-11-25
 
 ### Added
