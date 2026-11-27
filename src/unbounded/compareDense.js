@@ -11,9 +11,9 @@
 // It reads no `state`: the rules default to the lab's starting ones (B9,10/S5-15). To check the
 // rules set in the lab, pass them: `rules: (await import('/src/state.js')).state.rules`.
 //
-// With wrapping off, convolve3D() clamps at the walls, so a cell on a wall counts a neighbour
-// more than once, and the wall cells follow the boundary rules. The unbounded world has no
-// walls. The two agree only while the pattern keeps clear of them: at least 2 cells from every
+// With wrapping off, convolve3D()'s grid is closed by walls, and the wall cells follow the
+// boundary rules (or, given none, the Rules, with fewer neighbours). The unbounded world here has
+// no walls. The two agree only while the pattern keeps clear of them: at least 2 cells from every
 // wall, so that no cell on a wall, or next to one, is ever a candidate. This script checks that
 // clearance every generation, in both engines, and fails if the pattern comes closer.
 //
@@ -68,7 +68,7 @@ export async function compareWithDense({
   const world = new World({ rules: { birth, survival }, chunkSize, ...(wrap ? { arena, wrap } : {}) });
   world.setCells(seed.active);
 
-  // Wrapping off and no boundary rules: the walls only clamp, and the pattern keeps clear of them.
+  // Wrapping off and no boundary rules: the pattern keeps clear of the walls.
   // Wrapping on: both are tori, and no wall needs keeping clear of.
   const dense3D = (grid) => convolve3D(grid, { wrapping: wrap, rules: { birth, survival } });
   let dense = seed;
