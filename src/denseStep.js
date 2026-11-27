@@ -31,11 +31,13 @@ function getBoundaryType(x, y, z, size) {
 
 /**
  * One Game of Life 3D generation on a dense grid: the CPU reference for the GPU's shader, quirks
- * included (a dead cell with no live neighbour is never born; with wrapping off, neighbours clamp
- * to the grid, and the wall cells follow the boundary rules).
+ * included (a dead cell with no live neighbour is never born). With wrapping off, the grid is
+ * closed by walls: a place past a wall is no neighbour, so a cell on a wall counts only its
+ * neighbours inside the grid, each once (up to 17 on a face, 11 on an edge, 7 at a corner, #125),
+ * and follows the boundary rules.
  * @param {Grid3D} grid
  * @param {object} [settings]
- * @param {boolean} [settings.wrapping] - wrap at the walls (default) or clamp
+ * @param {boolean} [settings.wrapping] - wrap at the walls (default), or stop at them
  * @param {{birth?: number[], survival?: number[]}} [settings.rules] - the interior rules; an
  *   empty or missing survival list means 5-15, and a missing birth list 9-10
  * @param {object} [settings.boundaryRules] - {corner, edgeTwoFaces, face}, each {birth, survival}:
@@ -46,15 +48,12 @@ export function convolve3D(grid, { wrapping = true, rules = null, boundaryRules 
   const size = grid.size;
   const newGrid = new Grid3D(size, 0);
 
-  // Helper function to get neighbor coordinates (wrap or clamp)
+  // A neighbour's coordinate along one axis: taken round the grid when wrapping, or -1 for a
+  // place past a wall, which is no neighbour
   const getNeighborCoord = (coord, delta) => {
     const newCoord = coord + delta;
-    if (wrapping) {
-      return grid._wrap(newCoord);
-    } else {
-      // Clamp to bounds when wrapping is off
-      return Math.max(0, Math.min(size - 1, newCoord));
-    }
+    if (wrapping) return grid._wrap(newCoord);
+    return newCoord >= 0 && newCoord < size ? newCoord : -1;
   };
 
   // Use a map to avoid duplicate neighbor checks
@@ -71,6 +70,7 @@ export function convolve3D(grid, { wrapping = true, rules = null, boundaryRules 
           const nx = getNeighborCoord(x, dx);
           const ny = getNeighborCoord(y, dy);
           const nz = getNeighborCoord(z, dz);
+          if (nx < 0 || ny < 0 || nz < 0) continue;
           candidates.set(`${nx},${ny},${nz}`, [nx, ny, nz]);
         }
       }
@@ -114,6 +114,7 @@ export function convolve3D(grid, { wrapping = true, rules = null, boundaryRules 
           const nx = getNeighborCoord(x, dx);
           const ny = getNeighborCoord(y, dy);
           const nz = getNeighborCoord(z, dz);
+          if (nx < 0 || ny < 0 || nz < 0) continue;
           neighbors += grid.get(nx, ny, nz);
         }
       }
