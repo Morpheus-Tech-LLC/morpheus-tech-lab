@@ -7,6 +7,14 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
 
 ## [Unreleased]
 
+### Fixed
+- Game of Life 3D (bounded) with Grid wrapping off: a cell on a wall counted itself, and some of
+  its neighbours several times over, so the corner, edge and face rules didn't do what they say.
+  A live corner cell could never survive, and a single live cell on an edge lived and spread
+  along it. A wall cell now counts only its neighbours inside the grid, each once (7 at a corner,
+  11 on an edge, 17 on a face), on the GPU and the CPU alike, as Game of Life 3D (unbounded)'s
+  walls do, so the same rules give the same runs in both modes (#125).
+
 ## [1.10.0] — 2026-11-25
 
 ### Added

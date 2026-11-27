@@ -48,6 +48,8 @@ test/                    `npm test` (Node's built-in node:test, no dependency): 
                          against convolve3D() (dense.test.js); an arena that wraps, against the reference
                          and convolve3D() with wrapping on, and the worlds refused (wrap.test.js); an arena
                          with walls, against the reference and by hand (walls.test.js);
+                         denseWalls.test.js checks Game of Life 3D (bounded)'s walls, convolve3D() with wrapping
+                         off, against the reference closed by the same walls and by hand (#125);
                          browser.test.js checks telling the browser; selfHosted.test.js that the page loads no
                          font from Google's servers (fonts come from npm, served with the site); readouts.test.js that a
                          readout's slot fits every value it counts through; shapeGenerators.test.js the bounded
@@ -334,7 +336,8 @@ src/
   same edge, face and corner rules. The CPU evolve steps in `matrixFunctions.js` (Game of Life 3D (bounded)'s in
   `denseStep.js`) are the
   reference, quirks included (a dead cell with no live neighbour is never born; with wrapping
-  off, neighbours clamp to the grid). Change a CPU step and its shader together, and check
+  off, Rule 30's neighbours clamp to the grid, while Game of Life 3D (bounded)'s stop at the
+  walls, #125). Change a CPU step and its shader together, and check
   with `src/gpu/compare.js` at 50³ and 100³, wrapping on and off, before opening a pull
   request. The GPU's `active` lists hold the same cells in index order; nothing may depend on
   that order. A seed that isn't a plain 0/1 grid (`isPlainGrid()`) runs on the CPU.
@@ -357,9 +360,9 @@ src/
 - **The unbounded engine gives exactly the reference's cells** (`src/unbounded/reference.js`),
   and, while a pattern stays 2 cells clear of the walls, `convolve3D()`'s with wrapping off. A
   wrapping arena of side N gives exactly `convolve3D()`'s N³ grid with wrapping on, everywhere.
-  An arena with walls (#119) gives exactly the reference's cells with the same walls; no dense
-  step checks it, since `convolve3D()` counts past a wall differently. A world that neither wraps
-  nor has walls takes the step's path unchanged: both only touch the chunks the arena's faces run
+  An arena with walls (#119) gives exactly the reference's cells with the same walls, and so does
+  `convolve3D()` with wrapping off, whose grid is closed by walls the same way (#125). A world
+  that neither wraps nor has walls takes the step's path unchanged: both only touch the chunks the arena's faces run
   through, and the main loop stays one inline loop, as the bench needs (#119 measured 7-10%
   slower with it moved into a function).
   Change either engine and run `npm test`, which checks both; after a change to the step, also

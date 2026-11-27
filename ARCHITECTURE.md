@@ -86,8 +86,9 @@ run the step's loop over their cells off the faces, then a second loop, by regio
 cells, so a world without walls runs the loop unchanged.
 `ReferenceWorld` is a deliberately simple engine for the tests to check it against, wrapping, with
 walls or neither; a wrapping arena of side N also gives exactly `convolve3D()`'s N³ grid with
-wrapping on. (`convolve3D()` can't check walls: with wrapping off it counts some neighbours past
-a wall as the wall cell, several times over.)
+wrapping on. With wrapping off, `convolve3D()`'s grid is closed by walls the same way (#125), so
+an N³ grid with corner, edge and face rules gives exactly the reference's cells with those walls
+round the grid; the tests check it there, not against the chunked engine.
 A run (`run.js`) steps a world in a Web Worker (`run.worker.js`), either until a deadline (a
 timed run: only generations completed before it count) or until stopped (an open-ended run,
 which can also pause, step one generation and cap its rate). On the page, `EngineDriver`

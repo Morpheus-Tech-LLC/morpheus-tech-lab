@@ -11,7 +11,7 @@ struct Params {
   size: u32,       // grid edge length
   cellCount: u32,  // size³
   wordCount: u32,  // ceil(cellCount / 4)
-  wrap: u32,       // 1: the edges wrap around; 0: neighbours clamp to the grid, as on the CPU
+  wrap: u32,       // 1: the edges wrap around; 0: walls, past which nothing counts, as on the CPU
   rowWords: u32,   // words per row of the dispatch (workgroups along x × 64)
   _pad0: u32,
   _pad1: u32,
@@ -30,15 +30,16 @@ fn cell(i: u32) -> u32 {
   return (current[i >> 2u] >> ((i & 3u) * 8u)) & 0xffu;
 }
 
-// A neighbour's coordinate along one axis. With wrapping off it clamps to the grid, so a cell
-// on the boundary counts the cells beside it (and itself) more than once, as the CPU does.
-fn neighbour(c: u32, d: i32) -> u32 {
+// A neighbour's coordinate along one axis, or -1 for a place past a wall when wrapping is off:
+// it is no neighbour, so a cell on a wall counts only the cells inside the grid, each once (#125),
+// as the CPU does.
+fn neighbour(c: u32, d: i32) -> i32 {
   let n = i32(params.size);
   let v = i32(c) + d;
   if (params.wrap == 1u) {
-    return u32((v + n) % n);
+    return (v + n) % n;
   }
-  return u32(clamp(v, 0, n - 1));
+  return select(-1, v, v >= 0 && v < n);
 }
 
 fn onBoundary(c: u32) -> u32 {
@@ -54,13 +55,20 @@ fn nextCell(i: u32) -> u32 {
   var count = 0u;
   for (var dz = -1; dz <= 1; dz++) {
     let nz = neighbour(z, dz);
+    if (nz < 0) {
+      continue;
+    }
     for (var dy = -1; dy <= 1; dy++) {
       let ny = neighbour(y, dy);
+      if (ny < 0) {
+        continue;
+      }
       for (var dx = -1; dx <= 1; dx++) {
-        if (dx == 0 && dy == 0 && dz == 0) {
+        let nx = neighbour(x, dx);
+        if (nx < 0 || (dx == 0 && dy == 0 && dz == 0)) {
           continue;
         }
-        count += cell(neighbour(x, dx) + ny * s + nz * s * s);
+        count += cell(u32(nx) + u32(ny) * s + u32(nz) * s * s);
       }
     }
   }
