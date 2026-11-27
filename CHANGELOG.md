@@ -7,6 +7,8 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
 
 ## [Unreleased]
 
+## [1.10.1] — 2026-11-27
+
 ### Fixed
 - Game of Life 3D (bounded) with Grid wrapping off: a cell on a wall counted itself, and some of
   its neighbours several times over, so the corner, edge and face rules didn't do what they say.
