@@ -7,6 +7,13 @@ versions follow [Semantic Versioning](https://semver.org/); they are the annotat
 
 ## [Unreleased]
 
+### Changed
+- `CONTRIBUTING.md`'s "Test the GPU path" gives the flags for running Chromium headless, with no
+  display (an agent, CI or over SSH): `--headless=new --ozone-platform=headless
+  --use-angle=gl-egl`, and says why not `--use-angle=vulkan` there: ANGLE's Vulkan backend needs
+  an X display, so without one the GPU process exits, WebGL is gone and the lab doesn't boot
+  (#208).
+
 ## [1.10.1] — 2026-11-27
 
 ### Fixed
