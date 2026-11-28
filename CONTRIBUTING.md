@@ -205,6 +205,19 @@ badge says where the next run computes.
   ```
   It needs your GPU's Vulkan driver (on AMD, Mesa's RADV). `chrome://gpu` in that window should
   show **WebGPU: Hardware accelerated**. If it doesn't on Wayland, add `--ozone-platform=x11`.
+- **Headless, with no display** (an agent, CI, or over SSH), use ANGLE's OpenGL ES backend
+  instead of Vulkan, again in a throwaway profile:
+  ```sh
+  chromium --headless=new --ozone-platform=headless --use-angle=gl-egl \
+    --user-data-dir=/tmp/webgpu-test \
+    --enable-unsafe-webgpu --enable-features=Vulkan --ignore-gpu-blocklist \
+    http://localhost:5180
+  ```
+  Not `--use-angle=vulkan` here: ANGLE's Vulkan backend still asks for an X display, even with
+  `--ozone-platform=headless`. With no X server, the GPU process exits as it starts (its log
+  shows `xcb_connect() failed`, or that `VK_KHR_xcb_surface` isn't supported), WebGL is gone,
+  and the lab doesn't boot. With no GPU at all, expect software paths: WebGL on Mesa's
+  llvmpipe, and a SwiftShader WebGPU adapter.
 - **Check the GPU matches the CPU.** If you change a shader, `src/gpu/engine.js` or a CPU evolve
   step, run the comparison in `src/gpu/compare.js` from the dev console, as its header shows, at
   50³ and 100³ with wrapping on and off. The GPU must give exactly the CPU's generations.
